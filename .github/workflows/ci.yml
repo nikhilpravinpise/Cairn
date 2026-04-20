@@ -1,0 +1,39 @@
+name: ci
+
+on:
+  push: { branches: [main] }
+  pull_request: { branches: [main] }
+
+jobs:
+  python:
+    name: scripts/ (python 3.11)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: install
+        working-directory: scripts
+        run: |
+          python -m pip install -U pip
+          pip install -e . pytest
+      - name: validate seeds
+        working-directory: scripts
+        run: PYTHONPATH=. python -m data.validate_seeds
+      - name: tests
+        working-directory: scripts
+        run: PYTHONPATH=. pytest -q
+
+  flutter:
+    name: apps/cairn_mobile analyze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: "3.22.x", channel: stable }
+      - name: pub get
+        working-directory: apps/cairn_mobile
+        run: flutter pub get
+      - name: analyze
+        working-directory: apps/cairn_mobile
+        run: flutter analyze --no-fatal-infos

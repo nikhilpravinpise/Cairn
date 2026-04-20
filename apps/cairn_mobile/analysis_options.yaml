@@ -1,0 +1,8 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    prefer_final_locals: true
+    prefer_const_constructors: true
+    prefer_const_declarations: true
+    avoid_print: false  # this spike app prints to logcat on purpose

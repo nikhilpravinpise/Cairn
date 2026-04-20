@@ -1,0 +1,66 @@
+# --- data / model artifacts (licensed, large, or generated) -------------------
+data/**
+!data/seeds/
+!data/seeds/**
+!data/.gitkeep
+*.task
+*.tflite
+*.bin
+*.gguf
+*.safetensors
+*.ckpt
+*.onnx
+
+# --- python -------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- node / next --------------------------------------------------------------
+node_modules/
+.next/
+out/
+dist/
+.pnpm-store/
+.turbo/
+
+# --- flutter / dart -----------------------------------------------------------
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+ios/Pods/
+ios/.symlinks/
+android/.gradle/
+android/app/.cxx/
+android/app/release/
+android/app/debug/
+android/local.properties
+*.iml
+
+# --- os / editor --------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# --- logs / eval outputs ------------------------------------------------------
+logs/
+runs/
+scripts/eval/reports/*
+!scripts/eval/reports/.gitkeep
+scripts/spikes/out/*
+!scripts/spikes/out/.gitkeep
