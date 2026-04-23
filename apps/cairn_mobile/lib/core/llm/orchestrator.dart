@@ -254,7 +254,6 @@ class GemmaOrchestrator {
       throw GemmaContractError('missing triage_draft',
           rawText: raw, task: 'synthesize');
     }
-    final thinking = _extractThinking(raw);
     return SynthesizeResult(
       rationaleBullets:
           (draft['rationale_bullets'] as List? ?? const []).cast<String>(),
@@ -262,19 +261,12 @@ class GemmaOrchestrator {
           (draft['uncertainty_notes'] as List? ?? const []).cast<String>(),
       recommendEngineerFollowup:
           draft['recommend_engineer_followup'] as bool? ?? true,
-      thinkingExcerpt: thinking,
+      // `ThinkingResponse` stream items are captured by `GemmaSession` into
+      // its own buffer; we surface that directly rather than regex-scraping
+      // the text (the text no longer contains `<|think|>` tags — MediaPipe
+      // splits them into separate response events).
+      thinkingExcerpt: out.thinking,
       raw: parsed,
     );
-  }
-
-  /// Pulls anything between `<|think|>` and `<|/think|>` (or the end of the
-  /// thinking block before the JSON object). Best-effort, UI-only.
-  static String _extractThinking(String raw) {
-    final openTag = raw.indexOf('<|think|>');
-    if (openTag < 0) return '';
-    final closeTag = raw.indexOf('<|/think|>');
-    final end = closeTag > openTag ? closeTag : raw.indexOf('{', openTag);
-    if (end < 0) return raw.substring(openTag).trim();
-    return raw.substring(openTag + '<|think|>'.length, end).trim();
   }
 }

@@ -224,7 +224,7 @@ class _RecentReports extends ConsumerWidget {
                 dense: true,
                 leading: CircleAvatar(
                   backgroundColor:
-                      _bandColor(s.priorityBand).withValues(alpha: 0.2),
+                      _bandColor(s.priorityBand).withOpacity(0.2),
                   foregroundColor: _bandColor(s.priorityBand),
                   child: Text('${s.priorityScore}'),
                 ),

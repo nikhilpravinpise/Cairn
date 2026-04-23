@@ -20,7 +20,9 @@ Map<String, Object?>? extractFirstJsonObject(String raw) {
       escape = false;
       continue;
     }
-    if (c == r'\\' && inString) {
+    // Single backslash character. Cannot use `r'\'` — raw strings cannot end
+    // with a backslash — so we use the escape sequence `'\\'` which is one char.
+    if (c == '\\' && inString) {
       escape = true;
       continue;
     }

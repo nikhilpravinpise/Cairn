@@ -5,11 +5,22 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/routing/app_router.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // E4B web .task is ~4 GB which exceeds the ~2 GB ArrayBuffer limit in most
+  // browsers. `WebStorageMode.streaming` routes the download through OPFS so
+  // memory isn't the bottleneck. On mobile the webStorageMode flag is ignored.
+  // See plan §2.4 + docs/week1_pivot.md.
+  await FlutterGemma.initialize(
+    webStorageMode: WebStorageMode.streaming,
+  );
+
   runApp(const ProviderScope(child: CairnApp()));
 }
 

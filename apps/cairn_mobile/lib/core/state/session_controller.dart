@@ -96,6 +96,29 @@ class SessionDraft {
 
   String get askedIn => localeBCP47.split('-').first;
 
+  /// Shallow copy: new `SessionDraft` instance, same internal list references.
+  ///
+  /// Riverpod's `Notifier.state` setter skips notification when
+  /// `oldState == newState`, and SessionDraft inherits identity-based equality
+  /// from `Object`. Every mutator therefore returns state via
+  /// `state = s.cloneShallow()` so listeners always fire.
+  SessionDraft cloneShallow() => SessionDraft(
+        packetId: packetId,
+        createdAtUtc: createdAtUtc,
+        modelName: modelName,
+        modelQuant: modelQuant,
+        modelLora: modelLora,
+        localeBCP47: localeBCP47,
+        location: location,
+        building: building,
+        photos: photos,
+        audios: audios,
+        observations: observations,
+        hazardsFlagged: hazardsFlagged,
+        protocolAnswers: protocolAnswers,
+        triage: triage,
+      );
+
   Observation? get lowestConfidenceObservation {
     if (observations.isEmpty) return null;
     final sorted = [...observations]
@@ -208,13 +231,13 @@ class SessionController extends Notifier<SessionDraft?> {
   void setLocation(GeoLocation loc) {
     final s = _require();
     s.location = loc;
-    state = s;
+    state = s.cloneShallow();
   }
 
   void setBuilding(BuildingInfo b) {
     final s = _require();
     s.building = b;
-    state = s;
+    state = s.cloneShallow();
   }
 
   /// Capture a photo into one of the four required FEMA P-154 slots (front,
@@ -235,7 +258,7 @@ class SessionController extends Notifier<SessionDraft?> {
       takenAtUtc: DateTime.now().toUtc(),
       slot: slot,
     ));
-    state = s;
+    state = s.cloneShallow();
     return ref;
   }
 
@@ -254,7 +277,7 @@ class SessionController extends Notifier<SessionDraft?> {
       sampleRateHz: sampleRateHz,
       channels: channels,
     ));
-    state = s;
+    state = s.cloneShallow();
     return ref;
   }
 
@@ -262,7 +285,7 @@ class SessionController extends Notifier<SessionDraft?> {
   void recordObservation(Observation o) {
     final s = _require();
     s.observations.add(o);
-    state = s;
+    state = s.cloneShallow();
   }
 
   /// Replace a single boolean / categorical field in `protocol_answers`.
@@ -284,13 +307,13 @@ class SessionController extends Notifier<SessionDraft?> {
         pa.copyWith(adjacentLeaning: delta.value as bool? ?? false),
       _ => throw StateError('unknown protocol_answers key: ${delta.key}'),
     };
-    state = s;
+    state = s.cloneShallow();
   }
 
   void addHazard(HazardFlagRecord h) {
     final s = _require();
     s.hazardsFlagged.add(h);
-    state = s;
+    state = s.cloneShallow();
   }
 
   /// Run the deterministic Dart scorer (NOT the LLM) and persist the result
@@ -327,7 +350,7 @@ class SessionController extends Notifier<SessionDraft?> {
       uncertaintyNotes: uncertaintyNotes,
       recommendEngineerFollowup: score >= 4,
     );
-    state = s;
+    state = s.cloneShallow();
   }
 
   Future<EvidencePacket> sealAndSave(EvidenceVault vault) async {

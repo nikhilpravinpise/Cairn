@@ -1,9 +1,12 @@
 /// Thin wrapper around `flutter_gemma` that owns the model + chat lifecycle.
 ///
-/// Web-first (Week-1 S2): no `dart:io`, no `path_provider`. MediaPipe manages
-/// its own cache (OPFS on web, app-support on mobile once we enable it).
+/// Cross-platform: MediaPipe manages its own cache (OPFS on web, app-support
+/// on Android/iOS) so we don't touch `dart:io` directly.
 ///
-/// The real session used by the app ships in Week 2 under `lib/features/…`.
+/// The returned stream from `flutter_gemma` emits typed `ModelResponse`s
+/// (`TextResponse` / `ThinkingResponse` / function-call subclasses); this
+/// wrapper joins them into a single `GemmaInferenceResult` with text +
+/// thinking trace + latency metrics.
 library;
 
 import 'dart:async';
@@ -17,23 +20,33 @@ import 'model_registry.dart';
 class GemmaLoadProgress {
   const GemmaLoadProgress({required this.phase, required this.fraction});
   final String phase;
+
+  /// 0.0 .. 1.0
   final double fraction;
 }
 
 class GemmaInferenceResult {
   const GemmaInferenceResult({
     required this.text,
+    required this.thinking,
     required this.ttftMs,
     required this.wallclockMs,
     required this.outputCharCount,
   });
+
   final String text;
+
+  /// Thinking-mode trace (Gemma 4 `<|think|>` block, or DeepSeek-style
+  /// ThinkingResponse). Empty string when the chat was created with
+  /// `isThinking: false`.
+  final String thinking;
   final int ttftMs;
   final int wallclockMs;
   final int outputCharCount;
 
   Map<String, Object?> toJson() => {
         'text': text,
+        'thinking': thinking,
         'ttft_ms': ttftMs,
         'wallclock_ms': wallclockMs,
         'output_char_count': outputCharCount,
@@ -41,7 +54,7 @@ class GemmaInferenceResult {
 }
 
 class GemmaSession {
-  GemmaSession._(this._spec);
+  GemmaSession._(this._spec, {required this.isThinking});
 
   static final _log = Logger('GemmaSession');
 
@@ -49,15 +62,17 @@ class GemmaSession {
     ModelSpec spec, {
     String? loraPath,
     required String systemPrompt,
+    bool isThinking = false,
     void Function(GemmaLoadProgress)? onProgress,
   }) async {
-    final s = GemmaSession._(spec);
+    final s = GemmaSession._(spec, isThinking: isThinking);
     await s._install(onProgress: onProgress, loraPath: loraPath);
     await s._create(systemPrompt: systemPrompt, loraPath: loraPath);
     return s;
   }
 
   final ModelSpec _spec;
+  final bool isThinking;
   InferenceModel? _model;
   InferenceChat? _chat;
   String? _loraPath;
@@ -74,35 +89,39 @@ class GemmaSession {
     final plugin = FlutterGemmaPlugin.instance;
     _log.info('ensuring ${_spec.key} is installed from ${_spec.hfDownloadUrl}');
     onProgress?.call(const GemmaLoadProgress(phase: 'download', fraction: 0));
-    // downloadModelFromNetworkWithProgress is idempotent: on subsequent runs it
-    // resolves immediately from OPFS (web) / app-support (mobile) without
-    // re-hitting the network.
+    // Idempotent: on subsequent runs it resolves immediately from OPFS (web)
+    // / app-support (mobile) without re-hitting the network. Stream emits
+    // int percentages 0..100.
     final stream = plugin.modelManager.downloadModelFromNetworkWithProgress(
       _spec.hfDownloadUrl,
     );
-    await for (final p in stream) {
-      onProgress?.call(GemmaLoadProgress(phase: 'download', fraction: p / 100.0));
+    await for (final percent in stream) {
+      onProgress?.call(
+        GemmaLoadProgress(phase: 'download', fraction: percent / 100.0),
+      );
     }
     onProgress?.call(const GemmaLoadProgress(phase: 'download', fraction: 1.0));
-    // NOTE: LoRA is attached at `createChat(loraPath:)` time. On web the
-    // `loraPath:` argument is a no-op; we still pass it through so the same
-    // Dart code targets both platforms once Android comes online.
+    // LoRA is attached at `createChat(loraPath:)` time. On web MediaPipe
+    // currently ignores the parameter; on Android the adapter flatbuffer is
+    // loaded by MediaPipe LLM Inference.
   }
 
   Future<void> _create({required String systemPrompt, String? loraPath}) async {
     final plugin = FlutterGemmaPlugin.instance;
+    final wantImage = _spec.modalities.contains('image');
     _model = await plugin.createModel(
       modelType: ModelType.gemmaIt,
       preferredBackend: PreferredBackend.gpu,
       maxTokens: 4096,
-      supportImage: _spec.modalities.contains('image'),
+      supportImage: wantImage,
       maxNumImages: 5,
     );
     _chat = await _model!.createChat(
       temperature: 0.2,
       topK: 40,
       topP: 0.95,
-      supportImage: _spec.modalities.contains('image'),
+      supportImage: wantImage,
+      isThinking: isThinking,
       loraPath: loraPath,
       systemInstruction: systemPrompt,
     );
@@ -122,7 +141,8 @@ class GemmaSession {
 
     final sw = Stopwatch()..start();
     int? ttftMs;
-    final buf = StringBuffer();
+    final textBuf = StringBuffer();
+    final thinkBuf = StringBuffer();
 
     final msg = image == null
         ? Message.text(text: userText, isUser: true)
@@ -130,14 +150,20 @@ class GemmaSession {
     await chat.addQueryChunk(msg);
 
     final stream = chat.generateChatResponseAsync();
-    await for (final token in stream.timeout(timeout)) {
+    await for (final response in stream.timeout(timeout)) {
       ttftMs ??= sw.elapsedMilliseconds;
-      buf.write(token);
+      if (response is TextResponse) {
+        textBuf.write(response.token);
+      } else if (response is ThinkingResponse) {
+        thinkBuf.write(response.content);
+      }
+      // Function-call subclasses are ignored in Cairn (no tools wired).
     }
     sw.stop();
-    final text = buf.toString();
+    final text = textBuf.toString();
     return GemmaInferenceResult(
       text: text,
+      thinking: thinkBuf.toString(),
       ttftMs: ttftMs ?? sw.elapsedMilliseconds,
       wallclockMs: sw.elapsedMilliseconds,
       outputCharCount: text.length,

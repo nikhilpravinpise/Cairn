@@ -92,6 +92,25 @@ void main() {
     expect(controller.state!.triage!.priorityBand, 'CRITICAL');
   });
 
+  test('mutators emit a new state instance so Riverpod fires listeners '
+      '(regression for same-identity bug)', () {
+    // Before the fix, mutators assigned `state = s` where `s` was the same
+    // object the state already pointed at, so Notifier.state's equality check
+    // suppressed the change event and screens watching the provider never
+    // rebuilt after addPhoto/setLocation/etc.
+    final before = controller.state;
+    controller.setLocation(
+        const GeoLocation(lat: 0, lng: 0, accuracyMeters: 0));
+    expect(identical(controller.state, before), isFalse,
+        reason: 'setLocation must produce a new SessionDraft instance');
+
+    final after1 = controller.state;
+    controller.addPhoto(
+        bytes: Uint8List(4), widthPx: 8, heightPx: 8, slot: 'front');
+    expect(identical(controller.state, after1), isFalse,
+        reason: 'addPhoto must produce a new SessionDraft instance');
+  });
+
   test('seal + save into vault', () async {
     controller.setLocation(const GeoLocation(lat: 1.0, lng: 2.0, accuracyMeters: 5));
     controller.setBuilding(const BuildingInfo(
