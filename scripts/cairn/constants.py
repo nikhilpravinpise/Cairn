@@ -39,22 +39,22 @@ class ModelSpec:
 MODELS: dict[str, ModelSpec] = {
     "e2b": ModelSpec(
         key="e2b",
-        display="Gemma E2B IT (LiteRT-LM, Android)",
+        display="Gemma E2B IT (LiteRT-LM, web/.task)",
         hf_repo="litert-community/gemma-4-E2B-it-litert-lm",
-        task_filename="gemma-4-E2B-it-int4.task",
+        task_filename="gemma-4-E2B-it-web.task",
         ollama_tag=None,
         quant="int4",
-        modalities=("text", "image", "audio"),
+        modalities=("text", "image"),
         context_tokens=8192,
     ),
     "e4b": ModelSpec(
         key="e4b",
-        display="Gemma E4B IT (LiteRT-LM, Web)",
+        display="Gemma E4B IT (LiteRT-LM, web/.task)",
         hf_repo="litert-community/gemma-4-E4B-it-litert-lm",
         task_filename="gemma-4-E4B-it-web.task",
         ollama_tag="gemma3n:e4b",  # best-effort; verify in S3
         quant="int4",
-        modalities=("text", "image", "audio"),
+        modalities=("text", "image"),
         context_tokens=8192,
     ),
 }

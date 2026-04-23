@@ -24,26 +24,26 @@ class ModelSpec {
   final int contextTokens;
 
   String get hfDownloadUrl =>
-      'https://huggingface.co/$hfRepo/resolve/main/$taskFilename?download=true';
+      'https://huggingface.co/$hfRepo/resolve/main/$taskFilename';
 }
 
 const Map<String, ModelSpec> models = {
   'e2b': ModelSpec(
     key: 'e2b',
-    display: 'Gemma E2B IT (LiteRT-LM, Android)',
+    display: 'Gemma E2B IT (LiteRT-LM, web/.task)',
     hfRepo: 'litert-community/gemma-4-E2B-it-litert-lm',
-    taskFilename: 'gemma-4-E2B-it-int4.task',
+    taskFilename: 'gemma-4-E2B-it-web.task',
     quant: 'int4',
-    modalities: {'text', 'image', 'audio'},
+    modalities: {'text', 'image'},
     contextTokens: 8192,
   ),
   'e4b': ModelSpec(
     key: 'e4b',
-    display: 'Gemma E4B IT (LiteRT-LM, Web)',
+    display: 'Gemma E4B IT (LiteRT-LM, web/.task)',
     hfRepo: 'litert-community/gemma-4-E4B-it-litert-lm',
     taskFilename: 'gemma-4-E4B-it-web.task',
     quant: 'int4',
-    modalities: {'text', 'image', 'audio'},
+    modalities: {'text', 'image'},
     contextTokens: 8192,
   ),
 };
