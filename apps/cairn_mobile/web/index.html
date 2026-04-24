@@ -31,6 +31,21 @@
 
   <title>Cairn</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- MediaPipe GenAI for flutter_gemma web inference. -->
+  <script type="module">
+    import {
+      FilesetResolver,
+      LlmInference,
+    } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-genai@0.10.27';
+
+    window.FilesetResolver = FilesetResolver;
+    window.LlmInference = LlmInference;
+  </script>
+
+  <!-- flutter_gemma web storage helpers. -->
+  <script src="https://cdn.jsdelivr.net/gh/DenisovAV/flutter_gemma@0.11.14/web/cache_api.js"></script>
+  <script src="opfs_helper.js"></script>
 </head>
 <body>
   <!--
