@@ -55,6 +55,62 @@ void main() {
     );
   });
 
+  test('applyProtocolDelta rejects null or invalid typed values', () {
+    expect(
+      () => controller.applyProtocolDelta(
+        const MapEntry('visible_collapse', null),
+      ),
+      throwsStateError,
+    );
+    expect(
+      () => controller.applyProtocolDelta(const MapEntry('leaning', 'sideways')),
+      throwsStateError,
+    );
+  });
+
+  test('required photo coverage requires all four FEMA slots', () {
+    expect(controller.state!.requiredPhotoSlotCount, 0);
+    expect(controller.state!.hasAllRequiredPhotoSlots, isFalse);
+
+    controller.addPhoto(
+      bytes: Uint8List(4),
+      widthPx: 10,
+      heightPx: 10,
+      slot: 'front',
+    );
+    controller.addPhoto(
+      bytes: Uint8List(4),
+      widthPx: 10,
+      heightPx: 10,
+      slot: 'front',
+    );
+    controller.addPhoto(
+      bytes: Uint8List(4),
+      widthPx: 10,
+      heightPx: 10,
+      slot: 'ground_floor',
+    );
+
+    expect(controller.state!.requiredPhotoSlotCount, 2);
+    expect(controller.state!.hasAllRequiredPhotoSlots, isFalse);
+
+    controller.addPhoto(
+      bytes: Uint8List(4),
+      widthPx: 10,
+      heightPx: 10,
+      slot: 'cracks',
+    );
+    controller.addPhoto(
+      bytes: Uint8List(4),
+      widthPx: 10,
+      heightPx: 10,
+      slot: 'foundation',
+    );
+
+    expect(controller.state!.requiredPhotoSlotCount, 4);
+    expect(controller.state!.hasAllRequiredPhotoSlots, isTrue);
+  });
+
   test('lowestConfidenceObservation returns the right one', () {
     controller.recordObservation(const Observation(
       observationId: 'a',

@@ -18,6 +18,18 @@ import '../triage/priority.dart';
 const _kAppVersion = '0.1.0';
 const _kAttestationEn =
     'I am not a licensed engineer. This is preliminary screening only.';
+const kRequiredPhotoSlots = <String>{
+  'front',
+  'ground_floor',
+  'cracks',
+  'foundation',
+};
+const _kAllowedLeaningValues = <String>{
+  'none',
+  'slight',
+  'moderate',
+  'severe',
+};
 
 class CapturedPhoto {
   const CapturedPhoto({
@@ -95,6 +107,14 @@ class SessionDraft {
   TriageResult? triage;
 
   String get askedIn => localeBCP47.split('-').first;
+
+  int get requiredPhotoSlotCount {
+    final capturedSlots = photos.map((p) => p.slot).toSet();
+    return capturedSlots.intersection(kRequiredPhotoSlots).length;
+  }
+
+  bool get hasAllRequiredPhotoSlots =>
+      requiredPhotoSlotCount == kRequiredPhotoSlots.length;
 
   /// Shallow copy: new `SessionDraft` instance, same internal list references.
   ///
@@ -294,21 +314,40 @@ class SessionController extends Notifier<SessionDraft?> {
     final s = _require();
     final pa = s.protocolAnswers;
     s.protocolAnswers = switch (delta.key) {
-      'visible_collapse' =>
-        pa.copyWith(visibleCollapse: delta.value as bool? ?? false),
+      'visible_collapse' => pa.copyWith(visibleCollapse: _requireBool(delta)),
       'building_off_foundation' =>
-        pa.copyWith(buildingOffFoundation: delta.value as bool? ?? false),
-      'leaning' => pa.copyWith(leaning: delta.value as String? ?? 'none'),
+        pa.copyWith(buildingOffFoundation: _requireBool(delta)),
+      'leaning' => pa.copyWith(leaning: _requireLeaning(delta)),
       'ground_failure_adjacent' => pa.copyWith(
-          groundFailureAdjacent: delta.value as bool? ?? false),
-      'falling_hazards' =>
-        pa.copyWith(fallingHazards: delta.value as bool? ?? false),
-      'adjacent_leaning' =>
-        pa.copyWith(adjacentLeaning: delta.value as bool? ?? false),
+          groundFailureAdjacent: _requireBool(delta)),
+      'falling_hazards' => pa.copyWith(fallingHazards: _requireBool(delta)),
+      'adjacent_leaning' => pa.copyWith(adjacentLeaning: _requireBool(delta)),
       _ => throw StateError('unknown protocol_answers key: ${delta.key}'),
     };
     state = s.cloneShallow();
   }
+
+  bool _requireBool(MapEntry<String, Object?> delta) {
+    final value = delta.value;
+    if (value is bool) return value;
+    throw StateError(
+      'protocol_answers.${delta.key} must be bool, got ${_typeName(value)}',
+    );
+  }
+
+  String _requireLeaning(MapEntry<String, Object?> delta) {
+    final value = delta.value;
+    if (value is String && _kAllowedLeaningValues.contains(value)) {
+      return value;
+    }
+    throw StateError(
+      'protocol_answers.leaning must be one of '
+      '${_kAllowedLeaningValues.join(', ')}, got ${_typeName(value)}',
+    );
+  }
+
+  String _typeName(Object? value) =>
+      value == null ? 'null' : value.runtimeType.toString();
 
   void addHazard(HazardFlagRecord h) {
     final s = _require();

@@ -28,6 +28,7 @@ import '../../core/llm/orchestrator.dart';
 import '../../core/models/evidence_packet.dart';
 import '../../core/providers.dart';
 import '../../core/routing/app_router.dart';
+import '../../core/state/session_controller.dart';
 
 const _uuid = Uuid();
 
@@ -111,12 +112,9 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
     for (final s in _slots) s.slot: _SlotState(status: _SlotStatus.empty),
   };
 
-  int get _requiredDone => _slots
+  bool get _requiredInFlight => _slots
       .where((s) => s.required)
-      .where((s) => _state[s.slot]!.status == _SlotStatus.done)
-      .length;
-
-  bool get _canContinue => _requiredDone >= 1; // soft gate, see plan §3.3
+      .any((s) => _state[s.slot]!.status == _SlotStatus.describing);
 
   Future<void> _capture(_SlotSpec spec) async {
     // On web ImageSource.camera opens the webcam via getUserMedia; on desktop
@@ -132,16 +130,18 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
     } catch (_) {
       // Camera not available in this browser / user cancelled the permission
       // dialog — fall back to gallery.
+      if (!mounted) return;
       picked = await _picker.pickImage(
         source: ImageSource.gallery,
         maxWidth: 1600,
         imageQuality: 85,
       );
     }
-    if (picked == null) return;
+    if (!mounted || picked == null) return;
 
     final bytes = await picked.readAsBytes();
     final size = await _decodeSize(bytes);
+    if (!mounted) return;
 
     setState(() {
       _state[spec.slot]!
@@ -169,9 +169,11 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
     Uint8List bytes,
     String imgRef,
   ) async {
+    if (!mounted) return;
     final orch = ref.read(orchestratorProvider);
     final draft = ref.read(sessionControllerProvider);
     if (orch == null || draft == null) {
+      if (!mounted) return;
       setState(() {
         _state[spec.slot]!
           ..status = _SlotStatus.error
@@ -233,6 +235,8 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
         body: Center(child: Text('No active session — return to Start.')),
       );
     }
+    final requiredCaptured = draft.requiredPhotoSlotCount;
+    final canContinue = draft.hasAllRequiredPhotoSlots && !_requiredInFlight;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Walk around'),
@@ -240,8 +244,10 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Center(
-              child: Text('$_requiredDone / 4',
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
+              child: Text(
+                '$requiredCaptured / ${kRequiredPhotoSlots.length}',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
             ),
           ),
         ],
@@ -274,13 +280,14 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
             const SizedBox(height: 16),
             FilledButton(
               onPressed:
-                  _canContinue ? () => context.push(AppRoutes.describe) : null,
+                  canContinue ? () => context.push(AppRoutes.describe) : null,
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 child: Text(
-                  _canContinue
+                  canContinue
                       ? 'Continue'
-                      : 'Capture at least one reference photo',
+                      : 'Capture all ${kRequiredPhotoSlots.length} '
+                          'reference photos',
                   style: const TextStyle(fontSize: 16),
                 ),
               ),
@@ -430,7 +437,8 @@ class _StatusChip extends StatelessWidget {
       _SlotStatus.empty => ('empty', Colors.black54, Colors.grey.shade200),
       _SlotStatus.describing =>
         ('describing…', Colors.blue.shade800, Colors.blue.shade50),
-      _SlotStatus.done => ('described', Colors.green.shade800, Colors.green.shade50),
+      _SlotStatus.done =>
+        ('described', Colors.green.shade800, Colors.green.shade50),
       _SlotStatus.error => ('error', Colors.red.shade800, Colors.red.shade50),
     };
     return Container(
