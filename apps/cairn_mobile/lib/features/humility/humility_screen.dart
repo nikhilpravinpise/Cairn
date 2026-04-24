@@ -25,6 +25,7 @@ import '../../core/llm/orchestrator.dart';
 import '../../core/models/evidence_packet.dart';
 import '../../core/providers.dart';
 import '../../core/routing/app_router.dart';
+import '../../core/state/session_controller.dart';
 
 const _uuid = Uuid();
 const _kSkipIfConfidenceAtLeast = 0.8;
@@ -47,7 +48,9 @@ class _HumilityScreenState extends ConsumerState<HumilityScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _askLLM());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _askLLM();
+    });
   }
 
   @override
@@ -57,6 +60,7 @@ class _HumilityScreenState extends ConsumerState<HumilityScreen> {
   }
 
   Future<void> _askLLM() async {
+    if (!mounted || _loading) return;
     final draft = ref.read(sessionControllerProvider);
     final orch = ref.read(orchestratorProvider);
     if (draft == null) return;
@@ -65,14 +69,17 @@ class _HumilityScreenState extends ConsumerState<HumilityScreen> {
     if (target == null ||
         target.modelConfidence >= _kSkipIfConfidenceAtLeast) {
       // Nothing worth re-asking about; skip straight to synthesize.
+      if (!mounted) return;
       setState(() => _skipped = true);
-      WidgetsBinding.instance.addPostFrameCallback(
-          (_) => context.go(AppRoutes.synthesize));
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.go(AppRoutes.synthesize);
+      });
       return;
     }
     _target = target;
 
     if (orch == null) {
+      if (!mounted) return;
       setState(() {
         _error = StateError('model not loaded');
       });

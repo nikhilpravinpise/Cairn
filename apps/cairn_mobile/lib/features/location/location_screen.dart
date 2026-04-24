@@ -53,8 +53,10 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
     try {
       // permission gate — geolocator handles the platform-specific dance
       final perm = await Geolocator.checkPermission();
+      if (!mounted) return;
       if (perm == LocationPermission.denied) {
         final asked = await Geolocator.requestPermission();
+        if (!mounted) return;
         if (asked == LocationPermission.denied ||
             asked == LocationPermission.deniedForever) {
           throw StateError('location permission denied');
@@ -67,9 +69,14 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
         locationSettings:
             const LocationSettings(accuracy: LocationAccuracy.high),
       );
+      if (!mounted) return;
       String address = '';
       try {
-        final places = await placemarkFromCoordinates(pos.latitude, pos.longitude);
+        final places = await placemarkFromCoordinates(
+          pos.latitude,
+          pos.longitude,
+        );
+        if (!mounted) return;
         if (places.isNotEmpty) {
           final p = places.first;
           address = [p.street, p.locality, p.administrativeArea, p.country]
@@ -80,6 +87,7 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
         // Reverse geocode is best-effort; ignore on failure.
       }
 
+      if (!mounted) return;
       setState(() {
         _loc = GeoLocation(
           lat: pos.latitude,
@@ -91,6 +99,7 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
         _busy = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = '$e';
         _busy = false;
@@ -115,8 +124,9 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
     final draft = ref.watch(sessionControllerProvider);
     if (draft == null) {
       // No active session — bounce to start.
-      WidgetsBinding.instance.addPostFrameCallback(
-          (_) => context.go(AppRoutes.start));
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.go(AppRoutes.start);
+      });
       return const Scaffold();
     }
     return Scaffold(

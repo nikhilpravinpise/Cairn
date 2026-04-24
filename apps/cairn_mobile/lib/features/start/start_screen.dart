@@ -35,9 +35,13 @@ class _StartScreenState extends ConsumerState<StartScreen> {
     });
     try {
       await ref.read(gemmaSessionProvider.notifier).load(
-            onProgress: (p) => setState(() => _progress = p),
+            onProgress: (p) {
+              if (!mounted) return;
+              setState(() => _progress = p);
+            },
           );
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e);
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -46,6 +50,7 @@ class _StartScreenState extends ConsumerState<StartScreen> {
 
   Future<void> _unload() async {
     await ref.read(gemmaSessionProvider.notifier).unload();
+    if (!mounted) return;
     setState(() => _progress = null);
   }
 
