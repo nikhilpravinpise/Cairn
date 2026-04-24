@@ -47,6 +47,9 @@ class GemmaSessionNotifier extends Notifier<GemmaSession?> {
     String? loraPath,
     void Function(GemmaLoadProgress)? onProgress,
   }) async {
+    final previous = state;
+    state = null;
+    await previous?.close();
     final spec = ref.read(selectedModelSpecProvider);
     final sys = await ref.read(systemPromptProvider.future);
     state = await GemmaSession.open(

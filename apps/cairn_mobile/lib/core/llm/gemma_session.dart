@@ -77,6 +77,7 @@ class GemmaSession {
   InferenceChat? _chat;
   String? _loraPath;
   DateTime? _loadedAt;
+  Future<void> _generationTail = Future.value();
 
   bool get isLoaded => _model != null && _chat != null;
   String? get loraPath => _loraPath;
@@ -86,20 +87,18 @@ class GemmaSession {
     void Function(GemmaLoadProgress)? onProgress,
     String? loraPath,
   }) async {
-    final plugin = FlutterGemmaPlugin.instance;
     _log.info('ensuring ${_spec.key} is installed from ${_spec.hfDownloadUrl}');
     onProgress?.call(const GemmaLoadProgress(phase: 'download', fraction: 0));
-    // Idempotent: on subsequent runs it resolves immediately from OPFS (web)
-    // / app-support (mobile) without re-hitting the network. Stream emits
-    // int percentages 0..100.
-    final stream = plugin.modelManager.downloadModelFromNetworkWithProgress(
-      _spec.hfDownloadUrl,
-    );
-    await for (final percent in stream) {
-      onProgress?.call(
-        GemmaLoadProgress(phase: 'download', fraction: percent / 100.0),
-      );
-    }
+    // Idempotent: on subsequent runs it resolves from the active model store
+    // (OPFS on web / app-support on mobile) without re-hitting the network.
+    await FlutterGemma.installModel(modelType: ModelType.gemmaIt)
+        .fromNetwork(_spec.hfDownloadUrl)
+        .withProgress(
+          (percent) => onProgress?.call(
+            GemmaLoadProgress(phase: 'download', fraction: percent / 100.0),
+          ),
+        )
+        .install();
     onProgress?.call(const GemmaLoadProgress(phase: 'download', fraction: 1.0));
     // LoRA is attached at `createChat(loraPath:)` time. On web MediaPipe
     // currently ignores the parameter; on Android the adapter flatbuffer is
@@ -107,10 +106,8 @@ class GemmaSession {
   }
 
   Future<void> _create({required String systemPrompt, String? loraPath}) async {
-    final plugin = FlutterGemmaPlugin.instance;
     final wantImage = _spec.modalities.contains('image');
-    _model = await plugin.createModel(
-      modelType: ModelType.gemmaIt,
+    _model = await FlutterGemma.getActiveModel(
       preferredBackend: PreferredBackend.gpu,
       maxTokens: 4096,
       supportImage: wantImage,
@@ -123,6 +120,7 @@ class GemmaSession {
       supportImage: wantImage,
       isThinking: isThinking,
       loraPath: loraPath,
+      modelType: ModelType.gemmaIt,
       systemInstruction: systemPrompt,
     );
     _loraPath = loraPath;
@@ -133,6 +131,21 @@ class GemmaSession {
     required String userText,
     Uint8List? image,
     Duration timeout = const Duration(seconds: 180),
+  }) {
+    final run = _generationTail.then(
+      (_) => _generateOnce(userText: userText, image: image, timeout: timeout),
+    );
+    _generationTail = run.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace __) {},
+    );
+    return run;
+  }
+
+  Future<GemmaInferenceResult> _generateOnce({
+    required String userText,
+    Uint8List? image,
+    required Duration timeout,
   }) async {
     final chat = _chat;
     if (chat == null) {
@@ -147,17 +160,24 @@ class GemmaSession {
     final msg = image == null
         ? Message.text(text: userText, isUser: true)
         : Message.withImage(text: userText, imageBytes: image, isUser: true);
-    await chat.addQueryChunk(msg);
+    try {
+      await chat.addQueryChunk(msg);
 
-    final stream = chat.generateChatResponseAsync();
-    await for (final response in stream.timeout(timeout)) {
-      ttftMs ??= sw.elapsedMilliseconds;
-      if (response is TextResponse) {
-        textBuf.write(response.token);
-      } else if (response is ThinkingResponse) {
-        thinkBuf.write(response.content);
+      final stream = chat.generateChatResponseAsync();
+      await for (final response in stream.timeout(timeout)) {
+        ttftMs ??= sw.elapsedMilliseconds;
+        if (response is TextResponse) {
+          textBuf.write(response.token);
+        } else if (response is ThinkingResponse) {
+          thinkBuf.write(response.content);
+        }
+        // Function-call subclasses are ignored in Cairn (no tools wired).
       }
-      // Function-call subclasses are ignored in Cairn (no tools wired).
+    } finally {
+      // Cairn task turns are independent JSON contracts. Keeping prior photos
+      // and answers in chat history both wastes context and can contaminate the
+      // next task.
+      await chat.clearHistory();
     }
     sw.stop();
     final text = textBuf.toString();
@@ -171,8 +191,9 @@ class GemmaSession {
   }
 
   Future<void> close() async {
-    await _model?.close();
+    await _chat?.close();
     _chat = null;
+    await _model?.close();
     _model = null;
     _loadedAt = null;
   }
