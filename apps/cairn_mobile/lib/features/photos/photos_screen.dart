@@ -92,7 +92,7 @@ class _SlotSpec {
 enum _SlotStatus { empty, describing, done, error }
 
 class _SlotState {
-  _SlotState({required this.status, this.ref, this.thumb, this.error});
+  _SlotState({required this.status});
   _SlotStatus status;
   String? ref; // 'img-N' once the draft accepts the photo
   Uint8List? thumb; // shown in the card; identical to what the draft stores
@@ -120,7 +120,7 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
     // On web ImageSource.camera opens the webcam via getUserMedia; on desktop
     // browsers it falls back to a file chooser. Either way we end up with an
     // XFile whose bytes we can read directly.
-    final XFile? picked;
+    XFile? picked;
     try {
       picked = await _picker.pickImage(
         source: ImageSource.camera,

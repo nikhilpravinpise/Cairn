@@ -12,7 +12,7 @@ library;
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:flutter_gemma/flutter_gemma.dart';
+import 'package:flutter_gemma/flutter_gemma.dart' hide ModelSpec;
 import 'package:logging/logging.dart';
 
 import 'model_registry.dart';
