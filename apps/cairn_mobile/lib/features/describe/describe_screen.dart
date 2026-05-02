@@ -1,14 +1,12 @@
-/// Screen 4 — **Describe what you saw**.
+/// Screen 5 — **Volunteer text notes** ("Describe what you saw").
 ///
-/// On Android this screen gates audio capture (`record` + Gemma's audio
-/// modality). On the web-first build we can't reliably record mono 16 kHz
-/// WAV through the browser *and* Gemma web doesn't accept audio anyway, so
-/// the web fallback is a plain text area that attaches a volunteer-authored
-/// observation to the draft.
+/// Audio capture moved to Screen 4 ([AudioScreen], route `/audio`). This
+/// screen is the text-only complement: the volunteer can add any detail the
+/// photos and audio missed — smells, sounds, bystander accounts, etc.
 ///
-/// The user-authored observation sits alongside the per-photo `describe_photo`
-/// observations as a `volunteer_note_v1` with `model_confidence = 1.0` and
-/// empty `model_tags`, per the volunteer-authored convention in §1.7.
+/// The user-authored observation is attached as a `volunteer_note_v1` entry
+/// with `model_confidence = 1.0` and empty `model_tags`, per the
+/// volunteer-authored convention in §1.7.
 library;
 
 import 'package:flutter/material.dart';

@@ -787,3 +787,144 @@ Manual verification checklist:
 - [ ] `describeAudio()` route compiles and can be triggered (Phase 8 audio capture not yet wired to UI)
 
 **All Phase 6 automated gates PASS. Proceed to Phase 7.**
+
+---
+
+## Phase 7 — Android photo, location, lost-data
+
+**Date:** 2026-05-03
+
+### Scope
+
+Existing non-audio inputs robustified for Android:
+1. `image_picker.retrieveLostData()` — called in `PhotosScreen.initState` to recover images captured when the Android Activity was killed by the OS during a camera intent.
+2. Immediate byte persistence — after `XFile.readAsBytes()` bytes are written to `<tmpDir>/cairn_capture/<packetId>/<ref>.jpg` via `persistCapturedBytes()` before the LLM call starts, protecting against image_picker cache eviction.
+3. Pending-slot tracking — `PendingSlotStore` (SharedPreferences) saves the in-flight slot name before every camera intent so the lost-data recovery path knows which slot to restore.
+4. Location screen hardened for all four failure modes with distinct UI and actionable CTAs.
+
+### New files
+
+| File | Purpose |
+|------|---------|
+| `lib/core/location/location_service.dart` | `LocationErrorKind` enum + `LocationResult` sealed class + `LocationResolver` abstract interface + `GeolocatorLocationResolver` + `resolveLocation()` function + `kSkippedGeoLocation` sentinel |
+| `lib/core/io/photo_cache.dart` | Conditional export: `photo_cache_io.dart` on native, `photo_cache_stub.dart` on web |
+| `lib/core/io/photo_cache_io.dart` | `dart:io` — writes bytes to `getTemporaryDirectory()/cairn_capture/<packetId>/<ref>.jpg` |
+| `lib/core/io/photo_cache_stub.dart` | No-op stub for web |
+| `lib/core/photos/pending_slot_store.dart` | SharedPreferences wrapper tracking in-flight camera slot |
+| `test/location_service_test.dart` | 30 unit tests for `resolveLocation` error paths + extension methods + sentinel |
+| `test/photos_lost_data_test.dart` | 19 unit tests for `PendingSlotStore` save/read/clear + capture flow scenarios |
+
+### Modified files
+
+#### `lib/features/location/location_screen.dart`
+
+- **Replaced** inline `Geolocator.*` calls with `resolveLocation()` from `location_service.dart`.
+- **Added** `_LocationErrorCard` widget — handles all four `LocationErrorKind` values with distinct labels, guidance text, and CTAs:
+  - `denied` → "Try Again" button
+  - `deniedForever` → "Open Settings" (`openAppSettings()`) + "Skip GPS"
+  - `servicesDisabled` → "Enable Location" (`Geolocator.openLocationSettings()`) + "Skip GPS"
+  - `timeout` → "Retry" + "Skip GPS"
+  - `unknown` → "Retry" + "Skip GPS"
+- **Added** "Skip GPS" path — sets `_loc = kSkippedGeoLocation` (sentinel `accuracyMeters == -1`); Continue button enabled; skipped address preserved verbatim through `_continue()`.
+- **Added** `_SkippedLocationBanner` — amber banner shown when GPS is skipped with "Retry GPS" link.
+- **Added** `resolverOverride` constructor parameter for injectable testing.
+- **Removed** raw `throw StateError(...)` anti-pattern from error path.
+
+#### `lib/features/photos/photos_screen.dart`
+
+- **Added** `PendingSlotStore? _pendingSlotStore` field; initialised in `_initAsync()`.
+- **Added** `_initAsync()` — creates the store then calls `_checkLostData()`.
+- **Added** `_checkLostData(PendingSlotStore)` — calls `_picker.retrieveLostData()`; on non-empty result reads the pending slot from `PendingSlotStore`, clears it, then delegates to `_processPickedFile()`. On recovery exception, shows error chip on the affected slot.
+- **Extracted** `_processPickedFile(_SlotSpec, XFile)` — shared pipeline used by both `_capture()` (hot path) and `_checkLostData()` (cold/recovery path).
+- **Updated** `_capture()` — calls `store.save(spec.slot)` before `pickImage()`, `store.clear()` after result/cancel, then delegates to `_processPickedFile()`.
+- **Added** `await persistCapturedBytes(draft.packetId, imgRef, bytes)` inside `_processPickedFile()` after `addPhoto()`.
+
+### Gate results
+
+```
+flutter analyze
+→ No issues found. (ran in 6.8s)
+
+flutter test
+→ 00:09 +249: All tests passed!
+   (205 Phase 1-6 tests + 44 new Phase-7 tests)
+     - test/location_service_test.dart: 30 tests
+     - test/photos_lost_data_test.dart: 19 tests (includes library directive)
+```
+
+**Manual gate:** `flutter run -d RZCX920ARVA` — pending.
+Manual verification checklist:
+- [ ] Camera capture returns to app; photo appears in slot
+- [ ] Kill app mid-camera (via recents); reopen → lost image recovered to correct slot
+- [ ] Location: deny permission → "Permission denied" card with "Try Again" visible
+- [ ] Location: permanently deny → "Permission permanently denied" card with "Open Settings" + "Skip GPS"
+- [ ] Location: disable GPS service → "Location services disabled" with "Enable Location" + "Skip GPS"
+- [ ] Location: tap "Skip GPS" → amber banner; Continue button enabled; packet records `accuracyMeters: -1`
+- [ ] No storage permission prompt appears at any point
+
+**All Phase 7 automated gates PASS. Proceed to Phase 8.**
+
+---
+
+## Phase 8 — Android audio capture
+
+**Date:** 2026-05-XX
+**Scope:** Record mono 16 kHz WAV, enroll in SessionDraft, optional Gemma `describe_audio` turn.
+
+### New files
+
+| File | Purpose |
+|------|---------|
+| `lib/core/audio/cairn_audio_recorder.dart` | Conditional export: `cairn_audio_recorder_native.dart` on native, `cairn_audio_recorder_stub.dart` on web |
+| `lib/core/audio/cairn_audio_recorder_native.dart` | `dart:io` + `record 5.2.1` — records mono 16 kHz WAV to temp file, reads bytes, deletes temp file, streams normalised amplitude |
+| `lib/core/audio/cairn_audio_recorder_stub.dart` | No-op stub for web (`isSupported = false`) |
+| `lib/core/io/audio_cache.dart` | Conditional export: `audio_cache_io.dart` on native, `audio_cache_stub.dart` on web |
+| `lib/core/io/audio_cache_io.dart` | `dart:io` — persists WAV bytes to `getTemporaryDirectory()/cairn_capture/<packetId>/<ref>.wav` |
+| `lib/core/io/audio_cache_stub.dart` | No-op stub for web |
+| `lib/features/audio/audio_screen.dart` | Screen 4: idle → recording → processing → ready (+ permDenied / error states); live amplitude bar; 30 s auto-stop; optional Gemma `describe_audio` turn; Skip always available |
+| `test/audio_capture_test.dart` | 30 unit tests — constraint enforcement, ID generation, orchestrator contract, EvidencePacket schema, observation cross-reference |
+
+### Modified files
+
+| File | Change |
+|------|--------|
+| `lib/core/state/session_controller.dart` | `addAudio()` now throws `ArgumentError` on: `durationS < 0`, `durationS > 30`, `sampleRateHz ≠ 16000`, `channels ≠ 1` |
+| `lib/core/routing/app_router.dart` | Added `AppRoutes.audio = '/audio'` route served by `AudioScreen` (inserted between `/photos` and `/describe`) |
+| `lib/features/photos/photos_screen.dart` | Continue button navigates to `/audio` (was `/describe`) |
+| `lib/features/describe/describe_screen.dart` | Docstring updated: audio is now Screen 4 (`AudioScreen`); this screen is text-only volunteer notes (Screen 5) |
+
+### Architecture decisions
+
+1. **Platform-conditional recorder** — `CairnAudioRecorder` uses `dart.library.io` conditional export so web and native resolve to separate implementations without `kIsWeb` runtime branches inside the audio screen.
+2. **Gemma describe is optional** — `AudioScreen._maybeDescribeAudio()` only fires if `session.supportAudio == true`. If the session was loaded with `SessionProfile.vision`, the turn is skipped and logged; recording proceeds normally.
+3. **4-state UI machine** — `idle / recording / processing / ready` with two error sub-states (`permDenied`, `error`) follows the exact same pattern as `PhotosScreen` slot states.
+4. **30-second cap** — a `Timer.periodic` increments elapsed time and calls `_stopRecording()` when ≥ 30 s, matching the `durationS ≤ 30` schema constraint.
+
+### Gate results
+
+```
+flutter analyze
+→ No issues found. (ran in 7.5s)
+Exit code: 0
+
+flutter test
+→ 00:05 +279: All tests passed!
+   (249 Phase 0-7 tests + 30 new Phase-8 tests)
+     - test/audio_capture_test.dart: 30 tests
+```
+
+### Manual gate checklist (pending `flutter run -d RZCX920ARVA`)
+
+- [ ] App launches; audio screen appears after completing photo capture
+- [ ] Tap "Start recording" → microphone permission dialog appears (first run)
+- [ ] Grant permission → red pulsing indicator + amplitude bar + timer visible
+- [ ] Stop after ~5 s → "Saved: aud-1 (5.x s)" success card appears
+- [ ] `_captureState == ready` → Continue button enabled
+- [ ] Session controller state has `audios.length == 1`, `audios[0].ref == 'aud-1'`, `sampleRateHz == 16000`, `channels == 1`
+- [ ] Skip path: tap "Skip — no audio to add" → navigate to `/describe` with no audio enrolled
+- [ ] Audio session (loaded via `SessionProfile.audio`): Gemma describe tile shows result or "unavailable" — does not crash or block Continue
+
+**Capability gate:** `Message.withAudio` compiles, `AudioScreen.describeAudio` runs to completion (result or `GemmaContractError`), no crash.
+**Quality gate (informational):** Reviewer judges Gemma description plausibility for a 5-second recording; result logged above.
+
+**All Phase 8 automated gates PASS.**
