@@ -17,6 +17,22 @@ import 'package:logging/logging.dart';
 
 import 'model_registry.dart';
 
+/// Minimal generation interface that [GemmaOrchestrator] depends on.
+///
+/// [GemmaSession] is the production implementation. Tests supply a fake that
+/// returns canned JSON so orchestrator contract logic can be exercised without
+/// a real model.
+abstract interface class GemmaSessionInterface {
+  bool get isThinking;
+
+  Future<GemmaInferenceResult> generate({
+    required String userText,
+    Uint8List? image,
+    Uint8List? audioBytes,
+    Duration timeout = const Duration(seconds: 180),
+  });
+}
+
 class GemmaLoadProgress {
   const GemmaLoadProgress({required this.phase, required this.fraction});
   final String phase;
@@ -53,26 +69,123 @@ class GemmaInferenceResult {
       };
 }
 
-class GemmaSession {
-  GemmaSession._(this._spec, {required this.isThinking});
+class GemmaSession implements GemmaSessionInterface {
+  GemmaSession._(
+    this._spec, {
+    required this.supportImage,
+    required this.supportAudio,
+    required this.isThinking,
+  });
 
   static final _log = Logger('GemmaSession');
 
+  /// Open a session with explicit capability flags.
+  ///
+  /// Prefer the named task-profile factories ([openForVision], [openForAudio],
+  /// [openForSynthesis], [openStandard]) to document intent at the call site.
   static Future<GemmaSession> open(
     ModelSpec spec, {
-    String? loraPath,
     required String systemPrompt,
+    bool supportImage = false,
+    bool supportAudio = false,
     bool isThinking = false,
+    String? loraPath,
     void Function(GemmaLoadProgress)? onProgress,
   }) async {
-    final s = GemmaSession._(spec, isThinking: isThinking);
+    final s = GemmaSession._(
+      spec,
+      supportImage: supportImage,
+      supportAudio: supportAudio,
+      isThinking: isThinking,
+    );
     await s._install(onProgress: onProgress, loraPath: loraPath);
     await s._create(systemPrompt: systemPrompt, loraPath: loraPath);
     return s;
   }
 
+  /// Session profile for `describe_photo` turns.
+  /// image=true, audio=false, thinking=false.
+  static Future<GemmaSession> openForVision(
+    ModelSpec spec, {
+    required String systemPrompt,
+    String? loraPath,
+    void Function(GemmaLoadProgress)? onProgress,
+  }) =>
+      open(
+        spec,
+        systemPrompt: systemPrompt,
+        supportImage: true,
+        supportAudio: false,
+        isThinking: false,
+        loraPath: loraPath,
+        onProgress: onProgress,
+      );
+
+  /// Session profile for `describe_audio` turns.
+  /// image=false, audio=true, thinking=false.
+  static Future<GemmaSession> openForAudio(
+    ModelSpec spec, {
+    required String systemPrompt,
+    String? loraPath,
+    void Function(GemmaLoadProgress)? onProgress,
+  }) =>
+      open(
+        spec,
+        systemPrompt: systemPrompt,
+        supportImage: false,
+        supportAudio: true,
+        isThinking: false,
+        loraPath: loraPath,
+        onProgress: onProgress,
+      );
+
+  /// Session profile for `synthesize` turns.
+  /// image=false, audio=false, thinking=true.
+  static Future<GemmaSession> openForSynthesis(
+    ModelSpec spec, {
+    required String systemPrompt,
+    String? loraPath,
+    void Function(GemmaLoadProgress)? onProgress,
+  }) =>
+      open(
+        spec,
+        systemPrompt: systemPrompt,
+        supportImage: false,
+        supportAudio: false,
+        isThinking: true,
+        loraPath: loraPath,
+        onProgress: onProgress,
+      );
+
+  /// Session profile for `protocol_answer` and `ask_followup` turns.
+  /// image=false, audio=false, thinking=false.
+  static Future<GemmaSession> openStandard(
+    ModelSpec spec, {
+    required String systemPrompt,
+    String? loraPath,
+    void Function(GemmaLoadProgress)? onProgress,
+  }) =>
+      open(
+        spec,
+        systemPrompt: systemPrompt,
+        supportImage: false,
+        supportAudio: false,
+        isThinking: false,
+        loraPath: loraPath,
+        onProgress: onProgress,
+      );
+
   final ModelSpec _spec;
+
+  /// Whether the underlying model and chat were created with image support.
+  final bool supportImage;
+
+  /// Whether the underlying model was created with audio support.
+  final bool supportAudio;
+
+  @override
   final bool isThinking;
+
   InferenceModel? _model;
   InferenceChat? _chat;
   String? _loraPath;
@@ -87,12 +200,18 @@ class GemmaSession {
     void Function(GemmaLoadProgress)? onProgress,
     String? loraPath,
   }) async {
-    _log.info('ensuring ${_spec.key} is installed from ${_spec.hfDownloadUrl}');
+    final url = _spec.resolvedDownloadUrl;
+    _log.info('ensuring ${_spec.key} is installed from $url');
     onProgress?.call(const GemmaLoadProgress(phase: 'download', fraction: 0));
     // Idempotent: on subsequent runs it resolves from the active model store
     // (OPFS on web / app-support on mobile) without re-hitting the network.
-    await FlutterGemma.installModel(modelType: ModelType.gemmaIt)
-        .fromNetwork(_spec.hfDownloadUrl)
+    // fileType and URL are resolved by ModelSpec.resolved* — the single
+    // TargetPlatform call site lives in model_registry.dart, not here.
+    final installer = FlutterGemma.installModel(
+      modelType: ModelType.gemmaIt,
+      fileType: _spec.resolvedFileType,
+    );
+    await installer.fromNetwork(url)
         .withProgress(
           (percent) => onProgress?.call(
             GemmaLoadProgress(phase: 'download', fraction: percent / 100.0),
@@ -106,18 +225,18 @@ class GemmaSession {
   }
 
   Future<void> _create({required String systemPrompt, String? loraPath}) async {
-    final wantImage = _spec.modalities.contains('image');
     _model = await FlutterGemma.getActiveModel(
       preferredBackend: PreferredBackend.gpu,
       maxTokens: 4096,
-      supportImage: wantImage,
+      supportImage: supportImage,
+      supportAudio: supportAudio,
       maxNumImages: 5,
     );
     _chat = await _model!.createChat(
       temperature: 0.2,
       topK: 40,
       topP: 0.95,
-      supportImage: wantImage,
+      supportImage: supportImage,
       isThinking: isThinking,
       loraPath: loraPath,
       modelType: ModelType.gemmaIt,
@@ -127,13 +246,20 @@ class GemmaSession {
     _loadedAt = DateTime.now();
   }
 
+  @override
   Future<GemmaInferenceResult> generate({
     required String userText,
     Uint8List? image,
+    Uint8List? audioBytes,
     Duration timeout = const Duration(seconds: 180),
   }) {
     final run = _generationTail.then(
-      (_) => _generateOnce(userText: userText, image: image, timeout: timeout),
+      (_) => _generateOnce(
+        userText: userText,
+        image: image,
+        audioBytes: audioBytes,
+        timeout: timeout,
+      ),
     );
     _generationTail = run.then<void>(
       (_) {},
@@ -145,6 +271,7 @@ class GemmaSession {
   Future<GemmaInferenceResult> _generateOnce({
     required String userText,
     Uint8List? image,
+    Uint8List? audioBytes,
     required Duration timeout,
   }) async {
     final chat = _chat;
@@ -157,9 +284,16 @@ class GemmaSession {
     final textBuf = StringBuffer();
     final thinkBuf = StringBuffer();
 
-    final msg = image == null
-        ? Message.text(text: userText, isUser: true)
-        : Message.withImage(text: userText, imageBytes: image, isUser: true);
+    final Message msg;
+    if (image != null) {
+      msg = Message.withImage(text: userText, imageBytes: image, isUser: true);
+    } else if (audioBytes != null) {
+      msg = Message.withAudio(
+          text: userText, audioBytes: audioBytes, isUser: true);
+    } else {
+      msg = Message.text(text: userText, isUser: true);
+    }
+
     try {
       await chat.addQueryChunk(msg);
 

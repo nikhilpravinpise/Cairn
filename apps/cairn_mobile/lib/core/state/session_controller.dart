@@ -83,11 +83,17 @@ class SessionDraft {
     List<HazardFlagRecord>? hazardsFlagged,
     ProtocolAnswersRecord? protocolAnswers,
     this.triage,
+    int imageCounter = 1,
+    int audioCounter = 1,
+    int obsCounter = 1,
   })  : photos = photos ?? <CapturedPhoto>[],
         audios = audios ?? <CapturedAudio>[],
         observations = observations ?? <Observation>[],
         hazardsFlagged = hazardsFlagged ?? <HazardFlagRecord>[],
-        protocolAnswers = protocolAnswers ?? const ProtocolAnswersRecord();
+        protocolAnswers = protocolAnswers ?? const ProtocolAnswersRecord(),
+        _imageCounter = imageCounter,
+        _audioCounter = audioCounter,
+        _obsCounter = obsCounter;
 
   final String packetId;
   final DateTime createdAtUtc;
@@ -105,6 +111,10 @@ class SessionDraft {
   final List<HazardFlagRecord> hazardsFlagged;
   ProtocolAnswersRecord protocolAnswers;
   TriageResult? triage;
+
+  int _imageCounter;
+  int _audioCounter;
+  int _obsCounter;
 
   String get askedIn => localeBCP47.split('-').first;
 
@@ -137,6 +147,9 @@ class SessionDraft {
         hazardsFlagged: hazardsFlagged,
         protocolAnswers: protocolAnswers,
         triage: triage,
+        imageCounter: _imageCounter,
+        audioCounter: _audioCounter,
+        obsCounter: _obsCounter,
       );
 
   Observation? get lowestConfidenceObservation {
@@ -154,7 +167,8 @@ class SessionDraft {
             {
               'observation_id': o.observationId,
               'prompt_id': o.promptId,
-              'model_description': o.modelDescription,
+              if (o.modelDescription != null)
+                'model_description': o.modelDescription,
               'model_tags': o.modelTags,
               'model_confidence': o.modelConfidence,
             }
@@ -260,16 +274,43 @@ class SessionController extends Notifier<SessionDraft?> {
     state = s.cloneShallow();
   }
 
+  String generateImageId() {
+    final s = _require();
+    final id = 'img-${s._imageCounter}';
+    final next = s.cloneShallow();
+    next._imageCounter += 1;
+    state = next;
+    return id;
+  }
+
+  String generateAudioId() {
+    final s = _require();
+    final id = 'aud-${s._audioCounter}';
+    final next = s.cloneShallow();
+    next._audioCounter += 1;
+    state = next;
+    return id;
+  }
+
+  String generateObservationId() {
+    final s = _require();
+    final id = 'obs-${s._obsCounter}';
+    final next = s.cloneShallow();
+    next._obsCounter += 1;
+    state = next;
+    return id;
+  }
+
   /// Capture a photo into one of the four required FEMA P-154 slots (front,
   /// ground_floor, cracks, foundation), or 'extra'. Returns the assigned ref.
   String addPhoto({
+    required String ref,
     required Uint8List bytes,
     required int widthPx,
     required int heightPx,
     required String slot,
   }) {
     final s = _require();
-    final ref = 'img-${s.photos.length + 1}';
     s.photos.add(CapturedPhoto(
       ref: ref,
       bytes: bytes,
@@ -283,13 +324,13 @@ class SessionController extends Notifier<SessionDraft?> {
   }
 
   String addAudio({
+    required String ref,
     required Uint8List bytes,
     required double durationS,
     int sampleRateHz = 16000,
     int channels = 1,
   }) {
     final s = _require();
-    final ref = 'aud-${s.audios.length + 1}';
     s.audios.add(CapturedAudio(
       ref: ref,
       bytes: bytes,

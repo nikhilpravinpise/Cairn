@@ -4,12 +4,16 @@
 /// CI (`scripts/tests/test_constants_parity.py`) will fail.
 library;
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter_gemma/flutter_gemma.dart' hide ModelSpec;
+
 class ModelSpec {
   const ModelSpec({
     required this.key,
     required this.display,
     required this.hfRepo,
-    required this.taskFilename,
+    required this.taskFilenameWeb,
+    required this.taskFilenameAndroid,
     required this.quant,
     required this.modalities,
     required this.contextTokens,
@@ -18,30 +22,54 @@ class ModelSpec {
   final String key;
   final String display;
   final String hfRepo;
-  final String taskFilename;
+  final String taskFilenameWeb;
+  final String taskFilenameAndroid;
   final String quant;
   final Set<String> modalities;
   final int contextTokens;
 
-  String get hfDownloadUrl =>
-      'https://huggingface.co/$hfRepo/resolve/main/$taskFilename';
+  String getTaskFilename(bool isWeb) => isWeb ? taskFilenameWeb : taskFilenameAndroid;
+
+  String hfDownloadUrl(bool isWeb) =>
+      'https://huggingface.co/$hfRepo/resolve/main/${getTaskFilename(isWeb)}';
+
+  /// Returns the [ModelFileType] for the given platform.
+  ///
+  /// - Web `.task` files → [ModelFileType.task].
+  /// - Android `.litertlm` files → [ModelFileType.litertlm]
+  ///   (Phase 1 confirmed this enum value exists in flutter_gemma 0.14.0).
+  ModelFileType fileType({required bool isWeb}) =>
+      isWeb ? ModelFileType.task : ModelFileType.litertlm;
+
+  /// Download URL resolved to the current runtime platform.
+  ///
+  /// Single [kIsWeb] call site for URL resolution — callers use this getter
+  /// and never query [kIsWeb] themselves.
+  String get resolvedDownloadUrl => hfDownloadUrl(kIsWeb);
+
+  /// [ModelFileType] resolved to the current runtime platform.
+  ///
+  /// Single [kIsWeb] call site for file-type resolution.
+  ModelFileType get resolvedFileType => fileType(isWeb: kIsWeb);
 }
 
 const Map<String, ModelSpec> models = {
   'e2b': ModelSpec(
     key: 'e2b',
-    display: 'Gemma E2B IT (LiteRT-LM, web/.task)',
+    display: 'Gemma E2B IT (LiteRT-LM)',
     hfRepo: 'litert-community/gemma-4-E2B-it-litert-lm',
-    taskFilename: 'gemma-4-E2B-it-web.task',
+    taskFilenameWeb: 'gemma-4-E2B-it-web.task',
+    taskFilenameAndroid: 'gemma-4-E2B-it.litertlm',
     quant: 'int4',
     modalities: {'text', 'image'},
     contextTokens: 8192,
   ),
   'e4b': ModelSpec(
     key: 'e4b',
-    display: 'Gemma E4B IT (LiteRT-LM, web/.task)',
+    display: 'Gemma E4B IT (LiteRT-LM)',
     hfRepo: 'litert-community/gemma-4-E4B-it-litert-lm',
-    taskFilename: 'gemma-4-E4B-it-web.task',
+    taskFilenameWeb: 'gemma-4-E4B-it-web.task',
+    taskFilenameAndroid: 'gemma-4-E4B-it.litertlm',
     quant: 'int4',
     modalities: {'text', 'image'},
     contextTokens: 8192,

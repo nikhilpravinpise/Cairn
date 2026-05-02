@@ -64,3 +64,7 @@ scripts/eval/reports/*
 !scripts/eval/reports/.gitkeep
 scripts/spikes/out/*
 !scripts/spikes/out/.gitkeep
+
+.agents/
+.windsurf/
+skills-lock.json

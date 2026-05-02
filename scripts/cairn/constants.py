@@ -19,6 +19,13 @@ for _p, _label in [
         raise FileNotFoundError(f"locked {_label} missing at {_p}")
 
 
+# Per-platform artifact file-type extensions.
+# Mirrors ModelSpec.fileType(isWeb:) in apps/cairn_mobile/lib/core/llm/model_registry.dart.
+# Changing these must be accompanied by matching changes in Dart + test_constants_parity.py.
+FILE_TYPE_WEB = "task"
+FILE_TYPE_ANDROID = "litertlm"
+
+
 @dataclass(frozen=True, slots=True)
 class ModelSpec:
     """Identifies a single model + quant we actually run somewhere."""
@@ -26,7 +33,8 @@ class ModelSpec:
     key: str                # short handle used everywhere else
     display: str            # human name for reports
     hf_repo: str            # HuggingFace litert-community repo
-    task_filename: str      # .task filename inside that repo
+    task_filename_web: str      # .task filename inside that repo
+    task_filename_android: str  # .litertlm filename inside that repo
     ollama_tag: str | None  # ollama tag (None if we don't run it in Ollama)
     quant: str              # "int4" | "int8" | "fp16" | "bf16"
     modalities: tuple[str, ...]  # subset of ("text","image","audio")
@@ -39,9 +47,10 @@ class ModelSpec:
 MODELS: dict[str, ModelSpec] = {
     "e2b": ModelSpec(
         key="e2b",
-        display="Gemma E2B IT (LiteRT-LM, web/.task)",
+        display="Gemma E2B IT (LiteRT-LM)",
         hf_repo="litert-community/gemma-4-E2B-it-litert-lm",
-        task_filename="gemma-4-E2B-it-web.task",
+        task_filename_web="gemma-4-E2B-it-web.task",
+        task_filename_android="gemma-4-E2B-it.litertlm",
         ollama_tag=None,
         quant="int4",
         modalities=("text", "image"),
@@ -49,9 +58,10 @@ MODELS: dict[str, ModelSpec] = {
     ),
     "e4b": ModelSpec(
         key="e4b",
-        display="Gemma E4B IT (LiteRT-LM, web/.task)",
+        display="Gemma E4B IT (LiteRT-LM)",
         hf_repo="litert-community/gemma-4-E4B-it-litert-lm",
-        task_filename="gemma-4-E4B-it-web.task",
+        task_filename_web="gemma-4-E4B-it-web.task",
+        task_filename_android="gemma-4-E4B-it.litertlm",
         ollama_tag="gemma3n:e4b",  # best-effort; verify in S3
         quant="int4",
         modalities=("text", "image"),

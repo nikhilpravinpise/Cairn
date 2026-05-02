@@ -1,0 +1,269 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cairn.app/schema/evidence_packet_v1.schema.json",
+  "title": "EvidencePacket v1",
+  "description": "Cairn EvidencePacket v1. Produced on-device by the Flutter app; consumed by the engineer console and PDF placard.",
+  "type": "object",
+  "required": [
+    "schema",
+    "packet_id",
+    "created_at_utc",
+    "app_version",
+    "protocol",
+    "model",
+    "location",
+    "building",
+    "observations",
+    "hazards_flagged",
+    "protocol_answers",
+    "triage",
+    "volunteer",
+    "assets"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "cairn.evidence.v1" },
+    "packet_id": {
+      "type": "string",
+      "description": "UUIDv7 for time-ordered uniqueness.",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "created_at_utc": { "type": "string", "format": "date-time" },
+    "app_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+(-[A-Za-z0-9.]+)?$" },
+    "protocol": { "const": "FEMA-P-154-L1" },
+
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "quant"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "quant": { "type": "string", "enum": ["int4", "int8", "fp16", "fp32", "bf16"] },
+        "lora": { "type": ["string", "null"] }
+      }
+    },
+
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lat", "lng", "accuracy_m"],
+      "properties": {
+        "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+        "lng": { "type": "number", "minimum": -180, "maximum": 180 },
+        "accuracy_m": { "type": "number", "minimum": 0 },
+        "address_text": { "type": "string" }
+      }
+    },
+
+    "building": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "stories_above_grade"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "concrete_moment_frame",
+            "unreinforced_masonry",
+            "wood_light_frame",
+            "steel",
+            "mixed",
+            "unknown"
+          ]
+        },
+        "stories_above_grade": { "type": "integer", "minimum": 0, "maximum": 200 },
+        "occupancy_hint": { "type": "string" },
+        "year_built_est": { "type": ["integer", "null"], "minimum": 1700, "maximum": 2100 }
+      }
+    },
+
+    "observations": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["observation_id", "prompt_id", "asked_in", "model_confidence"],
+        "properties": {
+          "observation_id": { "type": "string", "pattern": "^obs-[0-9]+$" },
+          "prompt_id": { "type": "string", "minLength": 1 },
+          "asked_in": { "type": "string", "enum": ["en", "es", "tr"] },
+          "image_refs": { "type": "array", "items": { "type": "string" } },
+          "audio_refs": { "type": "array", "items": { "type": "string" } },
+          "user_text": { "type": ["string", "null"] },
+          "model_description": { "type": "string" },
+          "model_tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "diagonal_crack",
+                "horizontal_crack",
+                "vertical_crack",
+                "x_pattern_crack",
+                "concrete_spalling",
+                "exposed_rebar",
+                "column_base_damage",
+                "beam_column_joint_damage",
+                "soft_story_condition",
+                "pounding_damage",
+                "infill_wall_crack",
+                "out_of_plane_failure",
+                "foundation_displacement",
+                "chimney_damage",
+                "parapet_damage",
+                "falling_hazard_unsecured",
+                "uncertain_structural",
+                "uncertain_cosmetic",
+                "no_visible_damage"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "model_confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "bbox_annotations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["image_ref", "box_2d", "label"],
+              "properties": {
+                "image_ref": { "type": "string" },
+                "box_2d": {
+                  "type": "array",
+                  "description": "Gemma bbox in normalized [y1,x1,y2,x2] with values 0..1000, matching Gemma vision convention.",
+                  "items": { "type": "integer", "minimum": 0, "maximum": 1000 },
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "label": { "type": "string", "minLength": 1 }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "hazards_flagged": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "severity"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "H01_soft_story",
+              "H02_unreinforced_masonry",
+              "H03_pounding",
+              "H04_falling_hazard",
+              "H05_adjacent_leaning",
+              "H06_ground_failure",
+              "H07_chimney_parapet",
+              "H08_foundation_displacement"
+            ]
+          },
+          "severity": { "type": "string", "enum": ["low", "moderate", "high"] },
+          "evidence_refs": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+
+    "protocol_answers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "visible_collapse",
+        "building_off_foundation",
+        "leaning",
+        "ground_failure_adjacent",
+        "falling_hazards",
+        "adjacent_leaning"
+      ],
+      "properties": {
+        "visible_collapse": { "type": "boolean" },
+        "building_off_foundation": { "type": "boolean" },
+        "leaning": { "type": "string", "enum": ["none", "slight", "moderate", "severe"] },
+        "ground_failure_adjacent": { "type": "boolean" },
+        "falling_hazards": { "type": "boolean" },
+        "adjacent_leaning": { "type": "boolean" }
+      }
+    },
+
+    "triage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "priority_score",
+        "priority_band",
+        "rationale_bullets",
+        "recommend_engineer_followup"
+      ],
+      "properties": {
+        "priority_score": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "priority_band": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+        "rationale_bullets": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "uncertainty_notes": { "type": "array", "items": { "type": "string" } },
+        "recommend_engineer_followup": { "type": "boolean" }
+      }
+    },
+
+    "volunteer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attestation", "locale"],
+      "properties": {
+        "attestation": { "type": "string", "minLength": 1 },
+        "signature_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "locale": { "type": "string", "pattern": "^(en|es|tr)(-[A-Z]{2})?$" }
+      }
+    },
+
+    "assets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["images", "audio"],
+      "properties": {
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["ref", "filename", "sha256"],
+            "properties": {
+              "ref": { "type": "string", "pattern": "^img-[0-9]+$" },
+              "filename": { "type": "string" },
+              "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              "width_px": { "type": "integer", "minimum": 1 },
+              "height_px": { "type": "integer", "minimum": 1 },
+              "taken_at_utc": { "type": "string", "format": "date-time" }
+            }
+          }
+        },
+        "audio": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["ref", "filename", "sha256", "sample_rate_hz", "duration_s"],
+            "properties": {
+              "ref": { "type": "string", "pattern": "^aud-[0-9]+$" },
+              "filename": { "type": "string" },
+              "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              "sample_rate_hz": { "const": 16000 },
+              "channels": { "const": 1 },
+              "duration_s": { "type": "number", "minimum": 0, "maximum": 30 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

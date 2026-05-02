@@ -8,9 +8,9 @@
 /// 2. fire a `ask_followup` turn -> Gemma emits a one-sentence follow-up
 ///    question in the session locale;
 /// 3. volunteer answers in free text;
-/// 4. we record the answer as a fresh observation, tagged `user_override`
-///    with `model_confidence = 1.0`, so the triage scorer treats the
-///    human as ground truth.
+/// 4. we record the answer as a `humility_override_v1` observation with
+///    `model_confidence = 1.0` and empty `model_tags`, per the
+///    volunteer-authored convention in §1.7 of the design doc.
 ///
 /// If the draft has no observations (user took no photos, skipped notes)
 /// or the lowest confidence is already high (>= 0.8), the screen skips.
@@ -19,7 +19,6 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../core/llm/orchestrator.dart';
 import '../../core/models/evidence_packet.dart';
@@ -27,7 +26,6 @@ import '../../core/providers.dart';
 import '../../core/routing/app_router.dart';
 import '../../core/state/session_controller.dart';
 
-const _uuid = Uuid();
 const _kSkipIfConfidenceAtLeast = 0.8;
 
 class HumilityScreen extends ConsumerStatefulWidget {
@@ -102,6 +100,11 @@ class _HumilityScreenState extends ConsumerState<HumilityScreen> {
         },
       );
       if (!mounted) return;
+      if (!res.hasFollowup) {
+        // Model determined no follow-up is needed; skip to synthesize.
+        context.go(AppRoutes.synthesize);
+        return;
+      }
       setState(() {
         _q = res;
         _loading = false;
@@ -129,16 +132,18 @@ class _HumilityScreenState extends ConsumerState<HumilityScreen> {
     }
 
     setState(() => _submitting = true);
+    final obsId =
+        ref.read(sessionControllerProvider.notifier).generateObservationId();
     ref.read(sessionControllerProvider.notifier).recordObservation(
           Observation(
-            observationId: 'obs-${_uuid.v7()}',
-            promptId: 'humility_followup_v1',
+            observationId: obsId,
+            promptId: 'humility_override_v1',
             askedIn: draft.askedIn,
             imageRefs: target.imageRefs,
             audioRefs: const [],
             userText: text,
-            modelDescription: text,
-            modelTags: const ['user_override'],
+            // model_description intentionally omitted per §1.7 volunteer convention.
+            modelTags: const [],
             modelConfidence: 1.0,
           ),
         );
@@ -221,7 +226,7 @@ class _HumilityScreenState extends ConsumerState<HumilityScreen> {
                     ],
                   ),
                 )
-              else if (_q != null) ...[
+              else if (_q != null && _q!.hasFollowup) ...[
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -236,7 +241,7 @@ class _HumilityScreenState extends ConsumerState<HumilityScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          _q!.followup,
+                          _q!.question!,
                           style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -330,8 +335,9 @@ class _TargetCard extends StatelessWidget {
                   style: const TextStyle(fontSize: 11, color: Colors.black54),
                 ),
                 const SizedBox(height: 4),
-                Text(obs.modelDescription,
-                    style: const TextStyle(fontSize: 14)),
+                if (obs.modelDescription != null)
+                  Text(obs.modelDescription!,
+                      style: const TextStyle(fontSize: 14)),
               ],
             ),
           ),
