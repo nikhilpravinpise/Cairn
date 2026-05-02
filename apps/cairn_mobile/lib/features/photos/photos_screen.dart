@@ -6,6 +6,22 @@
 /// recorded into the `SessionDraft` so later screens (Humility, Synthesize,
 /// Report) can reason over it.
 ///
+/// ### Android robustness (Phase 7)
+///
+/// On Android the camera intent may cause the host Activity to be destroyed
+/// by the OS to reclaim RAM. Two mechanisms defend against data loss:
+///
+/// 1. **Lost-data recovery** — `initState` calls
+///    `ImagePicker.retrieveLostData()`. If data is found the slot being
+///    captured when the Activity was killed is read from [PendingSlotStore]
+///    (a SharedPreferences-backed key written before every camera intent)
+///    and the image is processed for that slot as normal.
+///
+/// 2. **Immediate byte persistence** — after `XFile.readAsBytes()` the raw
+///    bytes are written to `<tmpDir>/cairn_capture/<packetId>/<ref>.jpg`
+///    via [persistCapturedBytes] before the LLM turn starts. This ensures the
+///    image survives image_picker cache eviction during a long LLM call.
+///
 /// Web-first notes:
 /// - `image_picker` on web surfaces a native file-picker with a `capture`
 ///   attribute; on desktop browsers this falls back to a plain file chooser.
@@ -22,8 +38,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../core/io/photo_cache.dart';
 import '../../core/llm/orchestrator.dart';
 import '../../core/models/evidence_packet.dart';
+import '../../core/photos/pending_slot_store.dart';
 import '../../core/providers.dart';
 import '../../core/routing/app_router.dart';
 import '../../core/state/session_controller.dart';
@@ -108,11 +126,76 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
     for (final s in _slots) s.slot: _SlotState(status: _SlotStatus.empty),
   };
 
+  /// Initialised in [_initAsync]; null until SharedPreferences is ready.
+  PendingSlotStore? _pendingSlotStore;
+
+  @override
+  void initState() {
+    super.initState();
+    _initAsync();
+  }
+
+  /// Async init: create [PendingSlotStore] then check for any lost data from
+  /// an Activity kill that happened while the camera intent was active.
+  Future<void> _initAsync() async {
+    final store = await PendingSlotStore.create();
+    if (!mounted) return;
+    _pendingSlotStore = store;
+    await _checkLostData(store);
+  }
+
+  /// Recover an image that was in-flight when Android killed the Activity.
+  ///
+  /// `image_picker` caches the camera result and returns it exactly once via
+  /// `retrieveLostData()`. We pair it with the pending slot name saved in
+  /// [PendingSlotStore] to know which slot to assign the recovered image to.
+  Future<void> _checkLostData(PendingSlotStore store) async {
+    final lost = await _picker.retrieveLostData();
+    if (lost.isEmpty) return;
+    if (!mounted) return;
+
+    final pendingSlot = store.read();
+    await store.clear();
+
+    if (lost.exception != null) {
+      // The recovery itself failed — nothing we can do; show error on the
+      // pending slot if known, otherwise silently swallow.
+      if (pendingSlot != null) {
+        final spec = _slots.firstWhere(
+          (s) => s.slot == pendingSlot,
+          orElse: () => _slots.first,
+        );
+        setState(() {
+          _state[spec.slot]!
+            ..status = _SlotStatus.error
+            ..error = lost.exception;
+        });
+      }
+      return;
+    }
+
+    final file = lost.file;
+    if (file == null) return;
+
+    // Find the spec for the recovered slot (fall back to first if unknown).
+    final spec = _slots.firstWhere(
+      (s) => s.slot == pendingSlot,
+      orElse: () => _slots.first,
+    );
+
+    // Process the recovered image exactly as _capture() would.
+    await _processPickedFile(spec, file);
+  }
+
   bool get _requiredInFlight => _slots
       .where((s) => s.required)
       .any((s) => _state[s.slot]!.status == _SlotStatus.describing);
 
   Future<void> _capture(_SlotSpec spec) async {
+    // Save pending slot BEFORE firing the camera intent so Activity-kill
+    // recovery knows which slot to restore.
+    await _pendingSlotStore?.save(spec.slot);
+
     // On web ImageSource.camera opens the webcam via getUserMedia; on desktop
     // browsers it falls back to a file chooser. Either way we end up with an
     // XFile whose bytes we can read directly.
@@ -133,9 +216,18 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
         imageQuality: 85,
       );
     }
-    if (!mounted || picked == null) return;
 
-    final bytes = await picked.readAsBytes();
+    // Clear pending slot — either we have the file now or the user cancelled.
+    await _pendingSlotStore?.clear();
+
+    if (!mounted || picked == null) return;
+    await _processPickedFile(spec, picked);
+  }
+
+  /// Core pick → enrol → describe pipeline, shared by [_capture] and
+  /// [_checkLostData] (lost-data recovery).
+  Future<void> _processPickedFile(_SlotSpec spec, XFile file) async {
+    final bytes = await file.readAsBytes();
     final size = await _decodeSize(bytes);
     if (!mounted) return;
 
@@ -158,6 +250,13 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
       slot: spec.slot,
     );
     _state[spec.slot]!.ref = imgRef;
+
+    // Persist bytes to app-specific storage immediately so the image survives
+    // image_picker cache eviction during the (potentially long) LLM call.
+    final draft = ref.read(sessionControllerProvider);
+    if (draft != null) {
+      await persistCapturedBytes(draft.packetId, imgRef, bytes);
+    }
 
     final obsId = controller.generateObservationId();
     await _describe(spec, bytes, imgRef, obsId);
@@ -282,7 +381,7 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
             const SizedBox(height: 16),
             FilledButton(
               onPressed:
-                  canContinue ? () => context.push(AppRoutes.describe) : null,
+                  canContinue ? () => context.push(AppRoutes.audio) : null,
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 child: Text(

@@ -330,6 +330,19 @@ class SessionController extends Notifier<SessionDraft?> {
     int sampleRateHz = 16000,
     int channels = 1,
   }) {
+    if (durationS < 0) {
+      throw ArgumentError.value(durationS, 'durationS', 'must be >= 0');
+    }
+    if (durationS > 30) {
+      throw ArgumentError.value(durationS, 'durationS', 'must be <= 30 s');
+    }
+    if (sampleRateHz != 16000) {
+      throw ArgumentError.value(
+          sampleRateHz, 'sampleRateHz', 'must be 16000 Hz (Gemma audio contract)');
+    }
+    if (channels != 1) {
+      throw ArgumentError.value(channels, 'channels', 'must be 1 (mono)');
+    }
     final s = _require();
     s.audios.add(CapturedAudio(
       ref: ref,

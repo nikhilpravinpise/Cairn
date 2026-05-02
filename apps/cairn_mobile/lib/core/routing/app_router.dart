@@ -8,6 +8,7 @@ library;
 import 'package:go_router/go_router.dart';
 
 import '../../features/bootstrap/bootstrap_screen.dart';
+import '../../features/audio/audio_screen.dart';
 import '../../features/describe/describe_screen.dart';
 import '../../features/humility/humility_screen.dart';
 import '../../features/location/location_screen.dart';
@@ -23,6 +24,7 @@ class AppRoutes {
   static const start = '/start';
   static const location = '/location';
   static const photos = '/photos';
+  static const audio = '/audio';
   static const describe = '/describe';
   static const protocol = '/protocol';
   static const humility = '/humility';
@@ -39,6 +41,7 @@ final appRouter = GoRouter(
     GoRoute(
         path: AppRoutes.location, builder: (_, __) => const LocationScreen()),
     GoRoute(path: AppRoutes.photos, builder: (_, __) => const PhotosScreen()),
+    GoRoute(path: AppRoutes.audio, builder: (_, __) => const AudioScreen()),
     GoRoute(
         path: AppRoutes.describe, builder: (_, __) => const DescribeScreen()),
     GoRoute(

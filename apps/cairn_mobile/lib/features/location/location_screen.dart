@@ -1,16 +1,19 @@
 /// Screen 2 — **Location & building typology**.
 ///
-/// Auto-resolves device GPS via `geolocator`, optional reverse geocode for an
-/// address line, then asks the volunteer to pick a typology chip + a story
-/// count. Writes both into the live `SessionDraft`.
+/// Resolves device GPS via [resolveLocation], handles all four error kinds
+/// (denied, denied-forever, services-disabled, timeout) with distinct UI and
+/// actionable CTAs. Provides a **Skip GPS** escape hatch so the volunteer can
+/// continue without location when permission is permanently denied or when
+/// on-site conditions prevent a fix.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
 
+import '../../core/location/location_service.dart';
 import '../../core/models/evidence_packet.dart';
 import '../../core/providers.dart';
 import '../../core/routing/app_router.dart';
@@ -25,7 +28,10 @@ const _typologies = <String, String>{
 };
 
 class LocationScreen extends ConsumerStatefulWidget {
-  const LocationScreen({super.key});
+  const LocationScreen({super.key, this.resolverOverride});
+
+  /// Injectable resolver — set in widget tests to avoid platform calls.
+  final LocationResolver? resolverOverride;
 
   @override
   ConsumerState<LocationScreen> createState() => _LocationScreenState();
@@ -35,83 +41,65 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
   String _typology = 'wood_light_frame';
   int _stories = 2;
   String _address = '';
+
+  /// Non-null once GPS resolves or the user taps "Skip GPS".
   GeoLocation? _loc;
+
   bool _busy = false;
-  String? _error;
+  LocationFailure? _locationError;
 
   @override
   void initState() {
     super.initState();
-    _resolveLocation();
+    _acquire();
   }
 
-  Future<void> _resolveLocation() async {
+  Future<void> _acquire() async {
     setState(() {
       _busy = true;
-      _error = null;
+      _locationError = null;
     });
-    try {
-      // permission gate — geolocator handles the platform-specific dance
-      final perm = await Geolocator.checkPermission();
-      if (!mounted) return;
-      if (perm == LocationPermission.denied) {
-        final asked = await Geolocator.requestPermission();
-        if (!mounted) return;
-        if (asked == LocationPermission.denied ||
-            asked == LocationPermission.deniedForever) {
-          throw StateError('location permission denied');
-        }
-      } else if (perm == LocationPermission.deniedForever) {
-        throw StateError('location permission permanently denied');
-      }
-
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings:
-            const LocationSettings(accuracy: LocationAccuracy.high),
-      );
-      if (!mounted) return;
-      String address = '';
-      try {
-        final places = await placemarkFromCoordinates(
-          pos.latitude,
-          pos.longitude,
-        );
-        if (!mounted) return;
-        if (places.isNotEmpty) {
-          final p = places.first;
-          address = [p.street, p.locality, p.administrativeArea, p.country]
-              .where((s) => s != null && s.isNotEmpty)
-              .join(', ');
-        }
-      } catch (_) {
-        // Reverse geocode is best-effort; ignore on failure.
-      }
-
-      if (!mounted) return;
+    final result = await resolveLocation(
+      resolver:
+          widget.resolverOverride ?? const GeolocatorLocationResolver(),
+    );
+    if (!mounted) return;
+    if (result.isSuccess) {
       setState(() {
-        _loc = GeoLocation(
-          lat: pos.latitude,
-          lng: pos.longitude,
-          accuracyMeters: pos.accuracy,
-          addressText: address,
-        );
-        _address = address;
+        _loc = result.location;
+        _address = result.location!.addressText;
         _busy = false;
       });
-    } catch (e) {
-      if (!mounted) return;
+    } else {
       setState(() {
-        _error = '$e';
+        _locationError = result as LocationFailure;
         _busy = false;
       });
     }
+  }
+
+  void _skipGps() {
+    setState(() {
+      _loc = kSkippedGeoLocation;
+      _locationError = null;
+      _address = '';
+    });
   }
 
   void _continue() {
     final loc = _loc;
     if (loc == null) return;
     final controller = ref.read(sessionControllerProvider.notifier);
-    controller.setLocation(loc.copyWithAddress(_address));
+    // Preserve the skip-GPS sentinel address; only override for live fixes.
+    final finalLoc = isSkippedLocation(loc)
+        ? loc
+        : GeoLocation(
+            lat: loc.lat,
+            lng: loc.lng,
+            accuracyMeters: loc.accuracyMeters,
+            addressText: _address.isNotEmpty ? _address : loc.addressText,
+          );
+    controller.setLocation(finalLoc);
     controller.setBuilding(BuildingInfo(
       type: _typology,
       storiesAboveGrade: _stories,
@@ -123,7 +111,6 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
   Widget build(BuildContext context) {
     final draft = ref.watch(sessionControllerProvider);
     if (draft == null) {
-      // No active session — bounce to start.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) context.go(AppRoutes.start);
       });
@@ -140,14 +127,26 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
               const Text('Where are you?',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
+
+              // ── Status / error ───────────────────────────────────────────
               if (_busy) const LinearProgressIndicator(),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text('GPS error: $_error',
-                      style: TextStyle(color: Colors.red.shade700)),
+
+              if (_locationError != null)
+                _LocationErrorCard(
+                  failure: _locationError!,
+                  onRetry: _locationError!.kind.canRetryInApp ? _acquire : null,
+                  onOpenSettings: _locationError!.kind.requiresSettings
+                      ? _openSettings
+                      : null,
+                  onSkip: _skipGps,
                 ),
-              if (_loc != null) ...[
+
+              // ── Skipped sentinel banner ──────────────────────────────────
+              if (_loc != null && isSkippedLocation(_loc!))
+                _SkippedLocationBanner(onReacquire: _acquire),
+
+              // ── Live location card + address edit ────────────────────────
+              if (_loc != null && !isSkippedLocation(_loc!)) ...[
                 _LocationCard(loc: _loc!),
                 const SizedBox(height: 8),
                 TextFormField(
@@ -159,13 +158,29 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
                   onChanged: (v) => _address = v,
                 ),
               ],
-              const SizedBox(height: 8),
-              TextButton.icon(
-                onPressed: _busy ? null : _resolveLocation,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Re-acquire GPS'),
-              ),
+
+              // ── Re-acquire + skip controls ───────────────────────────────
+              if (_locationError == null) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    TextButton.icon(
+                      onPressed: _busy ? null : _acquire,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Re-acquire GPS'),
+                    ),
+                    if (_loc == null && !_busy)
+                      TextButton(
+                        onPressed: _skipGps,
+                        child: const Text('Skip GPS'),
+                      ),
+                  ],
+                ),
+              ],
+
               const Divider(height: 32),
+
+              // ── Building typology ────────────────────────────────────────
               const Text('Building typology',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
@@ -188,18 +203,16 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
                   const Text('Stories above grade:'),
                   const SizedBox(width: 12),
                   IconButton(
-                    onPressed: _stories > 1
-                        ? () => setState(() => _stories--)
-                        : null,
+                    onPressed:
+                        _stories > 1 ? () => setState(() => _stories--) : null,
                     icon: const Icon(Icons.remove_circle_outline),
                   ),
                   Text('$_stories',
                       style: const TextStyle(
                           fontSize: 18, fontWeight: FontWeight.w600)),
                   IconButton(
-                    onPressed: _stories < 30
-                        ? () => setState(() => _stories++)
-                        : null,
+                    onPressed:
+                        _stories < 30 ? () => setState(() => _stories++) : null,
                     icon: const Icon(Icons.add_circle_outline),
                   ),
                 ],
@@ -221,16 +234,142 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
       ),
     );
   }
+
+  Future<void> _openSettings() async {
+    if (_locationError?.kind == LocationErrorKind.servicesDisabled) {
+      await Geolocator.openLocationSettings();
+    } else {
+      await openAppSettings();
+    }
+  }
 }
 
-extension on GeoLocation {
-  GeoLocation copyWithAddress(String address) => GeoLocation(
-        lat: lat,
-        lng: lng,
-        accuracyMeters: accuracyMeters,
-        addressText: address,
-      );
+// ─────────────────────────────────────────────────────────────────────────────
+// Error card
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _LocationErrorCard extends StatelessWidget {
+  const _LocationErrorCard({
+    required this.failure,
+    required this.onRetry,
+    required this.onOpenSettings,
+    required this.onSkip,
+  });
+
+  final LocationFailure failure;
+  final VoidCallback? onRetry;
+  final VoidCallback? onOpenSettings;
+  final VoidCallback onSkip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        border: Border.all(color: Colors.orange.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.location_off, color: Colors.orange.shade800),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  failure.kind.label,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.orange.shade900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            failure.kind.guidance,
+            style: TextStyle(fontSize: 13, color: Colors.orange.shade900),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              if (onRetry != null)
+                OutlinedButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh, size: 16),
+                  label: Text(failure.kind == LocationErrorKind.timeout
+                      ? 'Retry'
+                      : 'Try Again'),
+                ),
+              if (onOpenSettings != null)
+                OutlinedButton.icon(
+                  onPressed: onOpenSettings,
+                  icon: const Icon(Icons.settings, size: 16),
+                  label: Text(
+                    failure.kind == LocationErrorKind.servicesDisabled
+                        ? 'Enable Location'
+                        : 'Open Settings',
+                  ),
+                ),
+              TextButton(
+                onPressed: onSkip,
+                child: const Text('Skip GPS'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Skipped-GPS banner
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SkippedLocationBanner extends StatelessWidget {
+  const _SkippedLocationBanner({required this.onReacquire});
+  final VoidCallback onReacquire;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        border: Border.all(color: Colors.amber.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.location_off, color: Colors.amber.shade800),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'GPS skipped — location will not be recorded in the packet.',
+              style: TextStyle(fontSize: 13, color: Colors.amber.shade900),
+            ),
+          ),
+          TextButton(
+            onPressed: onReacquire,
+            child: const Text('Retry GPS'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Live-location card
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _LocationCard extends StatelessWidget {
   const _LocationCard({required this.loc});
