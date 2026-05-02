@@ -22,15 +22,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:uuid/uuid.dart';
-
 import '../../core/llm/orchestrator.dart';
 import '../../core/models/evidence_packet.dart';
 import '../../core/providers.dart';
 import '../../core/routing/app_router.dart';
 import '../../core/state/session_controller.dart';
-
-const _uuid = Uuid();
 
 /// The four required reference views + one optional extra. Kept in display
 /// order; prompt_ids match the locked system-prompt contract.
@@ -153,7 +149,9 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
     // Enroll in SessionDraft first — even if the LLM fails, we keep the photo
     // so the Report screen can still ship it.
     final controller = ref.read(sessionControllerProvider.notifier);
-    final imgRef = controller.addPhoto(
+    final imgRef = controller.generateImageId();
+    controller.addPhoto(
+      ref: imgRef,
       bytes: bytes,
       widthPx: size.$1,
       heightPx: size.$2,
@@ -161,13 +159,15 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
     );
     _state[spec.slot]!.ref = imgRef;
 
-    await _describe(spec, bytes, imgRef);
+    final obsId = controller.generateObservationId();
+    await _describe(spec, bytes, imgRef, obsId);
   }
 
   Future<void> _describe(
     _SlotSpec spec,
     Uint8List bytes,
     String imgRef,
+    String obsId,
   ) async {
     if (!mounted) return;
     final orch = ref.read(orchestratorProvider);
@@ -184,14 +184,14 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
     }
     try {
       final res = await orch.describePhoto(
-        observationId: 'obs-${_uuid.v7()}',
+        observationId: obsId,
         promptId: spec.promptId,
         askedIn: draft.askedIn,
         imageBytes: bytes,
         imageRef: imgRef,
       );
       ref.read(sessionControllerProvider.notifier).recordObservation(
-            _observationFrom(res, imgRef: imgRef),
+            _observationFrom(res, imgRef: imgRef, obsId: obsId),
           );
       if (!mounted) return;
       setState(() => _state[spec.slot]!.status = _SlotStatus.done);
@@ -217,13 +217,15 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
   Future<void> _retry(_SlotSpec spec) async {
     final st = _state[spec.slot]!;
     final bytes = st.thumb;
-    final ref = st.ref;
-    if (bytes == null || ref == null) return;
+    final imgRef = st.ref;
+    if (bytes == null || imgRef == null) return;
     setState(() {
       st.status = _SlotStatus.describing;
       st.error = null;
     });
-    await _describe(spec, bytes, ref);
+    final obsId =
+        ref.read(sessionControllerProvider.notifier).generateObservationId();
+    await _describe(spec, bytes, imgRef, obsId);
   }
 
   @override
@@ -469,8 +471,9 @@ class _ObsSummary extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(obs.modelDescription,
-              style: const TextStyle(fontSize: 13)),
+          if (obs.modelDescription != null)
+            Text(obs.modelDescription!,
+                style: const TextStyle(fontSize: 13)),
           if (obs.modelTags.isNotEmpty) ...[
             const SizedBox(height: 6),
             Wrap(
@@ -532,9 +535,13 @@ class _Banner extends StatelessWidget {
 
 // ---- helpers ----
 
-Observation _observationFrom(DescribePhotoResult r, {required String imgRef}) {
+Observation _observationFrom(
+  DescribePhotoResult r, {
+  required String imgRef,
+  required String obsId,
+}) {
   return Observation(
-    observationId: r.observationId,
+    observationId: obsId,
     promptId: r.promptId,
     askedIn: r.askedIn,
     imageRefs: r.imageRefs.isEmpty ? [imgRef] : r.imageRefs,

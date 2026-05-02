@@ -122,7 +122,7 @@ class Observation {
     required this.imageRefs,
     required this.audioRefs,
     this.userText,
-    required this.modelDescription,
+    this.modelDescription,
     required this.modelTags,
     required this.modelConfidence,
     this.bboxAnnotations = const [],
@@ -136,7 +136,10 @@ class Observation {
   final List<String> imageRefs;
   final List<String> audioRefs;
   final String? userText;
-  final String modelDescription;
+
+  /// Null for volunteer-authored observations (§1.7). Present for all
+  /// model-authored observations (`describe_photo`, `synthesize`).
+  final String? modelDescription;
   final List<String> modelTags;
   final double modelConfidence;
   final List<BBox> bboxAnnotations;
@@ -148,7 +151,7 @@ class Observation {
         'image_refs': imageRefs,
         'audio_refs': audioRefs,
         'user_text': userText,
-        'model_description': modelDescription,
+        if (modelDescription != null) 'model_description': modelDescription,
         'model_tags': modelTags,
         'model_confidence': modelConfidence,
         'bbox_annotations': [for (final b in bboxAnnotations) b.toJson()],
@@ -161,7 +164,7 @@ class Observation {
         imageRefs: (j['image_refs'] as List).cast<String>(),
         audioRefs: (j['audio_refs'] as List? ?? const []).cast<String>(),
         userText: j['user_text'] as String?,
-        modelDescription: j['model_description'] as String,
+        modelDescription: j['model_description'] as String?,
         modelTags: (j['model_tags'] as List).cast<String>(),
         modelConfidence: (j['model_confidence'] as num).toDouble(),
         bboxAnnotations: [

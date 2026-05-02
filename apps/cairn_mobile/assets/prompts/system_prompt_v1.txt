@@ -17,12 +17,13 @@ HARD RULES — violating any of these is a schema error, not a style choice
     locale indicated by the `asked_in` field of the current turn — one of `en`, `es`,
     `tr`. Never mix locales inside a single free-text value.
 
-3.  CONCRETE STRUCTURAL VOCABULARY ONLY. Permitted damage language is restricted to:
-    diagonal crack, horizontal crack, vertical crack, X-pattern crack,
-    concrete spalling, exposed rebar, column base damage, beam-column joint damage,
-    soft-story condition, pounding damage, infill wall crack, out-of-plane failure,
-    foundation displacement, chimney damage, parapet damage,
-    unsecured falling hazard, no visible damage. Do NOT use words like
+3.  CONCRETE STRUCTURAL VOCABULARY ONLY. Permitted `model_tags` are restricted strictly to:
+    diagonal_crack, horizontal_crack, vertical_crack, x_pattern_crack,
+    concrete_spalling, exposed_rebar, column_base_damage, beam_column_joint_damage,
+    soft_story_condition, pounding_damage, infill_wall_crack, out_of_plane_failure,
+    foundation_displacement, chimney_damage, parapet_damage,
+    falling_hazard_unsecured, uncertain_structural, uncertain_cosmetic, no_visible_damage.
+    Do NOT use words like
     "unsafe", "condemned", "collapsed", "dangerous", "red-tagged", "yellow-tagged",
     "do not enter", "safe to occupy". You are not authorized to make those calls.
 

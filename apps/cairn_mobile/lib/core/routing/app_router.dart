@@ -7,6 +7,7 @@ library;
 
 import 'package:go_router/go_router.dart';
 
+import '../../features/bootstrap/bootstrap_screen.dart';
 import '../../features/describe/describe_screen.dart';
 import '../../features/humility/humility_screen.dart';
 import '../../features/location/location_screen.dart';
@@ -18,7 +19,8 @@ import '../../features/synthesize/synthesize_screen.dart';
 import '../../spike/s2_spike_page.dart';
 
 class AppRoutes {
-  static const start = '/';
+  static const bootstrap = '/';
+  static const start = '/start';
   static const location = '/location';
   static const photos = '/photos';
   static const describe = '/describe';
@@ -30,8 +32,9 @@ class AppRoutes {
 }
 
 final appRouter = GoRouter(
-  initialLocation: AppRoutes.start,
+  initialLocation: AppRoutes.bootstrap,
   routes: [
+    GoRoute(path: AppRoutes.bootstrap, builder: (_, __) => const BootstrapScreen()),
     GoRoute(path: AppRoutes.start, builder: (_, __) => const StartScreen()),
     GoRoute(
         path: AppRoutes.location, builder: (_, __) => const LocationScreen()),

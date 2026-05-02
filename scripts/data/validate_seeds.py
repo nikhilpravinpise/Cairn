@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from cairn.constants import SEED_JSONL_PATH
+from cairn.constants import SCHEMA_PATH, SEED_JSONL_PATH
 from cairn.prompts import SYSTEM_REF
 
 ALLOWED_TASKS = {"describe_photo", "ask_followup", "protocol_answer", "synthesize"}
@@ -30,10 +30,34 @@ ALLOWED_BUILDINGS = {
 ALLOWED_SCENARIOS = {"none", "cosmetic", "moderate", "severe"}
 
 
+def _load_model_tags() -> frozenset[str]:
+    """Derive the closed model_tags enum directly from the schema JSON.
+
+    Loading at module level ensures validate_seeds.py and the schema can never
+    drift: any tag added to or removed from the schema is immediately reflected
+    here without a second edit.
+    """
+    schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+    return frozenset(
+        schema["properties"]["observations"]["items"]
+        ["properties"]["model_tags"]["items"]["enum"]
+    )
+
+
+def _load_protocol_keys() -> frozenset[str]:
+    """Derive the closed protocol_answers key set directly from the schema JSON."""
+    schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+    return frozenset(schema["properties"]["protocol_answers"]["required"])
+
+
+ALLOWED_MODEL_TAGS: frozenset[str] = _load_model_tags()
+ALLOWED_PROTOCOL_KEYS: frozenset[str] = _load_protocol_keys()
+
+
 def _check_assistant(task: str, value: Any) -> list[str]:
     errs: list[str] = []
     if not isinstance(value, dict):
-        return [f"assistant value not a JSON object"]
+        return ["assistant value not a JSON object"]
     if task == "describe_photo":
         for k in ("observation_id", "prompt_id", "asked_in", "image_refs",
                   "model_description", "model_tags", "model_confidence"):
@@ -41,20 +65,45 @@ def _check_assistant(task: str, value: Any) -> list[str]:
                 errs.append(f"missing key {k!r}")
         if "model_confidence" in value and not 0.0 <= float(value["model_confidence"]) <= 1.0:
             errs.append("model_confidence outside [0,1]")
+        if "model_tags" in value:
+            tags = value["model_tags"]
+            if not isinstance(tags, list):
+                errs.append("model_tags must be a list")
+            else:
+                for t in tags:
+                    if t not in ALLOWED_MODEL_TAGS:
+                        errs.append(f"invalid model tag: {t!r}")
     elif task == "ask_followup":
         if "followup" not in value:
             errs.append("missing key 'followup'")
+        elif value["followup"] is not None:
+            fu = value["followup"]
+            if not isinstance(fu, dict):
+                errs.append("followup must be a dict or null")
+            else:
+                for k in ("target_observation_id", "question"):
+                    if k not in fu:
+                        errs.append(f"followup missing required key {k!r}")
     elif task == "protocol_answer":
-        if "protocol_answers_delta" not in value or len(value["protocol_answers_delta"]) != 1:
+        delta = value.get("protocol_answers_delta")
+        if not isinstance(delta, dict) or len(delta) != 1:
             errs.append("protocol_answers_delta must have exactly one key")
+        elif next(iter(delta)) not in ALLOWED_PROTOCOL_KEYS:
+            errs.append(f"unknown protocol_answers_delta key: {next(iter(delta))!r}")
     elif task == "synthesize":
         td = value.get("triage_draft")
         if not isinstance(td, dict):
             errs.append("missing 'triage_draft' object")
         else:
-            for k in ("rationale_bullets", "recommend_engineer_followup"):
-                if k not in td:
-                    errs.append(f"triage_draft missing {k!r}")
+            if "rationale_bullets" not in td:
+                errs.append("triage_draft missing 'rationale_bullets'")
+            elif not isinstance(td["rationale_bullets"], list) or len(td["rationale_bullets"]) == 0:
+                errs.append("triage_draft.rationale_bullets must be a non-empty list")
+            if "recommend_engineer_followup" not in td:
+                errs.append("triage_draft missing 'recommend_engineer_followup'")
+            for k in ("priority_score", "priority_band"):
+                if k in td:
+                    errs.append(f"forbidden key {k!r} in triage_draft")
     return errs
 
 

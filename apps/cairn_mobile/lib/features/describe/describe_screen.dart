@@ -7,20 +7,17 @@
 /// observation to the draft.
 ///
 /// The user-authored observation sits alongside the per-photo `describe_photo`
-/// observations; later screens (humility, synthesize, report) treat it as a
-/// high-confidence note (`model_confidence = 1.0`, tag = `user_note`).
+/// observations as a `volunteer_note_v1` with `model_confidence = 1.0` and
+/// empty `model_tags`, per the volunteer-authored convention in §1.7.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../core/models/evidence_packet.dart';
 import '../../core/providers.dart';
 import '../../core/routing/app_router.dart';
-
-const _uuid = Uuid();
 
 class DescribeScreen extends ConsumerStatefulWidget {
   const DescribeScreen({super.key});
@@ -47,9 +44,11 @@ class _DescribeScreenState extends ConsumerState<DescribeScreen> {
       return;
     }
     final imgRefs = [for (final p in draft.photos) p.ref];
+    final obsId =
+        ref.read(sessionControllerProvider.notifier).generateObservationId();
     ref.read(sessionControllerProvider.notifier).recordObservation(
           Observation(
-            observationId: 'obs-${_uuid.v7()}',
+            observationId: obsId,
             promptId: 'volunteer_note_v1',
             askedIn: draft.askedIn,
             // Link the note to whatever photos are already captured so the
@@ -57,8 +56,8 @@ class _DescribeScreenState extends ConsumerState<DescribeScreen> {
             imageRefs: imgRefs,
             audioRefs: const [],
             userText: text,
-            modelDescription: text,
-            modelTags: const ['user_note'],
+            // model_description intentionally omitted per §1.7 volunteer convention.
+            modelTags: const [],
             // User is ground truth when they explicitly type a note.
             modelConfidence: 1.0,
           ),
@@ -76,7 +75,7 @@ class _DescribeScreenState extends ConsumerState<DescribeScreen> {
     }
 
     final priorObs = draft.observations
-        .where((o) => o.modelTags.contains('user_note') == false)
+        .where((o) => o.promptId != 'volunteer_note_v1')
         .toList();
 
     return Scaffold(
@@ -159,7 +158,8 @@ class _PriorObsTile extends StatelessWidget {
                   color: Colors.black54,
                   fontFamily: 'monospace')),
           const SizedBox(height: 4),
-          Text(obs.modelDescription, style: const TextStyle(fontSize: 13)),
+          if (obs.modelDescription != null)
+            Text(obs.modelDescription!, style: const TextStyle(fontSize: 13)),
         ],
       ),
     );

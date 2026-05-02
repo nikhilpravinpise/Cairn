@@ -21,7 +21,7 @@ final systemPromptProvider = FutureProvider<String>((ref) async {
 
 /// Currently-selected model. The user can change it on the Start screen
 /// before any session begins; locked once a session is in progress.
-final selectedModelKeyProvider = StateProvider<String>((_) => 'e4b');
+final selectedModelKeyProvider = StateProvider<String>((_) => 'e2b');
 
 final selectedModelSpecProvider = Provider<ModelSpec>((ref) {
   final key = ref.watch(selectedModelKeyProvider);
@@ -31,6 +31,31 @@ final selectedModelSpecProvider = Provider<ModelSpec>((ref) {
   }
   return spec;
 });
+
+/// Capability profile to pass when loading a [GemmaSession].
+///
+/// Each value maps to a named factory on [GemmaSession] that requests only
+/// the model and chat flags required for that task group:
+///
+/// | Profile   | supportImage | supportAudio | isThinking | Task(s)              |
+/// |-----------|:---:|:---:|:---:|-----------------------------|
+/// | vision    |  ✓  |     |     | describe_photo              |
+/// | audio     |     |  ✓  |     | describe_audio              |
+/// | synthesis |     |     |  ✓  | synthesize                  |
+/// | standard  |     |     |     | protocol_answer, ask_followup |
+enum SessionProfile {
+  /// `describe_photo` turns: image=true, audio=false, thinking=false.
+  vision,
+
+  /// `describe_audio` turns: image=false, audio=true, thinking=false.
+  audio,
+
+  /// `synthesize` turns: image=false, audio=false, thinking=true.
+  synthesis,
+
+  /// `protocol_answer` / `ask_followup` turns: all capabilities off.
+  standard,
+}
 
 /// Holds the live Gemma session. `null` until the user clicks "Load model"
 /// on the Start screen. Disposed on app shutdown by Riverpod.
@@ -43,7 +68,14 @@ class GemmaSessionNotifier extends Notifier<GemmaSession?> {
     return null;
   }
 
+  /// Load (or reload) the active Gemma session.
+  ///
+  /// [profile] selects which capability flags are wired at model/chat
+  /// creation time. Defaults to [SessionProfile.vision] because the primary
+  /// task is photo description. Callers that drive a different task group
+  /// should pass the appropriate profile explicitly.
   Future<void> load({
+    SessionProfile profile = SessionProfile.vision,
     String? loraPath,
     void Function(GemmaLoadProgress)? onProgress,
   }) async {
@@ -52,12 +84,20 @@ class GemmaSessionNotifier extends Notifier<GemmaSession?> {
     await previous?.close();
     final spec = ref.read(selectedModelSpecProvider);
     final sys = await ref.read(systemPromptProvider.future);
-    state = await GemmaSession.open(
-      spec,
-      systemPrompt: sys,
-      loraPath: loraPath,
-      onProgress: onProgress,
-    );
+    state = switch (profile) {
+      SessionProfile.vision =>
+        await GemmaSession.openForVision(spec,
+            systemPrompt: sys, loraPath: loraPath, onProgress: onProgress),
+      SessionProfile.audio =>
+        await GemmaSession.openForAudio(spec,
+            systemPrompt: sys, loraPath: loraPath, onProgress: onProgress),
+      SessionProfile.synthesis =>
+        await GemmaSession.openForSynthesis(spec,
+            systemPrompt: sys, loraPath: loraPath, onProgress: onProgress),
+      SessionProfile.standard =>
+        await GemmaSession.openStandard(spec,
+            systemPrompt: sys, loraPath: loraPath, onProgress: onProgress),
+    };
   }
 
   Future<void> unload() async {
