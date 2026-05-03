@@ -12,6 +12,7 @@ import 'package:uuid/uuid.dart';
 
 import '../llm/orchestrator.dart';
 import '../models/evidence_packet.dart';
+import '../models/evidence_packet_validator.dart';
 import '../storage/evidence_vault.dart';
 import '../triage/priority.dart';
 
@@ -67,6 +68,63 @@ class CapturedAudio {
   final int channels;
 }
 
+/// Records a single LLM inference turn for `turns.jsonl` provenance logging.
+///
+/// Written by screens after each orchestrator call and persisted to
+/// `turns.jsonl` during [SessionController.sealAndSave].
+class TurnRecord {
+  const TurnRecord({
+    required this.ts,
+    required this.task,
+    this.observationId,
+    required this.ttftMs,
+    required this.wallclockMs,
+    required this.outputCharCount,
+    this.thinkingChars = 0,
+  });
+
+  /// UTC timestamp when the turn started.
+  final DateTime ts;
+
+  /// Orchestrator task name, e.g. `'describe_photo'`, `'synthesize'`.
+  final String task;
+
+  /// Links the turn to a [Observation.observationId], if applicable.
+  final String? observationId;
+
+  /// Time-to-first-token in milliseconds.
+  final int ttftMs;
+
+  /// Wall-clock duration of the full generation in milliseconds.
+  final int wallclockMs;
+
+  /// Number of output characters (excluding thinking text).
+  final int outputCharCount;
+
+  /// Number of characters in the thinking excerpt, or 0 if not a thinking turn.
+  final int thinkingChars;
+
+  Map<String, Object?> toJson() => {
+        'ts': ts.toUtc().toIso8601String(),
+        'task': task,
+        if (observationId != null) 'observation_id': observationId,
+        'ttft_ms': ttftMs,
+        'wallclock_ms': wallclockMs,
+        'output_char_count': outputCharCount,
+        if (thinkingChars > 0) 'thinking_chars': thinkingChars,
+      };
+
+  factory TurnRecord.fromJson(Map<String, Object?> j) => TurnRecord(
+        ts: DateTime.parse(j['ts'] as String).toUtc(),
+        task: j['task'] as String,
+        observationId: j['observation_id'] as String?,
+        ttftMs: (j['ttft_ms'] as num).toInt(),
+        wallclockMs: (j['wallclock_ms'] as num).toInt(),
+        outputCharCount: (j['output_char_count'] as num).toInt(),
+        thinkingChars: (j['thinking_chars'] as num?)?.toInt() ?? 0,
+      );
+}
+
 class SessionDraft {
   SessionDraft({
     required this.packetId,
@@ -83,6 +141,7 @@ class SessionDraft {
     List<HazardFlagRecord>? hazardsFlagged,
     ProtocolAnswersRecord? protocolAnswers,
     this.triage,
+    List<TurnRecord>? turns,
     int imageCounter = 1,
     int audioCounter = 1,
     int obsCounter = 1,
@@ -91,6 +150,7 @@ class SessionDraft {
         observations = observations ?? <Observation>[],
         hazardsFlagged = hazardsFlagged ?? <HazardFlagRecord>[],
         protocolAnswers = protocolAnswers ?? const ProtocolAnswersRecord(),
+        turns = turns ?? <TurnRecord>[],
         _imageCounter = imageCounter,
         _audioCounter = audioCounter,
         _obsCounter = obsCounter;
@@ -111,6 +171,9 @@ class SessionDraft {
   final List<HazardFlagRecord> hazardsFlagged;
   ProtocolAnswersRecord protocolAnswers;
   TriageResult? triage;
+
+  /// LLM inference turn log — appended by [SessionController.recordTurn].
+  final List<TurnRecord> turns;
 
   int _imageCounter;
   int _audioCounter;
@@ -147,10 +210,138 @@ class SessionDraft {
         hazardsFlagged: hazardsFlagged,
         protocolAnswers: protocolAnswers,
         triage: triage,
+        turns: turns,
         imageCounter: _imageCounter,
         audioCounter: _audioCounter,
         obsCounter: _obsCounter,
       );
+
+  // ---------------------------------------------------------------------------
+  // Draft serialisation — for kill/relaunch persistence
+  // ---------------------------------------------------------------------------
+
+  /// Serialise all draft fields EXCEPT binary bytes to a plain JSON-safe map.
+  ///
+  /// Binary bytes (photos and audio) are NOT included; they live in the
+  /// photo/audio cache directories and are loaded back by
+  /// `restoreDraftWithBytes()` in `file_draft_persistence_io.dart`.
+  Map<String, Object?> toMetaMap() => {
+        'packet_id': packetId,
+        'created_at_utc': createdAtUtc.toUtc().toIso8601String(),
+        'model_name': modelName,
+        'model_quant': modelQuant,
+        if (modelLora != null) 'model_lora': modelLora,
+        'locale_bcp47': localeBCP47,
+        if (location != null) 'location': location!.toJson(),
+        if (building != null) 'building': building!.toJson(),
+        'photos': [
+          for (final p in photos)
+            {
+              'ref': p.ref,
+              'width_px': p.widthPx,
+              'height_px': p.heightPx,
+              'taken_at_utc': p.takenAtUtc.toUtc().toIso8601String(),
+              'slot': p.slot,
+            }
+        ],
+        'audios': [
+          for (final a in audios)
+            {
+              'ref': a.ref,
+              'duration_s': a.durationS,
+              'sample_rate_hz': a.sampleRateHz,
+              'channels': a.channels,
+            }
+        ],
+        'observations': [for (final o in observations) o.toJson()],
+        'hazards_flagged': [for (final h in hazardsFlagged) h.toJson()],
+        'protocol_answers': protocolAnswers.toJson(),
+        if (triage != null) 'triage': triage!.toJson(),
+        'turns': [for (final t in turns) t.toJson()],
+        'image_counter': _imageCounter,
+        'audio_counter': _audioCounter,
+        'obs_counter': _obsCounter,
+      };
+
+  /// Reconstruct a [SessionDraft] from saved metadata and externally loaded
+  /// bytes.
+  ///
+  /// [photoBytes] and [audioBytes] are maps of `ref → Uint8List` loaded by
+  /// `restoreDraftWithBytes()`. Assets whose bytes are missing (e.g., tmp
+  /// cleared by OS) are silently omitted so the draft is still usable.
+  static SessionDraft fromMetaMap(
+    Map<String, Object?> j, {
+    required Map<String, Uint8List> photoBytes,
+    required Map<String, Uint8List> audioBytes,
+  }) {
+    final photosMeta =
+        (j['photos'] as List? ?? []).cast<Map<String, Object?>>();
+    final audiosMeta =
+        (j['audios'] as List? ?? []).cast<Map<String, Object?>>();
+    return SessionDraft(
+      packetId: j['packet_id'] as String,
+      createdAtUtc: DateTime.parse(j['created_at_utc'] as String).toUtc(),
+      modelName: j['model_name'] as String,
+      modelQuant: j['model_quant'] as String,
+      modelLora: j['model_lora'] as String?,
+      localeBCP47: j['locale_bcp47'] as String? ?? 'en-US',
+      location: j['location'] != null
+          ? GeoLocation.fromJson(j['location'] as Map<String, Object?>)
+          : null,
+      building: j['building'] != null
+          ? BuildingInfo.fromJson(j['building'] as Map<String, Object?>)
+          : null,
+      photos: [
+        for (final pm in photosMeta)
+          if (photoBytes.containsKey(pm['ref'] as String))
+            CapturedPhoto(
+              ref: pm['ref'] as String,
+              bytes: photoBytes[pm['ref'] as String]!,
+              widthPx: (pm['width_px'] as num).toInt(),
+              heightPx: (pm['height_px'] as num).toInt(),
+              takenAtUtc:
+                  DateTime.parse(pm['taken_at_utc'] as String).toUtc(),
+              slot: pm['slot'] as String,
+            )
+      ],
+      audios: [
+        for (final am in audiosMeta)
+          if (audioBytes.containsKey(am['ref'] as String))
+            CapturedAudio(
+              ref: am['ref'] as String,
+              bytes: audioBytes[am['ref'] as String]!,
+              durationS: (am['duration_s'] as num).toDouble(),
+              sampleRateHz: (am['sample_rate_hz'] as num).toInt(),
+              channels: (am['channels'] as num?)?.toInt() ?? 1,
+            )
+      ],
+      observations: [
+        for (final o
+            in (j['observations'] as List? ?? []).cast<Map<String, Object?>>())
+          Observation.fromJson(o)
+      ],
+      hazardsFlagged: [
+        for (final h in (j['hazards_flagged'] as List? ?? [])
+            .cast<Map<String, Object?>>())
+          HazardFlagRecord.fromJson(h)
+      ],
+      protocolAnswers: j['protocol_answers'] != null
+          ? ProtocolAnswersRecord.fromJson(
+              j['protocol_answers'] as Map<String, Object?>)
+          : const ProtocolAnswersRecord(),
+      triage: j['triage'] != null
+          ? TriageResult.fromJson(j['triage'] as Map<String, Object?>)
+          : null,
+      turns: [
+        for (final t
+            in (j['turns'] as List? ?? []).cast<Map<String, Object?>>())
+          TurnRecord.fromJson(t)
+      ],
+      imageCounter: (j['image_counter'] as num?)?.toInt() ?? 1,
+      audioCounter: (j['audio_counter'] as num?)?.toInt() ?? 1,
+      obsCounter: (j['obs_counter'] as num?)?.toInt() ?? 1,
+    );
+  }
 
   Observation? get lowestConfidenceObservation {
     if (observations.isEmpty) return null;
@@ -446,15 +637,51 @@ class SessionController extends Notifier<SessionDraft?> {
     state = s.cloneShallow();
   }
 
+  /// Append an LLM inference [turn] to the draft's turn log.
+  ///
+  /// Called by screens after each successful orchestrator invocation so that
+  /// `turns.jsonl` contains a complete provenance record when the packet is
+  /// sealed.
+  void recordTurn(TurnRecord turn) {
+    final s = _require();
+    s.turns.add(turn);
+    state = s.cloneShallow();
+  }
+
+  /// Inject a previously saved [SessionDraft] back into the controller.
+  ///
+  /// Called by [StartScreen] when the volunteer chooses "Resume" after the
+  /// app was killed mid-flow and the draft was restored from disk.
+  void restoreDraft(SessionDraft draft) {
+    state = draft;
+  }
+
+  /// Seal, validate, and persist the draft as a final [EvidencePacket].
+  ///
+  /// Steps:
+  ///  1. `seal()` — builds an immutable [EvidencePacket] from the draft.
+  ///  2. `EvidencePacketValidator.validateOrThrow()` — gates on schema.
+  ///  3. `vault.savePacket()` — atomic JSON write.
+  ///  4. `vault.putAsset()` — copy binary assets into the vault folder.
+  ///  5. `vault.saveTurnsJsonl()` — write inference turn log.
+  ///
+  /// Throws [SchemaValidationException] if the packet is invalid.
+  /// The caller (ReportScreen) is responsible for clearing the draft via
+  /// `abandon()` after this method returns.
   Future<EvidencePacket> sealAndSave(EvidenceVault vault) async {
     final s = _require();
     final packet = s.seal(volunteerSignatureSeed: '${s.packetId}|$_kAppVersion');
+    EvidencePacketValidator.validateOrThrow(packet);
     await vault.savePacket(packet);
     for (final p in s.photos) {
       await vault.putAsset(packet.packetId, p.ref, p.bytes);
     }
     for (final a in s.audios) {
       await vault.putAsset(packet.packetId, a.ref, a.bytes);
+    }
+    if (s.turns.isNotEmpty) {
+      await vault.saveTurnsJsonl(
+          packet.packetId, [for (final t in s.turns) t.toJson()]);
     }
     return packet;
   }

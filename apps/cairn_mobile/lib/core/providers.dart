@@ -1,8 +1,8 @@
 /// Single import for app-wide Riverpod providers.
 ///
 /// Screens depend on this file; never on the concrete implementations behind
-/// it. That way swapping `InMemoryEvidenceVault` for an OPFS-backed vault is
-/// a one-line change here.
+/// it. The vault and draft-persistence providers use conditional exports so the
+/// file-backed implementations are wired on native targets automatically.
 library;
 
 import 'package:flutter/services.dart';
@@ -12,7 +12,10 @@ import 'llm/gemma_session.dart';
 import 'llm/model_registry.dart';
 import 'llm/orchestrator.dart';
 import 'state/session_controller.dart';
+import 'storage/draft_persistence.dart';
 import 'storage/evidence_vault.dart';
+import 'storage/file_draft_persistence.dart';
+import 'storage/file_evidence_vault.dart';
 
 /// Locked system prompt — loaded once from `assets/prompts/system_prompt_v1.txt`.
 final systemPromptProvider = FutureProvider<String>((ref) async {
@@ -115,9 +118,21 @@ final orchestratorProvider = Provider<GemmaOrchestrator?>((ref) {
   return session == null ? null : GemmaOrchestrator(session);
 });
 
-/// In-memory vault for now. Swap for an OPFS-backed implementation in Pass 4.
+/// File-backed vault on native targets; in-memory on web.
+///
+/// The vault directory is `<appSupportDir>/cairn_vault/<packetId>/` and
+/// all writes are atomic (temp-file + rename).
 final evidenceVaultProvider = Provider<EvidenceVault>((_) {
-  return InMemoryEvidenceVault();
+  return createFileEvidenceVault();
+});
+
+/// File-backed draft persistence on native targets; no-op on web.
+///
+/// Persists `SessionDraft.toMetaMap()` to
+/// `<appSupportDir>/cairn_draft/active.json` so the volunteer can resume
+/// after the app is killed mid-flow.
+final draftPersistenceProvider = Provider<DraftPersistence>((_) {
+  return createDraftPersistence();
 });
 
 final sessionControllerProvider =

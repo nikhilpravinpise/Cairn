@@ -928,3 +928,82 @@ flutter test
 **Quality gate (informational):** Reviewer judges Gemma description plausibility for a 5-second recording; result logged above.
 
 **All Phase 8 automated gates PASS.**
+
+---
+
+## Phase 9 — File-backed persistence, SynthesizeScreen, ReportScreen
+
+### Objective
+
+Replace in-memory `EvidenceVault` with a file-backed implementation, build the
+`/synthesize` and `/report` screens, and ensure the final packet is validated
+and persisted correctly. Also wire draft kill/relaunch restoration.
+
+### New files
+
+| File | Description |
+|------|-------------|
+| `lib/core/storage/file_evidence_vault.dart` | Conditional export: `file_evidence_vault_io.dart` on native, `file_evidence_vault_stub.dart` (in-memory) on web |
+| `lib/core/storage/file_evidence_vault_io.dart` | `dart:io` — writes to `<appSupportDir>/cairn_vault/<packetId>/`. Atomic writes. Methods: `savePacket`, `loadPacket`, `deletePacket`, `listPackets`, `putAsset`, `getAsset`, `saveTurnsJsonl`, `saveReportPdf`, `loadReportPdf` |
+| `lib/core/storage/file_evidence_vault_stub.dart` | Returns `InMemoryEvidenceVault` on web |
+| `lib/core/storage/draft_persistence.dart` | `DraftPersistence` abstract interface + `NoOpDraftPersistence` |
+| `lib/core/storage/file_draft_persistence.dart` | Conditional export |
+| `lib/core/storage/file_draft_persistence_io.dart` | `dart:io` — saves `active.json` to `<appSupportDir>/cairn_draft/`. Atomic writes. `restoreDraftWithBytes` resolves bytes from photo/audio cache |
+| `lib/core/storage/file_draft_persistence_stub.dart` | No-op stub for web |
+| `lib/core/pdf/report_pdf_builder.dart` | `buildReportPdf(EvidencePacket, {imageBytes})` — two-page A4 PDF with priority badge, rationale bullets, hazards, protocol answers, volunteer attestation, footer |
+| `lib/features/synthesize/synthesize_screen.dart` | Screen 8: loads synthesis profile, calls `GemmaOrchestrator.synthesize`, records turn, calls `computeAndStoreTriage`, auto-navigates to `/report` |
+| `lib/features/report/report_screen.dart` | Screen 9: seals+validates draft, saves to vault, clears draft, displays priority badge, rationale, photos, QR code, PDF/share/new-session actions |
+| `test/vault_test.dart` | 17 tests — savePacket/loadPacket, listPackets ordering, deletePacket, putAsset/getAsset, saveTurnsJsonl, saveReportPdf/loadReportPdf |
+| `test/draft_persistence_test.dart` | 20 tests — SessionDraft.toMetaMap/fromMetaMap, TurnRecord JSON round-trip, _FileBackedDraftPersistence file I/O, NoOpDraftPersistence |
+| `test/report_pdf_test.dart` | 8 tests — PDF magic bytes, all priority bands, empty imageBytes, no-observations packet |
+
+### Modified files
+
+| File | Change |
+|------|--------|
+| `lib/core/storage/evidence_vault.dart` | Extended interface: `saveTurnsJsonl`, `saveReportPdf`, `loadReportPdf`. Added to `InMemoryEvidenceVault` |
+| `lib/core/state/session_controller.dart` | Added `TurnRecord` class, `turns` field to `SessionDraft`, `toMetaMap`/`fromMetaMap`, `recordTurn`, `restoreDraft`; `sealAndSave` now calls `EvidencePacketValidator.validateOrThrow` and `vault.saveTurnsJsonl` |
+| `lib/core/providers.dart` | Switched to `FileEvidenceVault` and added `draftPersistenceProvider` |
+| `lib/main.dart` | `CairnApp` converted to `ConsumerWidget`; Riverpod listener auto-saves/clears draft on every `SessionDraft` state change |
+| `lib/features/start/start_screen.dart` | Added `_DraftBanner` — "Unsaved session found" card with Resume/Discard actions |
+| `test/audio_capture_test.dart` | Updated dangling-audio-ref test to use `SessionDraft.seal()` directly (sealAndSave now throws on invalid packets) |
+| `test/session_controller_test.dart` | Added Phase 9 group: `TurnRecord` serialisation, `recordTurn`, `restoreDraft`, `sealAndSave` turns integration |
+
+### Architecture decisions
+
+1. **Atomic writes everywhere** — all file persistence uses `<dest>.tmp` → `rename` to prevent half-written files surviving a process kill.
+2. **Validation gate in `sealAndSave`** — `EvidencePacketValidator.validateOrThrow` runs before `vault.savePacket`, so only schema-valid packets enter the vault.
+3. **Draft autosave listener in `main.dart`** — `ref.listen(sessionControllerProvider, ...)` in `CairnApp` saves the draft on every state change with no circular imports.
+4. **Binary bytes from cache** — `restoreDraftWithBytes` reads JPEG/WAV from `getTemporaryDirectory()/cairn_capture/<packetId>/` on resume; missing files are silently dropped so the draft is still usable with reduced media.
+5. **TurnRecord provenance** — every orchestrator call is logged to `turns` in `SessionDraft` and persisted to `turns.jsonl` alongside `packet.json` for observability.
+6. **QR code** — encodes just the `packetId` (36 chars) so any QR scanner can uniquely identify the screening; full data is in `packet.json`.
+
+### Gate results
+
+```
+dart analyze lib test
+→ No issues found.
+Exit code: 0
+
+flutter test
+→ 00:12 +331: All tests passed!
+   (279 Phase 0-8 tests + 52 new Phase-9 tests)
+     - test/vault_test.dart:                17 tests
+     - test/draft_persistence_test.dart:    20 tests
+     - test/report_pdf_test.dart:            8 tests
+     - test/session_controller_test.dart:    7 new Phase-9 tests
+```
+
+### Manual gate checklist (pending `flutter run -d RZCX920ARVA`)
+
+- [ ] Complete a full flow: start → location → photos → audio → describe → protocol → humility → synthesize → report
+- [ ] Report screen shows coloured priority badge, rationale bullets, photo thumbnails
+- [ ] "Save PDF" button generates and shares a PDF
+- [ ] "Share JSON" shares `packet.json` via the system share sheet
+- [ ] "Start new screening" clears draft and returns to Start screen
+- [ ] Kill app mid-flow → relaunch → "Unsaved session found" banner appears → Resume → continues from where left off
+- [ ] `adb pull /sdcard/Android/data/com.example.cairn_mobile/files/cairn_vault/<packetId>/` retrieves `packet.json`, `turns.jsonl`, and image assets
+- [ ] Pulled `packet.json` validates with `python -m pytest tests/test_schema.py`
+- [ ] `report.pdf` opens on desktop after `adb pull`
+
+**All Phase 9 automated gates PASS.**

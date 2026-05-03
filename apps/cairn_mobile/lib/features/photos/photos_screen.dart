@@ -1,10 +1,22 @@
 /// Screen 3 — **Walk around (4 required photos + optional 5th)**.
 ///
 /// The volunteer walks the perimeter of the building and captures one photo
-/// per FEMA P-154 reference view. Each capture fires an async
-/// `describe_photo` turn against Gemma; the resulting `Observation` is
-/// recorded into the `SessionDraft` so later screens (Humility, Synthesize,
-/// Report) can reason over it.
+/// per FEMA P-154 reference view.
+///
+/// ### Two-Phase Capture → Describe (OOM fix)
+///
+/// **Phase A (Capture):** model is NEVER loaded. All camera work happens here.
+/// Each capture enrolls the photo in the draft and persists bytes to disk.
+/// Slots transition: `empty → captured`.
+///
+/// **Phase B (Describe):** camera is NEVER used. The user taps
+/// "Describe photos (N)" which loads the model once, then describes every
+/// captured slot sequentially. Slots transition:
+/// `captured → describing → done/error`.
+///
+/// This separation prevents the OOM crash that occurred when the Gemma model
+/// (~1.5 GB) and the camera ISP competed for GPU/RAM simultaneously on
+/// resource-constrained Android devices (e.g. Samsung Android 16).
 ///
 /// ### Android robustness (Phase 7)
 ///
@@ -103,7 +115,7 @@ class _SlotSpec {
 
 /// Per-slot UI status. Kept *outside* the SessionDraft because the draft is
 /// append-only and doesn't know about in-flight LLM turns.
-enum _SlotStatus { empty, describing, done, error }
+enum _SlotStatus { empty, captured, describing, done, error }
 
 class _SlotState {
   _SlotState({required this.status});
@@ -129,15 +141,27 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
   /// Initialised in [_initAsync]; null until SharedPreferences is ready.
   PendingSlotStore? _pendingSlotStore;
 
+  /// True while the Gemma model is being loaded/unloaded.
+  bool _modelLoading = false;
+  String _modelLoadingLabel = '';
+
+  /// True while [_describeAll] is running — disables capture buttons.
+  bool _describeAllInProgress = false;
+
   @override
   void initState() {
     super.initState();
     _initAsync();
   }
 
-  /// Async init: create [PendingSlotStore] then check for any lost data from
-  /// an Activity kill that happened while the camera intent was active.
+  /// Async init: unconditionally unload the model (Phase A must never have
+  /// the model loaded), then check for lost camera data.
   Future<void> _initAsync() async {
+    // Always unload on entry — Phase A must never have the model loaded.
+    // This prevents the OOM that occurs when camera ISP and model weights
+    // compete for GPU/RAM simultaneously.
+    await ref.read(gemmaSessionProvider.notifier).unload();
+
     final store = await PendingSlotStore.create();
     if (!mounted) return;
     _pendingSlotStore = store;
@@ -183,7 +207,8 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
       orElse: () => _slots.first,
     );
 
-    // Process the recovered image exactly as _capture() would.
+    // Process the recovered image — set to captured, not describing.
+    // _describeAll() will handle description when the user triggers Phase B.
     await _processPickedFile(spec, file);
   }
 
@@ -191,14 +216,30 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
       .where((s) => s.required)
       .any((s) => _state[s.slot]!.status == _SlotStatus.describing);
 
+  /// How many slots have been captured (or better) and are ready for describe.
+  int get _capturedCount => _slots
+      .where((s) => _state[s.slot]!.status == _SlotStatus.captured)
+      .length;
+
+  /// True when all 4 required slots are done (described successfully).
+  bool get _allRequiredDone => _slots
+      .where((s) => s.required)
+      .every((s) => _state[s.slot]!.status == _SlotStatus.done);
+
+  // ---------------------------------------------------------------------------
+  // Phase A — Capture (model is NEVER loaded)
+  // ---------------------------------------------------------------------------
+
   Future<void> _capture(_SlotSpec spec) async {
     // Save pending slot BEFORE firing the camera intent so Activity-kill
     // recovery knows which slot to restore.
     await _pendingSlotStore?.save(spec.slot);
 
-    // On web ImageSource.camera opens the webcam via getUserMedia; on desktop
-    // browsers it falls back to a file chooser. Either way we end up with an
-    // XFile whose bytes we can read directly.
+    // No model unload/reload — Phase A never has the model loaded.
+    // This is the core of the OOM fix: camera ISP and model weights never
+    // compete for GPU/RAM simultaneously.
+
+    // Launch camera (or gallery fallback on web / permission denied).
     XFile? picked;
     try {
       picked = await _picker.pickImage(
@@ -220,12 +261,14 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
     // Clear pending slot — either we have the file now or the user cancelled.
     await _pendingSlotStore?.clear();
 
-    if (!mounted || picked == null) return;
+    if (picked == null) return; // User cancelled.
     await _processPickedFile(spec, picked);
   }
 
-  /// Core pick → enrol → describe pipeline, shared by [_capture] and
-  /// [_checkLostData] (lost-data recovery).
+  /// Core pick → enrol pipeline, shared by [_capture] and [_checkLostData].
+  ///
+  /// Enrolls the photo in the draft and sets slot to [_SlotStatus.captured].
+  /// Does NOT call [_describe] — that happens in [_describeAll] (Phase B).
   Future<void> _processPickedFile(_SlotSpec spec, XFile file) async {
     final bytes = await file.readAsBytes();
     final size = await _decodeSize(bytes);
@@ -234,11 +277,11 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
     setState(() {
       _state[spec.slot]!
         ..thumb = bytes
-        ..status = _SlotStatus.describing
+        ..status = _SlotStatus.captured
         ..error = null;
     });
 
-    // Enroll in SessionDraft first — even if the LLM fails, we keep the photo
+    // Enroll in SessionDraft — even if the LLM later fails, we keep the photo
     // so the Report screen can still ship it.
     final controller = ref.read(sessionControllerProvider.notifier);
     final imgRef = controller.generateImageId();
@@ -257,9 +300,57 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
     if (draft != null) {
       await persistCapturedBytes(draft.packetId, imgRef, bytes);
     }
+  }
 
-    final obsId = controller.generateObservationId();
-    await _describe(spec, bytes, imgRef, obsId);
+  // ---------------------------------------------------------------------------
+  // Phase B — Describe all captured photos (camera is NEVER used)
+  // ---------------------------------------------------------------------------
+
+  /// Triggered by the "Describe photos (N)" button. Loads the model once,
+  /// then describes every [_SlotStatus.captured] slot sequentially.
+  Future<void> _describeAll() async {
+    setState(() {
+      _describeAllInProgress = true;
+      _modelLoading = true;
+      _modelLoadingLabel = 'Loading Gemma\u2026';
+    });
+    try {
+      await ref
+          .read(gemmaSessionProvider.notifier)
+          .load(profile: SessionProfile.vision);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _modelLoading = false;
+        _describeAllInProgress = false;
+      });
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _modelLoading = false);
+
+    final toDescribe = _slots
+        .where((s) => _state[s.slot]!.status == _SlotStatus.captured)
+        .toList();
+
+    for (int i = 0; i < toDescribe.length; i++) {
+      final spec = toDescribe[i];
+      final st = _state[spec.slot]!;
+      if (!mounted) return;
+      setState(() {
+        _modelLoadingLabel = 'Describing photo ${i + 1} of ${toDescribe.length}\u2026';
+        _modelLoading = true;
+        st.status = _SlotStatus.describing;
+      });
+      final obsId =
+          ref.read(sessionControllerProvider.notifier).generateObservationId();
+      await _describe(spec, st.thumb!, st.ref!, obsId);
+    }
+    if (!mounted) return;
+    setState(() {
+      _modelLoading = false;
+      _describeAllInProgress = false;
+    });
   }
 
   Future<void> _describe(
@@ -330,14 +421,15 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
   @override
   Widget build(BuildContext context) {
     final draft = ref.watch(sessionControllerProvider);
-    final orch = ref.watch(orchestratorProvider);
     if (draft == null) {
       return const Scaffold(
         body: Center(child: Text('No active session — return to Start.')),
       );
     }
     final requiredCaptured = draft.requiredPhotoSlotCount;
-    final canContinue = draft.hasAllRequiredPhotoSlots && !_requiredInFlight;
+    final canContinue = _allRequiredDone && !_requiredInFlight;
+    final canDescribe =
+        _capturedCount > 0 && !_describeAllInProgress && !_modelLoading;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Walk around'),
@@ -357,16 +449,15 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            if (orch == null)
-              const _Banner(
-                color: Colors.red,
-                icon: Icons.error_outline,
-                text: 'Model not loaded. Go back to Start and load the model '
-                    'before capturing photos.',
+            if (_modelLoading)
+              _Banner(
+                color: Colors.blue,
+                icon: Icons.memory_outlined,
+                text: _modelLoadingLabel,
               ),
             const Text(
-              'Take one photo per reference view. Each photo is described by '
-              'Gemma right after capture.',
+              'Take one photo per reference view. When all photos are '
+              'captured, tap "Describe photos" to run Gemma on all of them.',
               style: TextStyle(color: Colors.black54),
             ),
             const SizedBox(height: 12),
@@ -374,11 +465,30 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
               _SlotCard(
                 spec: spec,
                 state: _state[spec.slot]!,
-                onCapture: orch == null ? null : () => _capture(spec),
-                onRetry: orch == null ? null : () => _retry(spec),
+                onCapture: _describeAllInProgress
+                    ? null
+                    : () => _capture(spec),
+                onRetry: (_describeAllInProgress || _modelLoading)
+                    ? null
+                    : () => _retry(spec),
                 lastObs: _findLastObsForSlot(draft, spec.slot),
               ),
             const SizedBox(height: 16),
+            // Phase B trigger: "Describe photos (N)"
+            if (canDescribe)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: FilledButton.tonal(
+                  onPressed: _describeAll,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: Text(
+                      'Describe photos ($_capturedCount)',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ),
+              ),
             FilledButton(
               onPressed:
                   canContinue ? () => context.push(AppRoutes.audio) : null,
@@ -536,6 +646,8 @@ class _StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final (text, fg, bg) = switch (status) {
       _SlotStatus.empty => ('empty', Colors.black54, Colors.grey.shade200),
+      _SlotStatus.captured =>
+        ('ready', Colors.orange.shade800, Colors.orange.shade50),
       _SlotStatus.describing =>
         ('describing…', Colors.blue.shade800, Colors.blue.shade50),
       _SlotStatus.done =>

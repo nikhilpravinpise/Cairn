@@ -1,8 +1,16 @@
 /// Persistence interface for `EvidencePacket` objects + their binary assets.
 ///
-/// Pass-1 implementation is in-memory only. Persistent web (OPFS / IndexedDB)
-/// and mobile (sembast / sqlite) implementations land in later passes; the
-/// interface is the contract the rest of the app codes against.
+/// Phase 1 implementation is in-memory only. Phase 9 adds a file-backed
+/// implementation (`FileEvidenceVaultIo`) that writes to
+/// `getApplicationSupportDirectory()/cairn_vault/<packetId>/`:
+///
+/// ```
+/// packet.json      — atomic-write sealed EvidencePacket
+/// img-1.jpg        — original JPEG bytes from the camera
+/// aud-1.wav        — mono 16 kHz WAV bytes
+/// turns.jsonl      — one JSON object per LLM inference turn
+/// report.pdf       — generated PDF (written by the Report screen)
+/// ```
 library;
 
 import 'dart:typed_data';
@@ -44,6 +52,21 @@ abstract class EvidenceVault {
 
   Future<void> putAsset(String packetId, String ref, Uint8List bytes);
   Future<Uint8List?> getAsset(String packetId, String ref);
+
+  /// Append inference turn records as JSONL to the packet folder.
+  ///
+  /// Each [turns] entry must be the `Map` returned by `TurnRecord.toJson()`.
+  /// No-op for in-memory implementations.
+  Future<void> saveTurnsJsonl(
+      String packetId, List<Map<String, Object?>> turns);
+
+  /// Persist the generated report PDF for [packetId].
+  ///
+  /// Stored as `report.pdf` inside the packet folder on file-backed vaults.
+  Future<void> saveReportPdf(String packetId, Uint8List pdfBytes);
+
+  /// Load a previously saved report PDF, or null if not yet generated.
+  Future<Uint8List?> loadReportPdf(String packetId);
 }
 
 class InMemoryEvidenceVault implements EvidenceVault {
@@ -80,4 +103,19 @@ class InMemoryEvidenceVault implements EvidenceVault {
   @override
   Future<Uint8List?> getAsset(String packetId, String ref) async =>
       _assets[packetId]?[ref];
+
+  @override
+  Future<void> saveTurnsJsonl(
+      String packetId, List<Map<String, Object?>> turns) async {
+    // In-memory: no-op. Turns are tested via FileEvidenceVaultIo.
+  }
+
+  @override
+  Future<void> saveReportPdf(String packetId, Uint8List pdfBytes) async {
+    (_assets[packetId] ??= {})['report.pdf'] = pdfBytes;
+  }
+
+  @override
+  Future<Uint8List?> loadReportPdf(String packetId) async =>
+      _assets[packetId]?['report.pdf'];
 }

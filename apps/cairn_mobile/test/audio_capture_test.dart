@@ -565,9 +565,12 @@ void main() {
 
       ctrl.computeAndStoreTriage(
           rationaleBullets: ['x'], uncertaintyNotes: []);
-      final vault = InMemoryEvidenceVault();
-      final packet = await ctrl.sealAndSave(vault);
 
+      // sealAndSave now calls validateOrThrow, so use seal() directly to test
+      // that the validator catches the dangling audio ref.
+      final draft = ctrl.state!;
+      final packet = draft.seal(
+          volunteerSignatureSeed: '${draft.packetId}|0.1.0');
       final errors = EvidencePacketValidator.validate(packet);
       expect(
         errors.any((e) => e.path.contains('audio_refs')),

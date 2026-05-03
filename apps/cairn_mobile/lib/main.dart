@@ -8,7 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/providers.dart';
 import 'core/routing/app_router.dart';
+import 'core/state/session_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,11 +26,22 @@ Future<void> main() async {
   runApp(const ProviderScope(child: CairnApp()));
 }
 
-class CairnApp extends StatelessWidget {
+class CairnApp extends ConsumerWidget {
   const CairnApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Auto-save the draft on every session state change so that a process
+    // kill mid-flow does not lose the volunteer's work.
+    ref.listen<SessionDraft?>(sessionControllerProvider, (_, next) {
+      final dp = ref.read(draftPersistenceProvider);
+      if (next != null) {
+        dp.saveDraftMeta(next.toMetaMap()).ignore();
+      } else {
+        dp.clearDraft().ignore();
+      }
+    });
+
     return MaterialApp.router(
       title: 'Cairn',
       debugShowCheckedModeBanner: false,
