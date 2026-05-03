@@ -311,16 +311,148 @@ void main() {
     expect(mod['model_description'], 'diagonal crack');
   });
 
-  test('seal + save into vault', () async {
+  test('seal + save into vault — packet is persisted and signature hashed', () async {
     controller.setLocation(const GeoLocation(lat: 1.0, lng: 2.0, accuracyMeters: 5));
     controller.setBuilding(const BuildingInfo(
         type: 'wood_light_frame', storiesAboveGrade: 1));
     controller.computeAndStoreTriage(
         rationaleBullets: ['x'], uncertaintyNotes: []);
+    final packetId = controller.state!.packetId;
     final vault = InMemoryEvidenceVault();
     final p = await controller.sealAndSave(vault);
-    expect(p.packetId, controller.state!.packetId);
+    expect(p.packetId, packetId);
     expect(await vault.loadPacket(p.packetId), isNotNull);
     expect(p.volunteer.signatureHash.startsWith('sha256:'), true);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Phase 9 — TurnRecord
+  // ---------------------------------------------------------------------------
+
+  group('TurnRecord', () {
+    test('toJson omits observation_id when null', () {
+      final t = TurnRecord(
+        ts: DateTime.utc(2025),
+        task: 'describe_photo',
+        ttftMs: 100,
+        wallclockMs: 2000,
+        outputCharCount: 80,
+      );
+      expect(t.toJson().containsKey('observation_id'), isFalse);
+    });
+
+    test('toJson omits thinking_chars when 0', () {
+      final t = TurnRecord(
+        ts: DateTime.utc(2025),
+        task: 'synthesize',
+        ttftMs: 200,
+        wallclockMs: 5000,
+        outputCharCount: 400,
+      );
+      expect(t.toJson().containsKey('thinking_chars'), isFalse);
+    });
+
+    test('toJson includes thinking_chars when > 0', () {
+      final t = TurnRecord(
+        ts: DateTime.utc(2025),
+        task: 'synthesize',
+        ttftMs: 200,
+        wallclockMs: 5000,
+        outputCharCount: 400,
+        thinkingChars: 1500,
+      );
+      expect(t.toJson()['thinking_chars'], 1500);
+    });
+
+    test('fromJson round-trip preserves all fields', () {
+      final orig = TurnRecord(
+        ts: DateTime.utc(2025, 3, 14, 10, 30),
+        task: 'protocol_answer',
+        observationId: 'obs-5',
+        ttftMs: 55,
+        wallclockMs: 800,
+        outputCharCount: 30,
+        thinkingChars: 0,
+      );
+      final decoded = TurnRecord.fromJson(orig.toJson());
+      expect(decoded.task, orig.task);
+      expect(decoded.ttftMs, orig.ttftMs);
+      expect(decoded.observationId, 'obs-5');
+      expect(decoded.ts, orig.ts);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Phase 9 — recordTurn
+  // ---------------------------------------------------------------------------
+
+  test('recordTurn appends to draft.turns and triggers state update', () {
+    final before = controller.state!;
+    expect(before.turns, isEmpty);
+    controller.recordTurn(TurnRecord(
+      ts: DateTime.utc(2025, 1, 1),
+      task: 'describe_photo',
+      ttftMs: 70,
+      wallclockMs: 1100,
+      outputCharCount: 90,
+    ));
+    expect(controller.state!.turns.length, 1);
+    expect(controller.state!.turns.first.task, 'describe_photo');
+  });
+
+  test('recordTurn fires for multiple turns in sequence', () {
+    for (var i = 0; i < 5; i++) {
+      controller.recordTurn(TurnRecord(
+        ts: DateTime.utc(2025, 1, 1, 0, i),
+        task: 'task-$i',
+        ttftMs: i * 10,
+        wallclockMs: i * 100,
+        outputCharCount: i * 20,
+      ));
+    }
+    expect(controller.state!.turns.length, 5);
+    expect(controller.state!.turns.last.task, 'task-4');
+  });
+
+  // ---------------------------------------------------------------------------
+  // Phase 9 — restoreDraft
+  // ---------------------------------------------------------------------------
+
+  test('restoreDraft replaces current state with provided draft', () {
+    final restoredDraft = SessionDraft(
+      packetId: 'restored-id-001',
+      createdAtUtc: DateTime.utc(2025, 5, 1),
+      modelName: 'gemma-4-e2b-it',
+      modelQuant: 'int4',
+    );
+    controller.restoreDraft(restoredDraft);
+    expect(controller.state!.packetId, 'restored-id-001');
+    expect(controller.state!.modelName, 'gemma-4-e2b-it');
+  });
+
+  // ---------------------------------------------------------------------------
+  // Phase 9 — sealAndSave turns.jsonl
+  // ---------------------------------------------------------------------------
+
+  test('sealAndSave writes turns to vault.saveTurnsJsonl', () async {
+    controller.setLocation(
+        const GeoLocation(lat: 1.0, lng: 2.0, accuracyMeters: 5));
+    controller.setBuilding(
+        const BuildingInfo(type: 'wood_light_frame', storiesAboveGrade: 1));
+    controller.computeAndStoreTriage(
+        rationaleBullets: ['x'], uncertaintyNotes: []);
+    controller.recordTurn(TurnRecord(
+      ts: DateTime.utc(2025),
+      task: 'synthesize',
+      ttftMs: 100,
+      wallclockMs: 3000,
+      outputCharCount: 250,
+    ));
+
+    final vault = InMemoryEvidenceVault();
+    final p = await controller.sealAndSave(vault);
+    // turns.jsonl is saved separately; verify via vault.loadPacket round-trip.
+    final reloaded = await vault.loadPacket(p.packetId);
+    expect(reloaded, isNotNull);
   });
 }

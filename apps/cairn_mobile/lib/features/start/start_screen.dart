@@ -14,6 +14,7 @@ import '../../core/llm/gemma_session.dart';
 import '../../core/llm/model_registry.dart';
 import '../../core/providers.dart';
 import '../../core/routing/app_router.dart';
+import '../../core/storage/file_draft_persistence.dart';
 
 class StartScreen extends ConsumerStatefulWidget {
   const StartScreen({super.key});
@@ -26,6 +27,85 @@ class _StartScreenState extends ConsumerState<StartScreen> {
   GemmaLoadProgress? _progress;
   Object? _error;
   bool _busy = false;
+
+  bool _draftChecking = true;
+  bool _draftAvailable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkForDraft();
+  }
+
+  Future<void> _checkForDraft() async {
+    final dp = ref.read(draftPersistenceProvider);
+    final has = await dp.hasActiveDraft();
+    if (!mounted) return;
+    setState(() {
+      _draftAvailable = has;
+      _draftChecking = false;
+    });
+  }
+
+  Future<void> _resumeDraft() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+      _progress = null;
+    });
+    try {
+      final dp = ref.read(draftPersistenceProvider);
+      final meta = await dp.loadDraftMeta();
+      if (meta == null) {
+        setState(() {
+          _draftAvailable = false;
+          _busy = false;
+        });
+        return;
+      }
+      final draft = await restoreDraftWithBytes(meta);
+      if (!mounted) return;
+      if (draft == null) {
+        await dp.clearDraft();
+        setState(() {
+          _draftAvailable = false;
+          _busy = false;
+        });
+        return;
+      }
+      ref.read(sessionControllerProvider.notifier).restoreDraft(draft);
+
+      // Auto-reload the model so the volunteer doesn't need to tap
+      // "Load model" again after the Activity was killed during camera capture.
+      await ref.read(gemmaSessionProvider.notifier).load(
+            profile: SessionProfile.vision,
+            onProgress: (p) {
+              if (!mounted) return;
+              setState(() => _progress = p);
+            },
+          );
+
+      if (!mounted) return;
+      // Navigate to photos if images already exist in draft, else start from
+      // location so the volunteer can confirm/skip GPS before capturing.
+      final dest =
+          draft.photos.isNotEmpty ? AppRoutes.photos : AppRoutes.location;
+      context.go(dest);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _error = e;
+        });
+      }
+    }
+  }
+
+  Future<void> _discardDraft() async {
+    await ref.read(draftPersistenceProvider).clearDraft();
+    if (!mounted) return;
+    setState(() => _draftAvailable = false);
+  }
 
   Future<void> _load() async {
     setState(() {
@@ -97,6 +177,12 @@ class _StartScreenState extends ConsumerState<StartScreen> {
                 'this is not an engineer’s placard.',
                 style: TextStyle(color: Colors.black54),
               ),
+              const SizedBox(height: 16),
+              if (!_draftChecking && _draftAvailable)
+                _DraftBanner(
+                  onResume: _busy ? null : _resumeDraft,
+                  onDiscard: _busy ? null : _discardDraft,
+                ),
               const SizedBox(height: 24),
               _ModelPicker(
                 value: modelKey,
@@ -249,4 +335,52 @@ class _RecentReports extends ConsumerWidget {
         'MEDIUM' => Colors.amber,
         _ => Colors.green,
       };
+}
+
+class _DraftBanner extends StatelessWidget {
+  const _DraftBanner({required this.onResume, required this.onDiscard});
+  final VoidCallback? onResume;
+  final VoidCallback? onDiscard;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE3F2FD),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFF1976D2).withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.restore_outlined, color: Color(0xFF1565C0)),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Unsaved session found',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1565C0))),
+                  Text('You have an in-progress screening. Resume or discard.',
+                      style:
+                          TextStyle(fontSize: 12, color: Color(0xFF1565C0))),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: onDiscard,
+              child: const Text('Discard',
+                  style: TextStyle(color: Color(0xFF1565C0))),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF1565C0)),
+              onPressed: onResume,
+              child: const Text('Resume'),
+            ),
+          ],
+        ),
+      );
 }
