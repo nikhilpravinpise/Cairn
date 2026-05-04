@@ -75,16 +75,6 @@ class _StartScreenState extends ConsumerState<StartScreen> {
       }
       ref.read(sessionControllerProvider.notifier).restoreDraft(draft);
 
-      // Auto-reload the model so the volunteer doesn't need to tap
-      // "Load model" again after the Activity was killed during camera capture.
-      await ref.read(gemmaSessionProvider.notifier).load(
-            profile: SessionProfile.vision,
-            onProgress: (p) {
-              if (!mounted) return;
-              setState(() => _progress = p);
-            },
-          );
-
       if (!mounted) return;
       // Navigate to photos if images already exist in draft, else start from
       // location so the volunteer can confirm/skip GPS before capturing.
@@ -236,7 +226,7 @@ class _StartScreenState extends ConsumerState<StartScreen> {
                     child: Text('Start building screening',
                         style: TextStyle(fontSize: 18)),
                   ),
-                  onPressed: loaded ? _startSession : null,
+                  onPressed: _busy ? null : _startSession,
                 ),
               ),
               const SizedBox(height: 16),

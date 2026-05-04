@@ -254,6 +254,40 @@ void main() {
       final res = await _photo(_photoJson(bbox: '[]'));
       expect(res.bbox, isEmpty);
     });
+
+    test('bbox y1 >= y2 → throws GemmaContractError (ordering violation)',
+        () async {
+      const bbox = '[{"box_2d": [300, 100, 100, 400], "label": "crack"}]';
+      await expectLater(
+        _photo(_photoJson(bbox: bbox)),
+        throwsA(isA<GemmaContractError>().having(
+          (e) => e.message,
+          'message',
+          contains('y1'),
+        )),
+      );
+    });
+
+    test('bbox x1 >= x2 → throws GemmaContractError (ordering violation)',
+        () async {
+      const bbox = '[{"box_2d": [100, 400, 300, 100], "label": "crack"}]';
+      await expectLater(
+        _photo(_photoJson(bbox: bbox)),
+        throwsA(isA<GemmaContractError>().having(
+          (e) => e.message,
+          'message',
+          contains('x1'),
+        )),
+      );
+    });
+
+    test('bbox y1 == y2 → throws (degenerate box)', () async {
+      const bbox = '[{"box_2d": [200, 100, 200, 400], "label": "crack"}]';
+      await expectLater(
+        _photo(_photoJson(bbox: bbox)),
+        throwsA(isA<GemmaContractError>()),
+      );
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -394,6 +428,58 @@ void main() {
           askedIn: 'en', packetSummary: {'observations': []});
       expect(res.ttftMs, 88);
       expect(res.wallclockMs, 300);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // protocolAnswer — key validation
+  // ---------------------------------------------------------------------------
+
+  group('protocolAnswer — key validation', () {
+    Future<ProtocolAnswerResult> makeProtocol(String key, Object value) =>
+        _orch('{"protocol_answers_delta": {"$key": $value}}')
+            .protocolAnswer(askedIn: 'en', questionId: 'q1', userText: 'yes');
+
+    test('valid key visible_collapse → result with correct key', () async {
+      final res = await makeProtocol('visible_collapse', 'false');
+      expect(res.delta.key, 'visible_collapse');
+    });
+
+    test('all six allowed keys parse cleanly', () async {
+      const keys = [
+        'visible_collapse',
+        'building_off_foundation',
+        'leaning',
+        'ground_failure_adjacent',
+        'falling_hazards',
+        'adjacent_leaning',
+      ];
+      for (final k in keys) {
+        final res = await makeProtocol(k, 'false');
+        expect(res.delta.key, k, reason: 'key $k should be allowed');
+      }
+    });
+
+    test('unknown key → throws GemmaContractError', () async {
+      await expectLater(
+        makeProtocol('unsafe_building', 'true'),
+        throwsA(isA<GemmaContractError>().having(
+          (e) => e.message,
+          'message',
+          contains('"unsafe_building"'),
+        )),
+      );
+    });
+
+    test('unknown key error has task == protocol_answer', () async {
+      await expectLater(
+        makeProtocol('red_tagged', 'true'),
+        throwsA(isA<GemmaContractError>().having(
+          (e) => e.task,
+          'task',
+          'protocol_answer',
+        )),
+      );
     });
   });
 

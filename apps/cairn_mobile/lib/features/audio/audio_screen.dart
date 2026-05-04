@@ -12,14 +12,11 @@
 /// | error     | hardware / file failure   | Error text, retry button         |
 /// | permDenied| RECORD_AUDIO not granted  | Banner, grant-permission button  |
 ///
-/// ### Gemma audio describe (optional, informational)
+/// ### Audio is record-only in v1
 ///
-/// After the WAV bytes are enrolled in the [SessionDraft] the screen fires
-/// [GemmaOrchestrator.describeAudio] **if and only if** the current Gemma
-/// session was opened with `supportAudio: true` (i.e. loaded via
-/// [SessionProfile.audio]). If not, the screen logs a skip notice and
-/// continues normally — the capability gate only requires the code path to
-/// compile and run with a real audio session loaded.
+/// WAV bytes are enrolled in the [SessionDraft] and persisted to the tmp
+/// audio cache. Automatic `describe_audio` via Gemma is deferred until the
+/// audio quality gate is proven (Sprint 1+).
 ///
 /// ### Web fallback
 ///
@@ -28,7 +25,6 @@
 library;
 
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -37,8 +33,6 @@ import 'package:logging/logging.dart';
 
 import '../../core/audio/cairn_audio_recorder.dart';
 import '../../core/io/audio_cache.dart';
-import '../../core/llm/orchestrator.dart';
-import '../../core/models/evidence_packet.dart';
 import '../../core/providers.dart';
 import '../../core/routing/app_router.dart';
 import '../../core/state/session_controller.dart';
@@ -54,14 +48,6 @@ enum _CaptureState {
   processing,  // AudioRecorder.stop() called; reading + enrolling bytes.
   ready,       // Bytes enrolled in SessionDraft; Continue enabled.
   error,       // Hardware error or file read failure.
-}
-
-enum _GemmaState {
-  none,        // Not started (no audio session loaded).
-  skipped,     // Session loaded but supportAudio == false.
-  running,     // describeAudio() in progress.
-  done,        // Returned schema-valid result.
-  failed,      // GemmaContractError or other exception (non-blocking).
 }
 
 // ---------------------------------------------------------------------------
@@ -81,10 +67,8 @@ class _AudioScreenState extends ConsumerState<AudioScreen> {
   final _recorder = CairnAudioRecorder();
 
   _CaptureState _captureState = _CaptureState.idle;
-  _GemmaState _gemmaState = _GemmaState.none;
 
-  /// The aud-N ref assigned after successful encode. Used in the Gemma turn
-  /// and success card.
+  /// The aud-N ref assigned after successful encode.
   String? _audioRef;
 
   /// Wall-clock seconds elapsed since recording started (updated by [_ticker]).
@@ -92,9 +76,6 @@ class _AudioScreenState extends ConsumerState<AudioScreen> {
 
   /// Live amplitude fraction (0.0..1.0), emitted by [CairnAudioRecorder].
   double _amplitude = 0.0;
-
-  /// Description returned by Gemma (first sentence, for preview).
-  String? _gemmaDescription;
 
   /// Error message shown in error / permDenied states.
   String? _errorMessage;
@@ -254,88 +235,6 @@ class _AudioScreenState extends ConsumerState<AudioScreen> {
       _captureState = _CaptureState.ready;
       _durationS = result.durationS;
     });
-
-    // Optional Gemma audio describe turn.
-    await _maybeDescribeAudio(result.bytes, ref_);
-  }
-
-  Future<void> _maybeDescribeAudio(Uint8List bytes, String audRef) async {
-    final session = ref.read(gemmaSessionProvider);
-    if (session == null) {
-      setState(() => _gemmaState = _GemmaState.skipped);
-      _log.info(
-          'AudioScreen: no Gemma session loaded — skipping describe_audio');
-      return;
-    }
-    if (!session.supportAudio) {
-      setState(() => _gemmaState = _GemmaState.skipped);
-      _log.info(
-          'AudioScreen: session has supportAudio=false — '
-          'load SessionProfile.audio to enable describe_audio. Skipping.');
-      return;
-    }
-
-    setState(() => _gemmaState = _GemmaState.running);
-
-    final draft = ref.read(sessionControllerProvider);
-    if (draft == null || !mounted) return;
-
-    final orch = ref.read(orchestratorProvider);
-    if (orch == null || !mounted) return;
-
-    final obsId =
-        ref.read(sessionControllerProvider.notifier).generateObservationId();
-
-    try {
-      final res = await orch.describeAudio(
-        observationId: obsId,
-        promptId: 'describe_audio_v1',
-        askedIn: draft.askedIn,
-        audioBytes: bytes,
-        audioRef: audRef,
-      );
-
-      if (!mounted) return;
-
-      // Record the audio observation in the draft.
-      ref.read(sessionControllerProvider.notifier).recordObservation(
-            Observation(
-              observationId: obsId,
-              promptId: res.promptId,
-              askedIn: res.askedIn,
-              imageRefs: const [],
-              audioRefs: res.audioRefs.isEmpty ? [audRef] : res.audioRefs,
-              modelDescription: res.modelDescription,
-              modelTags: res.modelTags,
-              modelConfidence: res.modelConfidence,
-            ),
-          );
-
-      _log.info(
-          'AudioScreen: describe_audio completed '
-          '(ttft=${res.ttftMs}ms, wall=${res.wallclockMs}ms)');
-
-      setState(() {
-        _gemmaState = _GemmaState.done;
-        _gemmaDescription = res.modelDescription.length > 120
-            ? '${res.modelDescription.substring(0, 120)}…'
-            : res.modelDescription;
-      });
-    } on GemmaContractError catch (e) {
-      _log.warning('AudioScreen: describe_audio contract error', e);
-      if (!mounted) return;
-      setState(() {
-        _gemmaState = _GemmaState.failed;
-        _gemmaDescription = null;
-      });
-    } catch (e, st) {
-      _log.warning('AudioScreen: describe_audio failed', e, st);
-      if (!mounted) return;
-      setState(() {
-        _gemmaState = _GemmaState.failed;
-        _gemmaDescription = null;
-      });
-    }
   }
 
   Future<void> _cancel() async {
@@ -362,8 +261,6 @@ class _AudioScreenState extends ConsumerState<AudioScreen> {
       _amplitude = 0.0;
       _audioRef = null;
       _errorMessage = null;
-      _gemmaState = _GemmaState.none;
-      _gemmaDescription = null;
     });
   }
 
@@ -490,8 +387,6 @@ class _AudioScreenState extends ConsumerState<AudioScreen> {
         return _ReadyWidget(
           audioRef: _audioRef ?? 'aud-?',
           durationS: _durationS,
-          gemmaState: _gemmaState,
-          gemmaDescription: _gemmaDescription,
           onRetake: _retry,
         );
 
@@ -760,15 +655,11 @@ class _ReadyWidget extends StatelessWidget {
   const _ReadyWidget({
     required this.audioRef,
     required this.durationS,
-    required this.gemmaState,
-    required this.gemmaDescription,
     required this.onRetake,
   });
 
   final String audioRef;
   final double durationS;
-  final _GemmaState gemmaState;
-  final String? gemmaDescription;
   final VoidCallback onRetake;
 
   @override
@@ -793,11 +684,6 @@ class _ReadyWidget extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        _GemmaStatusTile(
-          state: gemmaState,
-          description: gemmaDescription,
-        ),
-        const SizedBox(height: 12),
         TextButton.icon(
           onPressed: onRetake,
           icon: const Icon(Icons.refresh, size: 16),
@@ -808,92 +694,6 @@ class _ReadyWidget extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _GemmaStatusTile extends StatelessWidget {
-  const _GemmaStatusTile({required this.state, this.description});
-  final _GemmaState state;
-  final String? description;
-
-  @override
-  Widget build(BuildContext context) {
-    final (icon, label, body, color) = switch (state) {
-      _GemmaState.none => (
-          Icons.smart_toy_outlined,
-          'Gemma description',
-          'Load the audio session to enable automatic description.',
-          Colors.black38,
-        ),
-      _GemmaState.skipped => (
-          Icons.smart_toy_outlined,
-          'Gemma description skipped',
-          'The current session does not have audio support. '
-              'Load SessionProfile.audio to enable describe_audio.',
-          Colors.black38,
-        ),
-      _GemmaState.running => (
-          Icons.hourglass_top,
-          'Gemma is describing…',
-          null,
-          Colors.blue.shade600,
-        ),
-      _GemmaState.done => (
-          Icons.auto_awesome,
-          'Gemma described this clip',
-          description ?? '(no text)',
-          Colors.indigo.shade700,
-        ),
-      _GemmaState.failed => (
-          Icons.warning_amber_outlined,
-          'Gemma description unavailable',
-          'The audio describe turn did not return valid JSON. '
-              'This is the quality gate (informational) — '
-              'the recording is still saved.',
-          Colors.orange.shade700,
-        ),
-    };
-
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          state == _GemmaState.running
-              ? SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: color),
-                )
-              : Icon(icon, size: 18, color: color),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label,
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: color)),
-                if (body != null) ...[
-                  const SizedBox(height: 4),
-                  Text(body,
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.black54)),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

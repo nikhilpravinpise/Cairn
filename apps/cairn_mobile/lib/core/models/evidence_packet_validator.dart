@@ -330,6 +330,19 @@ class EvidencePacketValidator {
                 message: 'must be 0..1000, got $v'));
           }
         }
+        // Ordering: [y1, x1, y2, x2] — y1 < y2 and x1 < x2.
+        if (b.box2d[0] >= b.box2d[2]) {
+          errors.add(ValidationError(
+              path: '$bpfx.box_2d',
+              message:
+                  'y1 (${b.box2d[0]}) must be < y2 (${b.box2d[2]})'));
+        }
+        if (b.box2d[1] >= b.box2d[3]) {
+          errors.add(ValidationError(
+              path: '$bpfx.box_2d',
+              message:
+                  'x1 (${b.box2d[1]}) must be < x2 (${b.box2d[3]})'));
+        }
       }
       if (b.label.isEmpty) {
         errors.add(ValidationError(

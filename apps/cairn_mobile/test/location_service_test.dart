@@ -18,6 +18,7 @@ import 'dart:async';
 
 import 'package:cairn_mobile/core/location/location_service.dart';
 import 'package:cairn_mobile/core/models/evidence_packet.dart';
+import 'package:cairn_mobile/core/models/evidence_packet_validator.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -320,8 +321,8 @@ void main() {
   // ── kSkippedGeoLocation sentinel ──────────────────────────────────────────
 
   group('kSkippedGeoLocation', () {
-    test('has accuracyMeters == -1 (the skip sentinel)', () {
-      expect(kSkippedGeoLocation.accuracyMeters, -1.0);
+    test('has accuracyMeters == 0.0 (schema-valid sentinel)', () {
+      expect(kSkippedGeoLocation.accuracyMeters, 0.0);
     });
 
     test('lat and lng are 0.0', () {
@@ -345,14 +346,60 @@ void main() {
     test('zero-accuracy real fix is NOT the skip sentinel', () {
       const zeroAccuracy = GeoLocation(lat: 0, lng: 0, accuracyMeters: 0);
       expect(isSkippedLocation(zeroAccuracy), isFalse,
-          reason: 'sentinel is -1 not 0; zero is a valid (unusual) accuracy');
+          reason: 'sentinel requires the specific addressText marker; '
+              'a bare zero-accuracy fix has an empty addressText');
+    });
+
+    test('kSkippedGeoLocation passes EvidencePacketValidator accuracy check',
+        () {
+      // Before Sprint 0, accuracyMeters was -1.0 which violated accuracy_m >= 0.
+      // This regression test ensures the skipped location is always schema-valid.
+      final errors = EvidencePacketValidator.validate(
+        _buildMinimalPacket(location: kSkippedGeoLocation),
+      );
+      final locationErrors =
+          errors.where((e) => e.path.startsWith('location')).toList();
+      expect(locationErrors, isEmpty,
+          reason: 'skipped GPS location must be schema-valid (accuracy_m >= 0)');
     });
   });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Helper: tracks whether requestPermission was called
+// Helpers
 // ─────────────────────────────────────────────────────────────────────────────
+
+EvidencePacket _buildMinimalPacket({GeoLocation? location}) {
+  return EvidencePacket(
+    packetId: '01900000-0000-7000-8000-000000000001',
+    createdAtUtc: DateTime.utc(2026, 1, 1),
+    appVersion: '0.0.0',
+    protocol: 'FEMA-P-154-L1',
+    modelName: 'gemma-4-e2b-it',
+    modelQuant: 'int4',
+    location: location ??
+        const GeoLocation(lat: 34.05, lng: -118.24, accuracyMeters: 5),
+    building:
+        const BuildingInfo(type: 'wood_light_frame', storiesAboveGrade: 1),
+    observations: const [],
+    hazardsFlagged: const [],
+    protocolAnswers: const ProtocolAnswersRecord(),
+    triage: const TriageResult(
+      priorityScore: 3,
+      priorityBand: 'LOW',
+      rationaleBullets: ['no issues observed'],
+      uncertaintyNotes: [],
+      recommendEngineerFollowup: false,
+    ),
+    volunteer: const VolunteerAttestation(
+      attestation: 'I am not a licensed engineer.',
+      signatureHash: 'sha256:0000000000000000000000000000000000000000000000000000000000000000',
+      locale: 'en-US',
+    ),
+    images: const [],
+    audio: const [],
+  );
+}
 
 class _AlwaysGrantedResolver implements LocationResolver {
   _AlwaysGrantedResolver({required this.position, required this.onRequest});

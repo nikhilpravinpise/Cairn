@@ -11,6 +11,7 @@
 ///  - Action bar: **Save PDF · Share JSON · Start new screening**
 library;
 
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -145,7 +146,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
     final packet = _packet;
     if (packet == null) return;
     try {
-      final json = const _PrettyEncoder().convert(packet.toJson());
+      final json = const JsonEncoder.withIndent('  ').convert(packet.toJson());
       await Share.share(json,
           subject: 'Cairn packet ${packet.packetId.substring(0, 8)}');
     } catch (_) {}
@@ -623,57 +624,6 @@ class _ErrorScaffold extends StatelessWidget {
 // Helpers
 // ---------------------------------------------------------------------------
 
-class _PrettyEncoder {
-  const _PrettyEncoder();
-  String convert(Object? obj) {
-    final buf = StringBuffer();
-    _encode(obj, buf, 0);
-    return buf.toString();
-  }
-
-  void _encode(Object? v, StringBuffer buf, int indent) {
-    if (v == null) {
-      buf.write('null');
-    } else if (v is bool) {
-      buf.write(v);
-    } else if (v is num) {
-      buf.write(v);
-    } else if (v is String) {
-      buf.write('"${v.replaceAll('"', '\\"')}"');
-    } else if (v is List) {
-      if (v.isEmpty) {
-        buf.write('[]');
-        return;
-      }
-      buf.writeln('[');
-      for (var i = 0; i < v.length; i++) {
-        buf.write('  ' * (indent + 1));
-        _encode(v[i], buf, indent + 1);
-        if (i < v.length - 1) buf.write(',');
-        buf.writeln();
-      }
-      buf.write('  ' * indent);
-      buf.write(']');
-    } else if (v is Map) {
-      if (v.isEmpty) {
-        buf.write('{}');
-        return;
-      }
-      buf.writeln('{');
-      final keys = v.keys.toList();
-      for (var i = 0; i < keys.length; i++) {
-        final k = keys[i];
-        buf.write('  ' * (indent + 1));
-        buf.write('"$k": ');
-        _encode(v[k], buf, indent + 1);
-        if (i < keys.length - 1) buf.write(',');
-        buf.writeln();
-      }
-      buf.write('  ' * indent);
-      buf.write('}');
-    }
-  }
-}
 
 String _buildingLabel(String type) => type
     .replaceAll('_', ' ')

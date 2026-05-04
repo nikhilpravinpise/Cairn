@@ -17,6 +17,7 @@ class ModelSpec {
     required this.quant,
     required this.modalities,
     required this.contextTokens,
+    required this.inferenceMaxLongEdgePx,
   });
 
   final String key;
@@ -27,6 +28,21 @@ class ModelSpec {
   final String quant;
   final Set<String> modalities;
   final int contextTokens;
+
+  /// Maximum longest-edge size (in pixels) for images sent to inference.
+  ///
+  /// [BoundedImagePreprocessor] uses this value to downscale capture bytes
+  /// before passing them to [Message.withImage]. Images already within the
+  /// bound are passed through unchanged (no re-encode cost).
+  ///
+  /// Sprint 3 production default: 768 px (conservative; benchmark 512 px
+  /// if the device gate passes). See `docs/optimization-plan.md §OPT-1`.
+  ///
+  /// | Value | Meaning                                     |
+  /// |-------|---------------------------------------------|
+  /// | 768   | Sprint 3 default — safe, measurable speedup |
+  /// | 512   | Aggressive candidate — benchmark first      |
+  final int inferenceMaxLongEdgePx;
 
   String getTaskFilename(bool isWeb) => isWeb ? taskFilenameWeb : taskFilenameAndroid;
 
@@ -63,6 +79,7 @@ const Map<String, ModelSpec> models = {
     quant: 'int4',
     modalities: {'text', 'image'},
     contextTokens: 8192,
+    inferenceMaxLongEdgePx: 768,
   ),
   'e4b': ModelSpec(
     key: 'e4b',
@@ -73,5 +90,6 @@ const Map<String, ModelSpec> models = {
     quant: 'int4',
     modalities: {'text', 'image'},
     contextTokens: 8192,
+    inferenceMaxLongEdgePx: 768,
   ),
 };

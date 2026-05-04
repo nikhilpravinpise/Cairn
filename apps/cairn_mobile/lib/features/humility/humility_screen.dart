@@ -100,6 +100,15 @@ class _HumilityScreenState extends ConsumerState<HumilityScreen> {
         },
       );
       if (!mounted) return;
+      ref.read(sessionControllerProvider.notifier).recordTurn(
+            TurnRecord(
+              ts: DateTime.now().toUtc(),
+              task: 'ask_followup',
+              ttftMs: res.ttftMs,
+              wallclockMs: res.wallclockMs,
+              outputCharCount: (res.question ?? '').length,
+            ),
+          );
       if (!res.hasFollowup) {
         // Model determined no follow-up is needed; skip to synthesize.
         context.go(AppRoutes.synthesize);

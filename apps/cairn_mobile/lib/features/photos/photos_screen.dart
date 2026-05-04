@@ -307,7 +307,12 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
   // ---------------------------------------------------------------------------
 
   /// Triggered by the "Describe photos (N)" button. Loads the model once,
-  /// then describes every [_SlotStatus.captured] slot sequentially.
+  /// then describes every [_SlotStatus.captured] slot sequentially using
+  /// [GemmaOrchestrator.describeAll] (Sprint 3).
+  ///
+  /// The orchestrator owns: preprocessing, inference, contract validation,
+  /// and [TurnRecord] construction. The UI here owns: slot-status rendering,
+  /// retry buttons, and navigation.
   Future<void> _describeAll() async {
     setState(() {
       _describeAllInProgress = true;
@@ -329,23 +334,77 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
     if (!mounted) return;
     setState(() => _modelLoading = false);
 
+    final draft = ref.read(sessionControllerProvider);
+    final orch = ref.read(orchestratorProvider);
+    if (orch == null || draft == null) {
+      if (!mounted) return;
+      setState(() => _describeAllInProgress = false);
+      return;
+    }
+
+    final ctrl = ref.read(sessionControllerProvider.notifier);
     final toDescribe = _slots
         .where((s) => _state[s.slot]!.status == _SlotStatus.captured)
         .toList();
 
-    for (int i = 0; i < toDescribe.length; i++) {
-      final spec = toDescribe[i];
-      final st = _state[spec.slot]!;
-      if (!mounted) return;
-      setState(() {
-        _modelLoadingLabel = 'Describing photo ${i + 1} of ${toDescribe.length}\u2026';
-        _modelLoading = true;
-        st.status = _SlotStatus.describing;
-      });
-      final obsId =
-          ref.read(sessionControllerProvider.notifier).generateObservationId();
-      await _describe(spec, st.thumb!, st.ref!, obsId);
+    // Observation IDs are generated upfront so each DescribePhotoRequest
+    // carries its ID before the stream starts. This keeps obs-ID allocation
+    // deterministic and independent of async event ordering.
+    final requests = [
+      for (final spec in toDescribe)
+        DescribePhotoRequest(
+          observationId: ctrl.generateObservationId(),
+          promptId: spec.promptId,
+          askedIn: draft.askedIn,
+          imageBytes: _state[spec.slot]!.thumb!,
+          imageRef: _state[spec.slot]!.ref!,
+        ),
+    ];
+
+    // Lookup: imageRef → slot spec, for routing stream events to slots.
+    final refToSpec = <String, _SlotSpec>{
+      for (var i = 0; i < toDescribe.length; i++)
+        requests[i].imageRef: toDescribe[i],
+    };
+
+    await for (final event in orch.describeAll(requests)) {
+      if (!mounted) break;
+      switch (event) {
+        case DescribePhotoStarted(:final request, :final index, :final total):
+          final spec = refToSpec[request.imageRef];
+          if (spec != null) {
+            setState(() {
+              _state[spec.slot]!.status = _SlotStatus.describing;
+              _modelLoadingLabel =
+                  'Describing photo ${index + 1} of $total\u2026';
+              _modelLoading = true;
+            });
+          }
+        case DescribePhotoSucceeded(:final result, :final turn):
+          final imgRef = result.imageRefs.isNotEmpty
+              ? result.imageRefs.first
+              : '';
+          final spec = refToSpec[imgRef];
+          ctrl.recordObservation(
+            _observationFrom(result,
+                imgRef: imgRef, obsId: result.observationId),
+          );
+          ctrl.recordTurn(turn);
+          if (spec != null && mounted) {
+            setState(() => _state[spec.slot]!.status = _SlotStatus.done);
+          }
+        case DescribePhotoFailed(:final request, :final error):
+          debugPrint('describeAll: photo ${request.imageRef} failed: $error');
+          final spec = refToSpec[request.imageRef];
+          if (spec != null && mounted) {
+            setState(() {
+              _state[spec.slot]!.status = _SlotStatus.error;
+              _state[spec.slot]!.error = error;
+            });
+          }
+      }
     }
+
     if (!mounted) return;
     setState(() {
       _modelLoading = false;
@@ -382,6 +441,16 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
       );
       ref.read(sessionControllerProvider.notifier).recordObservation(
             _observationFrom(res, imgRef: imgRef, obsId: obsId),
+          );
+      ref.read(sessionControllerProvider.notifier).recordTurn(
+            TurnRecord(
+              ts: DateTime.now().toUtc(),
+              task: 'describe_photo',
+              observationId: obsId,
+              ttftMs: res.ttftMs,
+              wallclockMs: res.wallclockMs,
+              outputCharCount: res.outputCharCount,
+            ),
           );
       if (!mounted) return;
       setState(() => _state[spec.slot]!.status = _SlotStatus.done);
