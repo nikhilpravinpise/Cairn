@@ -106,20 +106,31 @@ final class LocationFailure extends LocationResult {
 // Skip-GPS sentinel
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// The address-text marker written when the volunteer explicitly skips GPS.
+const _kSkipAddressMarker = '[GPS unavailable — location not recorded]';
+
 /// A [GeoLocation] written when the volunteer explicitly skips GPS.
 ///
-/// `accuracyMeters == -1` is the skip sentinel. The report PDF and downstream
-/// validator both recognise it and display a "[GPS unavailable]" notice rather
-/// than coordinates.
+/// Uses `accuracyMeters == 0.0` (schema-valid; `accuracy_m >= 0` required) and
+/// a distinctive [_kSkipAddressMarker] string as the sentinel discriminator.
+/// The report PDF and downstream validator both recognise it and display a
+/// "[GPS unavailable]" notice rather than coordinates.
 const kSkippedGeoLocation = GeoLocation(
   lat: 0.0,
   lng: 0.0,
-  accuracyMeters: -1.0,
-  addressText: '[GPS unavailable — location not recorded]',
+  accuracyMeters: 0.0,
+  addressText: _kSkipAddressMarker,
 );
 
 /// True when [loc] carries the skip-GPS sentinel.
-bool isSkippedLocation(GeoLocation loc) => loc.accuracyMeters == -1.0;
+///
+/// A zero-accuracy real fix (unusual but valid) is NOT a skipped location
+/// because its [GeoLocation.addressText] will differ from [_kSkipAddressMarker].
+bool isSkippedLocation(GeoLocation loc) =>
+    loc.lat == 0.0 &&
+    loc.lng == 0.0 &&
+    loc.accuracyMeters == 0.0 &&
+    loc.addressText == _kSkipAddressMarker;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Abstract resolver (seam for unit tests)

@@ -3,19 +3,116 @@
 /// Screens depend on this file; never on the concrete implementations behind
 /// it. The vault and draft-persistence providers use conditional exports so the
 /// file-backed implementations are wired on native targets automatically.
+///
+/// ## Benchmark dart-defines
+///
+/// Three dart-defines activate benchmark variants at build time. All default
+/// to their production values when not set, so release builds are unaffected.
+///
+/// ### BENCH_CONFIG — SessionConfig variant selector
+///
+/// Selects a named [SessionConfig] constant for all sessions loaded during
+/// the benchmark run. Only the first matching profile wins; profiles not
+/// targeted by the variant use their production defaults.
+///
+/// ```powershell
+/// flutter run --profile -d RZCX920ARVA --dart-define=BENCH_CONFIG=vision_history_retained
+/// ```
+///
+/// Supported values: `vision_3072`, `vision_2048`, `vision_temp01`,
+/// `std_temp01`, `vision_history_retained`, `vision_cpu`, `synthesis_cpu`,
+/// `standard_cpu`.
+///
+/// ### BENCH_IMAGE_PX — inference image longest-edge override (Sprint 3)
+///
+/// Overrides the [BoundedImagePreprocessor.maxLongEdgePx] used in
+/// [orchestratorProvider] for the Sprint 3 image-size benchmark.
+///
+/// ```powershell
+/// flutter run --profile -d RZCX920ARVA --dart-define=BENCH_IMAGE_PX=512
+/// ```
+///
+/// Supported values:
+/// - `0` (default): use `spec.inferenceMaxLongEdgePx` (currently 768).
+/// - `-1`: passthrough — raw capture bytes, no downscaling.
+/// - Any positive integer: bound longest edge to that many pixels.
+///
+/// ### BENCH_BACKEND — hardware backend override (Sprint 4 OPT-6)
+///
+/// Overrides [PreferredBackend] for every session loaded during the run.
+/// Combine with `BENCH_CONFIG` to target a specific profile.
+///
+/// ```powershell
+/// flutter run --profile -d RZCX920ARVA --dart-define=BENCH_BACKEND=cpu
+/// ```
+///
+/// Supported values: `cpu`, `gpu` (default when not set).
 library;
 
 import 'package:flutter/services.dart';
+import 'package:flutter_gemma/flutter_gemma.dart' hide ModelSpec;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'images/image_preprocessor.dart';
 import 'llm/gemma_session.dart';
 import 'llm/model_registry.dart';
 import 'llm/orchestrator.dart';
+import 'llm/session_config.dart';
 import 'state/session_controller.dart';
 import 'storage/draft_persistence.dart';
 import 'storage/evidence_vault.dart';
 import 'storage/file_draft_persistence.dart';
 import 'storage/file_evidence_vault.dart';
+
+// ---------------------------------------------------------------------------
+// Benchmark dart-define constants
+//
+// These are compile-time constants: they resolve to their default values in
+// release/production builds and carry zero runtime overhead when not set.
+// ---------------------------------------------------------------------------
+
+/// BENCH_CONFIG selects a named [SessionConfig] benchmark variant.
+/// Empty string = production defaults.
+const _kBenchConfig = String.fromEnvironment('BENCH_CONFIG', defaultValue: '');
+
+/// BENCH_IMAGE_PX overrides the inference image longest-edge bound.
+/// 0 = use spec default (production). -1 = passthrough. >0 = explicit bound.
+const _kBenchImagePx = int.fromEnvironment('BENCH_IMAGE_PX', defaultValue: 0);
+
+/// BENCH_BACKEND overrides the [PreferredBackend] for all sessions.
+/// Empty string = gpu (production). 'cpu' = force CPU.
+const _kBenchBackend =
+    String.fromEnvironment('BENCH_BACKEND', defaultValue: '');
+
+/// Maps a [benchKey] string to a [SessionConfig] for the given [profile].
+///
+/// Returns `null` when [benchKey] is empty (production path) or unknown, so
+/// the session load falls through to its per-profile production default.
+///
+/// Only session-config variants are mapped here; image-px and backend
+/// overrides are applied separately after this lookup.
+SessionConfig? _benchConfigForKey(String benchKey) {
+  if (benchKey.isEmpty) return null;
+  return switch (benchKey) {
+    'vision_3072' => SessionConfig.visionMaxTokens3072,
+    'vision_2048' => SessionConfig.visionMaxTokens2048,
+    'vision_temp01' => SessionConfig.visionTemp01,
+    'std_temp01' => SessionConfig.standardTemp01,
+    'vision_history_retained' => SessionConfig.visionHistoryRetained,
+    'vision_cpu' => SessionConfig.visionCpu,
+    'synthesis_cpu' => SessionConfig.synthesisCpu,
+    'standard_cpu' => SessionConfig.standardCpu,
+    _ => null,
+  };
+}
+
+/// Applies the [_kBenchBackend] override to [cfg] if `BENCH_BACKEND=cpu`.
+///
+/// Returns [cfg] unchanged when [_kBenchBackend] is empty or `'gpu'`.
+SessionConfig _applyBenchBackend(SessionConfig cfg) {
+  if (_kBenchBackend != 'cpu') return cfg;
+  return cfg.copyWith(preferredBackend: PreferredBackend.cpu);
+}
 
 /// Locked system prompt — loaded once from `assets/prompts/system_prompt_v1.txt`.
 final systemPromptProvider = FutureProvider<String>((ref) async {
@@ -71,14 +168,14 @@ class GemmaSessionNotifier extends Notifier<GemmaSession?> {
     return null;
   }
 
-  /// Load (or reload) the active Gemma session.
-  ///
-  /// [profile] selects which capability flags are wired at model/chat
-  /// creation time. Defaults to [SessionProfile.vision] because the primary
-  /// task is photo description. Callers that drive a different task group
-  /// should pass the appropriate profile explicitly.
+  /// Load (or reload) the active Gemma session with an optional [config]
+  /// override for benchmarking. When [config] is `null` (the normal production
+  /// path) each profile uses its own `SessionConfig.<profile>` default, unless
+  /// a `BENCH_CONFIG` dart-define selects a named benchmark variant and/or
+  /// `BENCH_BACKEND=cpu` forces the CPU backend.
   Future<void> load({
     SessionProfile profile = SessionProfile.vision,
+    SessionConfig? config,
     String? loraPath,
     void Function(GemmaLoadProgress)? onProgress,
   }) async {
@@ -87,19 +184,41 @@ class GemmaSessionNotifier extends Notifier<GemmaSession?> {
     await previous?.close();
     final spec = ref.read(selectedModelSpecProvider);
     final sys = await ref.read(systemPromptProvider.future);
+
+    // Benchmark override chain (compile-time constants — zero cost in release):
+    //   1. Explicit caller-supplied config takes highest priority.
+    //   2. BENCH_CONFIG selects a named SessionConfig variant.
+    //   3. Per-profile production default.
+    //   4. BENCH_BACKEND applies a backend-only override on top of whichever
+    //      config was selected in steps 1–3.
+    SessionConfig _resolved(SessionConfig productionDefault) =>
+        _applyBenchBackend(config ?? _benchConfigForKey(_kBenchConfig) ?? productionDefault);
+
     state = switch (profile) {
       SessionProfile.vision =>
         await GemmaSession.openForVision(spec,
-            systemPrompt: sys, loraPath: loraPath, onProgress: onProgress),
+            systemPrompt: sys,
+            config: _resolved(SessionConfig.vision),
+            loraPath: loraPath,
+            onProgress: onProgress),
       SessionProfile.audio =>
         await GemmaSession.openForAudio(spec,
-            systemPrompt: sys, loraPath: loraPath, onProgress: onProgress),
+            systemPrompt: sys,
+            config: _resolved(SessionConfig.audio),
+            loraPath: loraPath,
+            onProgress: onProgress),
       SessionProfile.synthesis =>
         await GemmaSession.openForSynthesis(spec,
-            systemPrompt: sys, loraPath: loraPath, onProgress: onProgress),
+            systemPrompt: sys,
+            config: _resolved(SessionConfig.synthesis),
+            loraPath: loraPath,
+            onProgress: onProgress),
       SessionProfile.standard =>
         await GemmaSession.openStandard(spec,
-            systemPrompt: sys, loraPath: loraPath, onProgress: onProgress),
+            systemPrompt: sys,
+            config: _resolved(SessionConfig.standard),
+            loraPath: loraPath,
+            onProgress: onProgress),
     };
   }
 
@@ -115,7 +234,20 @@ final gemmaSessionProvider =
 
 final orchestratorProvider = Provider<GemmaOrchestrator?>((ref) {
   final session = ref.watch(gemmaSessionProvider);
-  return session == null ? null : GemmaOrchestrator(session);
+  if (session == null) return null;
+  final spec = ref.watch(selectedModelSpecProvider);
+
+  // BENCH_IMAGE_PX selects the image preprocessor:
+  //   -1  → PassthroughImagePreprocessor (raw baseline, Sprint 3 gate)
+  //    0  → BoundedImagePreprocessor at spec.inferenceMaxLongEdgePx (default)
+  //   >0  → BoundedImagePreprocessor at the explicit pixel bound
+  final ImagePreprocessor preprocessor = switch (_kBenchImagePx) {
+    -1 => const PassthroughImagePreprocessor(),
+    0 => BoundedImagePreprocessor(maxLongEdgePx: spec.inferenceMaxLongEdgePx),
+    _ => BoundedImagePreprocessor(maxLongEdgePx: _kBenchImagePx),
+  };
+
+  return GemmaOrchestrator(session, preprocessor: preprocessor);
 });
 
 /// File-backed vault on native targets; in-memory on web.

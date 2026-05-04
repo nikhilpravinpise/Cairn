@@ -10,12 +10,14 @@
 library;
 
 import 'dart:async';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/flutter_gemma.dart' hide ModelSpec;
 import 'package:logging/logging.dart';
 
 import 'model_registry.dart';
+import 'perf_log.dart';
+import 'session_config.dart';
 
 /// Minimal generation interface that [GemmaOrchestrator] depends on.
 ///
@@ -75,7 +77,8 @@ class GemmaSession implements GemmaSessionInterface {
     required this.supportImage,
     required this.supportAudio,
     required this.isThinking,
-  });
+    required SessionConfig config,
+  }) : _config = config;
 
   static final _log = Logger('GemmaSession');
 
@@ -86,6 +89,7 @@ class GemmaSession implements GemmaSessionInterface {
   static Future<GemmaSession> open(
     ModelSpec spec, {
     required String systemPrompt,
+    SessionConfig config = SessionConfig.vision,
     bool supportImage = false,
     bool supportAudio = false,
     bool isThinking = false,
@@ -97,6 +101,7 @@ class GemmaSession implements GemmaSessionInterface {
       supportImage: supportImage,
       supportAudio: supportAudio,
       isThinking: isThinking,
+      config: config,
     );
     await s._install(onProgress: onProgress, loraPath: loraPath);
     await s._create(systemPrompt: systemPrompt, loraPath: loraPath);
@@ -108,12 +113,14 @@ class GemmaSession implements GemmaSessionInterface {
   static Future<GemmaSession> openForVision(
     ModelSpec spec, {
     required String systemPrompt,
+    SessionConfig config = SessionConfig.vision,
     String? loraPath,
     void Function(GemmaLoadProgress)? onProgress,
   }) =>
       open(
         spec,
         systemPrompt: systemPrompt,
+        config: config,
         supportImage: true,
         supportAudio: false,
         isThinking: false,
@@ -126,12 +133,14 @@ class GemmaSession implements GemmaSessionInterface {
   static Future<GemmaSession> openForAudio(
     ModelSpec spec, {
     required String systemPrompt,
+    SessionConfig config = SessionConfig.audio,
     String? loraPath,
     void Function(GemmaLoadProgress)? onProgress,
   }) =>
       open(
         spec,
         systemPrompt: systemPrompt,
+        config: config,
         supportImage: false,
         supportAudio: true,
         isThinking: false,
@@ -144,12 +153,14 @@ class GemmaSession implements GemmaSessionInterface {
   static Future<GemmaSession> openForSynthesis(
     ModelSpec spec, {
     required String systemPrompt,
+    SessionConfig config = SessionConfig.synthesis,
     String? loraPath,
     void Function(GemmaLoadProgress)? onProgress,
   }) =>
       open(
         spec,
         systemPrompt: systemPrompt,
+        config: config,
         supportImage: false,
         supportAudio: false,
         isThinking: true,
@@ -162,12 +173,14 @@ class GemmaSession implements GemmaSessionInterface {
   static Future<GemmaSession> openStandard(
     ModelSpec spec, {
     required String systemPrompt,
+    SessionConfig config = SessionConfig.standard,
     String? loraPath,
     void Function(GemmaLoadProgress)? onProgress,
   }) =>
       open(
         spec,
         systemPrompt: systemPrompt,
+        config: config,
         supportImage: false,
         supportAudio: false,
         isThinking: false,
@@ -176,6 +189,7 @@ class GemmaSession implements GemmaSessionInterface {
       );
 
   final ModelSpec _spec;
+  final SessionConfig _config;
 
   /// Whether the underlying model and chat were created with image support.
   final bool supportImage;
@@ -185,6 +199,11 @@ class GemmaSession implements GemmaSessionInterface {
 
   @override
   final bool isThinking;
+
+  /// The [SessionConfig] used to create this session.
+  ///
+  /// Exposed for testing and the benchmark script; do not mutate.
+  SessionConfig get config => _config;
 
   InferenceModel? _model;
   InferenceChat? _chat;
@@ -207,8 +226,9 @@ class GemmaSession implements GemmaSessionInterface {
     // (OPFS on web / app-support on mobile) without re-hitting the network.
     // fileType and URL are resolved by ModelSpec.resolved* — the single
     // TargetPlatform call site lives in model_registry.dart, not here.
+    final installSw = Stopwatch()..start();
     final installer = FlutterGemma.installModel(
-      modelType: ModelType.gemmaIt,
+      modelType: ModelType.gemma4,
       fileType: _spec.resolvedFileType,
     );
     await installer.fromNetwork(url)
@@ -218,32 +238,40 @@ class GemmaSession implements GemmaSessionInterface {
           ),
         )
         .install();
+    installSw.stop();
     onProgress?.call(const GemmaLoadProgress(phase: 'download', fraction: 1.0));
+    PerfLogger.emit(
+        PerfEvent(phase: 'install', wallclockMs: installSw.elapsedMilliseconds));
     // LoRA is attached at `createChat(loraPath:)` time. On web MediaPipe
     // currently ignores the parameter; on Android the adapter flatbuffer is
     // loaded by MediaPipe LLM Inference.
   }
 
   Future<void> _create({required String systemPrompt, String? loraPath}) async {
+    debugPrint('[Cairn/session] ${_config.toLogString()}');
+    final createSw = Stopwatch()..start();
     _model = await FlutterGemma.getActiveModel(
-      preferredBackend: PreferredBackend.gpu,
-      maxTokens: 4096,
+      preferredBackend: _config.preferredBackend,
+      maxTokens: _config.maxTokens,
       supportImage: supportImage,
       supportAudio: supportAudio,
-      maxNumImages: 5,
+      maxNumImages: _config.maxNumImages,
     );
     _chat = await _model!.createChat(
-      temperature: 0.2,
-      topK: 40,
-      topP: 0.95,
+      temperature: _config.temperature,
+      topK: _config.topK,
+      topP: _config.topP,
       supportImage: supportImage,
       isThinking: isThinking,
       loraPath: loraPath,
-      modelType: ModelType.gemmaIt,
+      modelType: ModelType.gemma4,
       systemInstruction: systemPrompt,
     );
+    createSw.stop();
     _loraPath = loraPath;
     _loadedAt = DateTime.now();
+    PerfLogger.emit(PerfEvent(
+        phase: 'engine_create', wallclockMs: createSw.elapsedMilliseconds));
   }
 
   @override
@@ -308,16 +336,32 @@ class GemmaSession implements GemmaSessionInterface {
         // Function-call subclasses are ignored in Cairn (no tools wired).
       }
     } finally {
-      // Cairn task turns are independent JSON contracts. Keeping prior photos
-      // and answers in chat history both wastes context and can contaminate the
-      // next task.
-      await chat.clearHistory();
+      // Cairn task turns are independent JSON contracts. Clearing history after
+      // each turn prevents cross-photo contamination and is the production
+      // default (SessionConfig.clearHistoryBetweenTurns == true).
+      //
+      // The Sprint 4 OPT-5 history-retention A/B variant sets this to false
+      // to measure whether retaining history between same-profile photo turns
+      // reduces repeated system-prompt prefill cost. Do not remove the guard
+      // until the device gate confirms no output contamination.
+      if (_config.clearHistoryBetweenTurns) {
+        await chat.clearHistory();
+      }
     }
     sw.stop();
     final text = textBuf.toString();
+    final thinkText = thinkBuf.toString();
+    PerfLogger.emit(PerfEvent(
+      phase: 'generate',
+      wallclockMs: sw.elapsedMilliseconds,
+      ttftMs: ttftMs ?? sw.elapsedMilliseconds,
+      outputCharCount: text.length,
+      thinkingChars: thinkText.length,
+      imageSizeBytes: image?.length,
+    ));
     return GemmaInferenceResult(
       text: text,
-      thinking: thinkBuf.toString(),
+      thinking: thinkText,
       ttftMs: ttftMs ?? sw.elapsedMilliseconds,
       wallclockMs: sw.elapsedMilliseconds,
       outputCharCount: text.length,

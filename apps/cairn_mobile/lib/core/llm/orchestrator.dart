@@ -18,9 +18,13 @@ library;
 import 'dart:convert';
 import 'dart:typed_data';
 
+import '../images/image_preprocessor.dart';
 import '../models/evidence_packet_validator.dart';
 import 'gemma_session.dart';
 import 'json_extract.dart';
+import 'turn_record.dart';
+
+export 'turn_record.dart' show TurnRecord;
 
 /// Thrown when Gemma's response cannot be parsed into the expected shape.
 class GemmaContractError implements Exception {
@@ -48,6 +52,7 @@ class DescribePhotoResult {
     required this.raw,
     required this.ttftMs,
     required this.wallclockMs,
+    required this.outputCharCount,
   });
 
   final String observationId;
@@ -64,6 +69,10 @@ class DescribePhotoResult {
   final Map<String, Object?> raw;
   final int ttftMs;
   final int wallclockMs;
+
+  /// Raw output character count from the session (text only, excluding
+  /// thinking). Used by [GemmaOrchestrator.describeAll] to build [TurnRecord]s.
+  final int outputCharCount;
 }
 
 /// One run of `describe_audio`.
@@ -154,12 +163,136 @@ class SynthesizeResult {
   final int wallclockMs;
 }
 
+// ---------------------------------------------------------------------------
+// Sprint 3 — describeAll stream types
+// ---------------------------------------------------------------------------
+
+/// Input for a single photo inference turn in [GemmaOrchestrator.describeAll].
+///
+/// Callers build one [DescribePhotoRequest] per captured slot and pass the
+/// full list to [GemmaOrchestrator.describeAll]. The orchestrator owns:
+/// - image preprocessing (via [ImagePreprocessor])
+/// - the [GemmaSession.generate] call
+/// - contract validation
+/// - [TurnRecord] construction
+///
+/// Callers own: slot-status UI, retry logic, navigation.
+class DescribePhotoRequest {
+  const DescribePhotoRequest({
+    required this.observationId,
+    required this.promptId,
+    required this.askedIn,
+    required this.imageBytes,
+    required this.imageRef,
+    this.userText,
+  });
+
+  final String observationId;
+  final String promptId;
+  final String askedIn;
+
+  /// Original capture bytes — the preprocessor receives these and may
+  /// downscale before passing to the model.
+  final Uint8List imageBytes;
+  final String imageRef;
+  final String? userText;
+}
+
+/// Events emitted by [GemmaOrchestrator.describeAll].
+///
+/// Use a `switch` on the sealed subclasses to handle all cases:
+///
+/// ```dart
+/// await for (final event in orchestrator.describeAll(requests)) {
+///   switch (event) {
+///     case DescribePhotoStarted(:final index, :final total):
+///       updateProgress(index, total);
+///     case DescribePhotoSucceeded(:final result, :final turn):
+///       controller.recordObservation(observationFrom(result));
+///       controller.recordTurn(turn);
+///     case DescribePhotoFailed(:final request, :final error):
+///       showError(request.imageRef, error);
+///   }
+/// }
+/// ```
+sealed class DescribePhotoEvent {
+  const DescribePhotoEvent();
+}
+
+/// Emitted immediately before the model call for photo at [index].
+final class DescribePhotoStarted extends DescribePhotoEvent {
+  const DescribePhotoStarted({
+    required this.request,
+    required this.index,
+    required this.total,
+  });
+
+  final DescribePhotoRequest request;
+
+  /// 0-based index of this photo in the batch.
+  final int index;
+
+  /// Total number of photos in this [GemmaOrchestrator.describeAll] call.
+  final int total;
+}
+
+/// Emitted after the model returns a contract-valid response.
+///
+/// [turn] is already constructed; callers should pass it directly to
+/// [SessionController.recordTurn] to guarantee provenance coverage without
+/// needing to re-compute timing fields.
+final class DescribePhotoSucceeded extends DescribePhotoEvent {
+  const DescribePhotoSucceeded({
+    required this.result,
+    required this.turn,
+  });
+
+  final DescribePhotoResult result;
+
+  /// Pre-built [TurnRecord] derived from [result]'s timing fields.
+  final TurnRecord turn;
+}
+
+/// Emitted when preprocessing or the model call throws.
+///
+/// The error is isolated — [GemmaOrchestrator.describeAll] continues with
+/// the next photo after emitting this event.
+final class DescribePhotoFailed extends DescribePhotoEvent {
+  const DescribePhotoFailed({
+    required this.request,
+    required this.error,
+  });
+
+  final DescribePhotoRequest request;
+  final Object error;
+}
+
+/// Allowed keys for `protocol_answers_delta` in a `protocol_answer` turn.
+///
+/// Must stay in sync with [SessionController.applyProtocolDelta] and the
+/// `protocol_answers` schema in `evidence_packet_v1.schema.json`.
+const _kAllowedProtocolKeys = {
+  'visible_collapse',
+  'building_off_foundation',
+  'leaning',
+  'ground_failure_adjacent',
+  'falling_hazards',
+  'adjacent_leaning',
+};
+
 class GemmaOrchestrator {
-  GemmaOrchestrator(this._session);
+  GemmaOrchestrator(
+    this._session, {
+    ImagePreprocessor preprocessor = const PassthroughImagePreprocessor(),
+  }) : _preprocessor = preprocessor;
 
   /// Accepts [GemmaSessionInterface] so tests can supply a fake without
   /// instantiating a real model.
   final GemmaSessionInterface _session;
+
+  /// Image preprocessor used on the inference path in [describePhoto] and
+  /// [describeAll]. Capture bytes in [SessionDraft.photos] are never modified.
+  final ImagePreprocessor _preprocessor;
 
   /// Vision turn: ask Gemma to describe one photo against a P-154 prompt.
   ///
@@ -184,7 +317,8 @@ class GemmaOrchestrator {
       'audio_refs': <String>[],
       'user_text': userText,
     });
-    final out = await _session.generate(userText: user, image: imageBytes);
+    final inferenceBytes = await _preprocessor.prepareForInference(imageBytes);
+    final out = await _session.generate(userText: user, image: inferenceBytes);
     final parsed = extractFirstJsonObject(out.text);
     if (parsed == null) {
       throw GemmaContractError(
@@ -230,6 +364,23 @@ class GemmaOrchestrator {
           );
         }
       }
+      // Ordering: [y1, x1, y2, x2] — y1 < y2 and x1 < x2.
+      if (box2d[0] >= box2d[2]) {
+        throw GemmaContractError(
+          'describe_photo: bbox_annotations[$i].box_2d y1 (${box2d[0]}) '
+          'must be < y2 (${box2d[2]})',
+          rawText: out.text,
+          task: 'describe_photo',
+        );
+      }
+      if (box2d[1] >= box2d[3]) {
+        throw GemmaContractError(
+          'describe_photo: bbox_annotations[$i].box_2d x1 (${box2d[1]}) '
+          'must be < x2 (${box2d[3]})',
+          rawText: out.text,
+          task: 'describe_photo',
+        );
+      }
     }
 
     return DescribePhotoResult(
@@ -252,6 +403,7 @@ class GemmaOrchestrator {
       raw: parsed,
       ttftMs: out.ttftMs,
       wallclockMs: out.wallclockMs,
+      outputCharCount: out.outputCharCount,
     );
   }
 
@@ -270,7 +422,7 @@ class GemmaOrchestrator {
     String? userText,
   }) async {
     final user = jsonEncode({
-      'task': 'describe_photo',
+      'task': 'describe_audio',
       'observation_id': observationId,
       'prompt_id': promptId,
       'asked_in': askedIn,
@@ -412,12 +564,82 @@ class GemmaOrchestrator {
         task: 'protocol_answer',
       );
     }
+    final deltaKey = delta.keys.first;
+    if (!_kAllowedProtocolKeys.contains(deltaKey)) {
+      throw GemmaContractError(
+        'protocol_answer: delta key "$deltaKey" is not a valid '
+        'protocol_answers field',
+        rawText: out.text,
+        task: 'protocol_answer',
+      );
+    }
     return ProtocolAnswerResult(
       delta: delta.entries.first,
       raw: parsed,
       ttftMs: out.ttftMs,
       wallclockMs: out.wallclockMs,
     );
+  }
+
+  /// Describe a batch of photos sequentially, emitting [DescribePhotoEvent]s.
+  ///
+  /// The orchestrator owns the full per-photo lifecycle:
+  ///   1. Emit [DescribePhotoStarted] (UI: set slot to "describing").
+  ///   2. Preprocess [DescribePhotoRequest.imageBytes] via [_preprocessor].
+  ///   3. Call [describePhoto] (model inference + contract validation).
+  ///   4. On success: emit [DescribePhotoSucceeded] with a ready [TurnRecord].
+  ///   5. On any error: emit [DescribePhotoFailed] and continue to next photo.
+  ///      Errors are isolated — one bad photo never aborts the batch.
+  ///
+  /// The caller (UI) is responsible for:
+  ///   - Updating slot status based on events.
+  ///   - Calling [SessionController.recordObservation] with the result.
+  ///   - Calling [SessionController.recordTurn] with the [TurnRecord].
+  ///   - Providing retry buttons for failed slots.
+  ///
+  /// Example:
+  /// ```dart
+  /// await for (final event in orch.describeAll(requests)) {
+  ///   switch (event) {
+  ///     case DescribePhotoStarted(:final index, :final total, :final request):
+  ///       setState(() { _setSlotDescribing(request.imageRef); });
+  ///     case DescribePhotoSucceeded(:final result, :final turn):
+  ///       controller.recordObservation(observationFrom(result));
+  ///       controller.recordTurn(turn);
+  ///       setState(() { _setSlotDone(result.imageRefs.first); });
+  ///     case DescribePhotoFailed(:final request, :final error):
+  ///       setState(() { _setSlotError(request.imageRef, error); });
+  ///   }
+  /// }
+  /// ```
+  Stream<DescribePhotoEvent> describeAll(
+      List<DescribePhotoRequest> photos) async* {
+    for (var i = 0; i < photos.length; i++) {
+      final req = photos[i];
+      yield DescribePhotoStarted(request: req, index: i, total: photos.length);
+      final ts = DateTime.now().toUtc();
+      try {
+        final result = await describePhoto(
+          observationId: req.observationId,
+          promptId: req.promptId,
+          askedIn: req.askedIn,
+          imageBytes: req.imageBytes,
+          imageRef: req.imageRef,
+          userText: req.userText,
+        );
+        final turn = TurnRecord(
+          ts: ts,
+          task: 'describe_photo',
+          observationId: req.observationId,
+          ttftMs: result.ttftMs,
+          wallclockMs: result.wallclockMs,
+          outputCharCount: result.outputCharCount,
+        );
+        yield DescribePhotoSucceeded(result: result, turn: turn);
+      } catch (e) {
+        yield DescribePhotoFailed(request: req, error: e);
+      }
+    }
   }
 
   /// Final synthesis (thinking mode). The orchestrator only collects the

@@ -491,6 +491,48 @@ void main() {
         isEmpty,
       );
     });
+
+    test('rejects bbox where y1 >= y2 (inverted rows)', () {
+      final p = _validPacket(
+        observations: [
+          _obs(bboxAnnotations: [makeBbox(box2d: [500, 0, 100, 999])])
+        ],
+        images: [_img()],
+      );
+      final errors = EvidencePacketValidator.validate(p)
+          .where((e) => e.path.contains('box_2d'))
+          .toList();
+      expect(errors, isNotEmpty);
+      expect(errors.first.message, contains('y1'));
+    });
+
+    test('rejects bbox where x1 >= x2 (inverted cols)', () {
+      final p = _validPacket(
+        observations: [
+          _obs(bboxAnnotations: [makeBbox(box2d: [0, 800, 999, 100])])
+        ],
+        images: [_img()],
+      );
+      final errors = EvidencePacketValidator.validate(p)
+          .where((e) => e.path.contains('box_2d'))
+          .toList();
+      expect(errors, isNotEmpty);
+      expect(errors.first.message, contains('x1'));
+    });
+
+    test('valid non-degenerate bbox passes ordering check', () {
+      final p = _validPacket(
+        observations: [
+          _obs(bboxAnnotations: [makeBbox(box2d: [100, 200, 300, 400])])
+        ],
+        images: [_img()],
+      );
+      expect(
+        EvidencePacketValidator.validate(p)
+            .where((e) => e.path.contains('box_2d')),
+        isEmpty,
+      );
+    });
   });
 
   group('EvidencePacketValidator — audio assets', () {

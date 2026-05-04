@@ -1,3 +1,4 @@
+import 'package:cairn_mobile/core/images/image_preprocessor.dart';
 import 'package:cairn_mobile/core/llm/model_registry.dart';
 import 'package:flutter_gemma/flutter_gemma.dart' hide ModelSpec;
 import 'package:flutter_test/flutter_test.dart';
@@ -212,5 +213,54 @@ void main() {
         expect(spec.taskFilenameAndroid, endsWith('.litertlm'));
       });
     }
+  });
+
+  // -------------------------------------------------------------------------
+  // Sprint 3 — inferenceMaxLongEdgePx
+  // -------------------------------------------------------------------------
+
+  group('inferenceMaxLongEdgePx', () {
+    test('all models have inferenceMaxLongEdgePx > 0', () {
+      for (final entry in models.entries) {
+        expect(
+          entry.value.inferenceMaxLongEdgePx,
+          greaterThan(0),
+          reason: '${entry.key}.inferenceMaxLongEdgePx must be a positive pixel count',
+        );
+      }
+    });
+
+    test('e2b has Sprint 3 production default of 768', () {
+      expect(models['e2b']!.inferenceMaxLongEdgePx, 768,
+          reason: 'Sprint 3 conservative default; '
+              'benchmark 512 once device gate passes');
+    });
+
+    test('e4b has Sprint 3 production default of 768', () {
+      expect(models['e4b']!.inferenceMaxLongEdgePx, 768,
+          reason: 'Same vision encoder as e2b — same token geometry');
+    });
+
+    test('all models have inferenceMaxLongEdgePx in sane benchmark range '
+        '(256..2048)', () {
+      for (final entry in models.entries) {
+        expect(
+          entry.value.inferenceMaxLongEdgePx,
+          inInclusiveRange(256, 2048),
+          reason: '${entry.key}: below 256 loses diagnostic detail; '
+              'above 2048 defeats the purpose of Sprint 3 OPT-1',
+        );
+      }
+    });
+
+    test('BoundedImagePreprocessor can be constructed from e2b spec', () {
+      // Smoke test: the value must be usable as BoundedImagePreprocessor.maxLongEdgePx.
+      // If inferenceMaxLongEdgePx were 0 or negative, this assert would fire.
+      final spec = models['e2b']!;
+      expect(
+        () => BoundedImagePreprocessor(maxLongEdgePx: spec.inferenceMaxLongEdgePx),
+        returnsNormally,
+      );
+    });
   });
 }

@@ -84,6 +84,44 @@ def _prompt_rule3_tags() -> list[str]:
     return tags
 
 
+def test_prompt_describe_photo_output_constraints() -> None:
+    """Rule 11 output-size constraints are present in the system prompt.
+
+    These constraints bound model_description length, model_tags count, and
+    bbox density for describe_photo turns (Sprint 2 OPT-2). The test fails
+    if any required phrase is missing, which forces the prompt to be updated
+    and re-synced before the gate can pass.
+
+    Fix: edit docs/prompts/system_prompt_v1.txt, then re-run sync_assets.
+    """
+    text = SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
+
+    assert "OUTPUT SIZE LIMITS" in text, (
+        "Rule 11 heading 'OUTPUT SIZE LIMITS' missing from system prompt.\n"
+        "Add it to docs/prompts/system_prompt_v1.txt and re-run sync_assets."
+    )
+    assert "maximum 3 sentences" in text, (
+        "Rule 11: 'maximum 3 sentences' constraint missing from system prompt.\n"
+        "Add output-size limits for describe_photo to docs/prompts/system_prompt_v1.txt."
+    )
+    assert "maximum 60 words" in text, (
+        "Rule 11: 'maximum 60 words' constraint missing from system prompt.\n"
+        "Add output-size limits for describe_photo to docs/prompts/system_prompt_v1.txt."
+    )
+    assert "1 to 5 values" in text, (
+        "Rule 11: '1 to 5 values' model_tags constraint missing from system prompt.\n"
+        "Add output-size limits for describe_photo to docs/prompts/system_prompt_v1.txt."
+    )
+    assert "1 box per high-severity" in text, (
+        "Rule 11: '1 box per high-severity' bbox constraint missing from system prompt.\n"
+        "Add output-size limits for describe_photo to docs/prompts/system_prompt_v1.txt."
+    )
+    assert "Shorter output reduces decode time" in text, (
+        "Rule 11 rationale line missing from system prompt.\n"
+        "Add 'Shorter output reduces decode time without changing the JSON contract.'"
+    )
+
+
 def test_prompt_rule3_tags_match_schema_enum() -> None:
     """Every tag in the schema enum appears in rule 3, and vice versa.
 
