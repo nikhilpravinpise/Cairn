@@ -247,7 +247,7 @@ void main() {
           () => preprocessor.prepareForInference(bytes!));
       final size = await tester.runAsync(() => _getSize(result!));
       expect(size!.$2, 768);
-      expect(size!.$1, 432);
+      expect(size.$1, 432);
     });
   });
 }

@@ -191,32 +191,32 @@ class GemmaSessionNotifier extends Notifier<GemmaSession?> {
     //   3. Per-profile production default.
     //   4. BENCH_BACKEND applies a backend-only override on top of whichever
     //      config was selected in steps 1–3.
-    SessionConfig _resolved(SessionConfig productionDefault) =>
+    SessionConfig resolved(SessionConfig productionDefault) =>
         _applyBenchBackend(config ?? _benchConfigForKey(_kBenchConfig) ?? productionDefault);
 
     state = switch (profile) {
       SessionProfile.vision =>
         await GemmaSession.openForVision(spec,
             systemPrompt: sys,
-            config: _resolved(SessionConfig.vision),
+            config: resolved(SessionConfig.vision),
             loraPath: loraPath,
             onProgress: onProgress),
       SessionProfile.audio =>
         await GemmaSession.openForAudio(spec,
             systemPrompt: sys,
-            config: _resolved(SessionConfig.audio),
+            config: resolved(SessionConfig.audio),
             loraPath: loraPath,
             onProgress: onProgress),
       SessionProfile.synthesis =>
         await GemmaSession.openForSynthesis(spec,
             systemPrompt: sys,
-            config: _resolved(SessionConfig.synthesis),
+            config: resolved(SessionConfig.synthesis),
             loraPath: loraPath,
             onProgress: onProgress),
       SessionProfile.standard =>
         await GemmaSession.openStandard(spec,
             systemPrompt: sys,
-            config: _resolved(SessionConfig.standard),
+            config: resolved(SessionConfig.standard),
             loraPath: loraPath,
             onProgress: onProgress),
     };

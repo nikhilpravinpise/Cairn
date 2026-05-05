@@ -181,7 +181,6 @@ void main() {
 
   group('sequential describeAll — reliability properties', () {
     test('a single photo failure does not abort the remaining batch', () async {
-      var callCount = 0;
       final failOnSecond = _FailOnNthSession(failOnN: 2);
       final orch = GemmaOrchestrator(failOnSecond);
       final photos = List.generate(
@@ -200,7 +199,6 @@ void main() {
       await for (final e in orch.describeAll(photos)) {
         if (e is DescribePhotoSucceeded) succeeded.add(e);
         if (e is DescribePhotoFailed) failed.add(e);
-        callCount++;
       }
 
       expect(failed, hasLength(1), reason: 'second photo fails');

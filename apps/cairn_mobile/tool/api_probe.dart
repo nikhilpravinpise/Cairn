@@ -79,7 +79,7 @@ Future<void> _probe() async {
   // remains sequential.
   //
   // This probe verifies that Message.withImage() accepts a single Uint8List:
-  final _singleImageMsg = Message.withImage(
+  final singleImageMsg = Message.withImage(
     text: 'probe batch feasibility — single image only',
     imageBytes: Uint8List(0),
     isUser: true,

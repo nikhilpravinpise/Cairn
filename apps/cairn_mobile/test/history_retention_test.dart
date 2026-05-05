@@ -91,8 +91,8 @@ void main() {
     });
 
     test('visionHistoryRetained is otherwise identical to vision', () {
-      final retained = SessionConfig.visionHistoryRetained;
-      final prod = SessionConfig.vision;
+      const retained = SessionConfig.visionHistoryRetained;
+      const prod = SessionConfig.vision;
       expect(retained.maxTokens, prod.maxTokens);
       expect(retained.temperature, prod.temperature);
       expect(retained.topK, prod.topK);

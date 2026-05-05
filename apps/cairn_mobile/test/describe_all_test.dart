@@ -262,7 +262,6 @@ void main() {
       // Photo 1 will fail (FailingSession), 2 and 3 will succeed.
       // We achieve this by alternating sessions for each photo via a
       // dispatcher fake.
-      int callIndex = 0;
       final responses = [
         null, // photo 1: throw
         _validPhoto(obsId: 'obs-2', tags: '["no_visible_damage"]'),
@@ -277,7 +276,6 @@ void main() {
         _req(obsId: 'obs-3', imageRef: 'img-3'),
       ];
 
-      callIndex = 0; // reset
       final events = await orch.describeAll(reqs).toList();
 
       // Each photo emits Start + (Succeeded or Failed) → 3×2 = 6 events
