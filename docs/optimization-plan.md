@@ -858,7 +858,7 @@ flutter test
 
 ### Sprint 3: Inference Image Policy And Orchestrator Depth
 
-**STATUS: IMPLEMENTED — pending device benchmark gate**
+**STATUS: IMPLEMENTED — device benchmark SKIPPED**
 
 1. ✅ `ImagePreprocessor` seam — `lib/core/images/image_preprocessor.dart`
    - `BoundedImagePreprocessor(maxLongEdgePx)` — downscales longest edge, aspect-ratio-preserving, uses `dart:ui`; images already within bound returned unchanged (zero re-encode cost).
@@ -877,13 +877,13 @@ Test coverage added:
 
 **Gate**
 
-- Device benchmark for raw, 768px, and 512px inputs (`tool/benchmark_session_config.ps1`).
-- Held-out photo set remains schema-valid and useful.
+- Device benchmark for raw, 768px, and 512px inputs (`tool/benchmark_image_px.ps1`).
+- **Decision:** SKIPPED — device disconnection issues during long manual capture windows (600s per variant with manual photo description required). Production default remains `inferenceMaxLongEdgePx: 768`. Future benchmark needed to evaluate 512px promotion (requires ≥15% TTFT improvement vs raw baseline).
 
-### Sprint 4: Measured Experiments — IMPLEMENTED (device gate pending)
+### Sprint 4: Measured Experiments — IMPLEMENTED (device benchmarks SKIPPED)
 
 Sprint 4 is fully implemented. All three experiment paths are wired and tested.
-Device benchmarks are the remaining gate before any promotion.
+Device benchmarks were skipped due to device disconnection issues during long manual capture windows.
 
 #### OPT-5: History retention A/B — IMPLEMENTED
 
@@ -905,12 +905,7 @@ Device benchmarks are the remaining gate before any promotion.
 .\tool\benchmark_session_config.ps1 -Variant vision_history_retained
 ```
 
-Capture `[*/perf]` prefill/TTFT for 5 sequential photo descriptions.
-Manually inspect each description to confirm obs[n] does not reference photo[n-1].
-Promote (set production default `clearHistoryBetweenTurns: false`) only when:
-- TTFT / prefill improves materially.
-- Zero cross-photo contamination.
-- `GemmaContractError` rate unchanged.
+**Decision:** SKIPPED — device disconnection issues during long manual capture window (600s with full app flow required). Production default remains `clearHistoryBetweenTurns: true`. Future benchmark needed to evaluate history retention promotion (requires zero cross-photo contamination AND TTFT improvement).
 
 #### OPT-6: CPU/GPU backend diagnostic — IMPLEMENTED
 
@@ -934,11 +929,7 @@ Promote (set production default `clearHistoryBetweenTurns: false`) only when:
 .\tool\benchmark_backend.ps1 -Variant synthesis_cpu # CPU candidate
 ```
 
-Compare `[FfiInferenceModelSession/perf] time_to_first_chunk_ms` and
-`[Cairn/perf] phase=generate ttft=...ms` across variants.
-If CPU is competitive or faster, update the corresponding `SessionConfig` production
-constant's `preferredBackend`. Expected: GPU wins for vision (multimodal);
-synthesis may be comparable.
+**Decision:** SKIPPED — device disconnection issues during long manual capture window (480s with vision/synthesis tasks required). Production default remains GPU backend. Future benchmark needed to compare CPU vs CPU (expected GPU wins for vision; synthesis may be comparable).
 
 #### OPT-7: Batch inference feasibility — IMPLEMENTED (finding: not supported)
 

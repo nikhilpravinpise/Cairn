@@ -474,8 +474,8 @@ void main() {
 
   group('CPU variants vs production — backend is the only difference', () {
     test('visionCpu differs from vision only in preferredBackend', () {
-      final cpu = SessionConfig.visionCpu;
-      final gpu = SessionConfig.vision;
+      const cpu = SessionConfig.visionCpu;
+      const gpu = SessionConfig.vision;
       expect(cpu.maxTokens, gpu.maxTokens);
       expect(cpu.temperature, gpu.temperature);
       expect(cpu.topK, gpu.topK);
@@ -486,8 +486,8 @@ void main() {
     });
 
     test('synthesisCpu differs from synthesis only in preferredBackend', () {
-      final cpu = SessionConfig.synthesisCpu;
-      final gpu = SessionConfig.synthesis;
+      const cpu = SessionConfig.synthesisCpu;
+      const gpu = SessionConfig.synthesis;
       expect(cpu.maxTokens, gpu.maxTokens);
       expect(cpu.temperature, gpu.temperature);
       expect(cpu.topK, gpu.topK);
@@ -497,8 +497,8 @@ void main() {
     });
 
     test('standardCpu differs from standard only in preferredBackend', () {
-      final cpu = SessionConfig.standardCpu;
-      final gpu = SessionConfig.standard;
+      const cpu = SessionConfig.standardCpu;
+      const gpu = SessionConfig.standard;
       expect(cpu.maxTokens, gpu.maxTokens);
       expect(cpu.temperature, gpu.temperature);
       expect(cpu.topK, gpu.topK);
@@ -514,7 +514,7 @@ void main() {
 
   group('copyWith', () {
     test('copyWith with no args is identity-equivalent', () {
-      final orig = SessionConfig.vision;
+      const orig = SessionConfig.vision;
       final copy = orig.copyWith();
       expect(copy.maxTokens, orig.maxTokens);
       expect(copy.temperature, orig.temperature);

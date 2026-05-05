@@ -1007,3 +1007,108 @@ flutter test
 - [ ] `report.pdf` opens on desktop after `adb pull`
 
 **All Phase 9 automated gates PASS.**
+
+---
+
+## Phase 10 — S2 spike page hardening
+
+**Date:** 2026-05-05
+
+### Scope
+
+Hardened `/spike` page for Android-only stability testing with proper error handling for missing probe image.
+
+### New files
+
+| File | Purpose |
+|------|---------|
+| `test/s2_spike_test.dart` | 17 tests — probeImageLoaderProvider contract, initial state, selectModel round-trip, runBurst with throwing loader (clean error, no crash), error message content, image error precedence, runBurst with null session |
+
+### Modified files
+
+| File | Change |
+|------|--------|
+| `lib/spike/s2_spike_page.dart` | Added public `probeImageLoaderProvider` (Provider<Future<Uint8List> Function()>); renamed `_spikeCtlProvider` → `spikeCtlProvider` (public, testable); `runBurst()` now loads probe image BEFORE session check via the provider; try/catch on image load → clean error state with actionable message; AppBar title updated: "(web)" → "(Android)" |
+| `docs/s2_checklist.md` | Rewritten — removed unimplemented "Toggle LoRA" and "Reboot & resume" steps; updated package ID to app.cairn.cairn_mobile; documented s2_probe.jpg as operator-provided, .gitignore'd; Android-only scope noted (web frozen per §1.3) |
+
+### Lint cleanup
+
+- `lib/core/providers.dart`: `_resolved` → `resolved` (local fn leading underscore)
+- `lib/core/state/session_controller.dart`: removed unnecessary `turn_record.dart` import
+- `test/batch_feasibility_test.dart`: removed unused `callCount`
+- `test/describe_all_test.dart`: removed unused `callIndex`
+- `test/image_preprocessor_test.dart`: removed unnecessary `!`
+- `test/history_retention_test.dart`: `final` → `const` for SessionConfig literals
+- `test/session_config_test.dart`: `final` → `const` for SessionConfig literals
+- `tool/api_probe.dart`: `_singleImageMsg` → `singleImageMsg`
+
+### Gate results
+
+```
+flutter analyze
+→ No issues found!
+
+flutter test
+→ 586/586 passed
+   (331 Phase 0-9 tests + 17 new Phase-10 tests + 238 Sprint 0-4 tests)
+```
+
+### APK build
+
+```
+flutter build apk --debug
+→ √ Built build\app\outputs\flutter-apk\app-debug.apk
+   (Gradle JVM restricted-method warnings are non-fatal)
+```
+
+### Manual gate (RZCX920ARVA)
+
+#### Step 1: Error UI verification (without s2_probe.jpg)
+- [x] Install APK on RZCX920ARVA
+- [x] Navigate to `/spike`
+- [x] Press "Run 10 prompts" WITHOUT placing s2_probe.jpg
+- [x] **Expected:** Clean error card, no crash
+- [x] **Actual:** Error message displayed: "S2 probe image not found. Place a JPEG at assets/images/s2_probe.jpg and rebuild. See apps/cairn_mobile/docs/s2_checklist.md"
+- [x] No crash occurred
+
+#### Step 2: Full 10-prompt run (with s2_probe.jpg)
+- [x] Place s2_probe.jpg at `assets/images/s2_probe.jpg`
+- [x] Rebuild APK
+- [x] Re-install on RZCX920ARVA
+- [x] Navigate to `/spike`
+- [x] Load model (E2B)
+- [x] Press "Run 10 prompts"
+- [x] **Result:** 10/10 runs completed successfully
+- [x] All responses are valid JSON (parsed_json: true for all runs)
+- [x] No SIGSEGV crashes
+- [x] Report JSON saved with schema: `cairn.spike.s2.v1`
+
+Sample metrics from run:
+- TTFT range: 8,663ms - 22,156ms (avg ~15,900ms)
+- Wallclock range: 18,582ms - 42,769ms (avg ~28,700ms)
+- Tokens out: 395 per run (consistent)
+
+### Sprint 3 image-px benchmark
+
+**Status:** SKIPPED — device disconnection issues during long manual capture windows (600s per variant with manual photo description required)
+
+**Script:** `tool/benchmark_image_px.ps1 -Variant all`
+**Variants:** raw, 768px, 512px
+**Gate criteria:** TTFT improvement ≥15% vs raw baseline to promote 512px to production default
+
+### Sprint 4 OPT-5 history retention benchmark
+
+**Status:** SKIPPED — same device disconnection issue as Sprint 3 (long manual capture window with full app flow required)
+
+**Script:** `tool/benchmark_session_config.ps1 -Variant vision_history_retained`
+**Gate criteria:** Zero cross-photo contamination AND TTFT improvement before promoting `clearHistoryBetweenTurns: false` to production default
+
+### Sprint 4 OPT-6 backend diagnostic
+
+**Status:** SKIPPED — same device disconnection issue as Sprint 3 (long manual capture window with vision/synthesis tasks required)
+
+**Script:** `tool/benchmark_backend.ps1 -Variant all`
+**Variants:** vision_gpu, vision_cpu, synthesis_gpu, synthesis_cpu
+**Gate criteria:** Compare TTFT across GPU vs CPU; keep whichever gives lower TTFT
+
+**All Phase 10 gates PASS (automated + manual). Sprint 3/4 benchmarks deferred due to device stability issues.**

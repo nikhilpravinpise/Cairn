@@ -19,7 +19,22 @@ import '../core/llm/model_registry.dart';
 import 'web_download_stub.dart' if (dart.library.html) 'web_download_web.dart'
     as web_download;
 
-final _spikeCtlProvider =
+/// Provider for the S2 probe image loader.
+///
+/// Returns a callable that loads [assets/images/s2_probe.jpg] from the
+/// asset bundle.  Override in tests to simulate missing-asset conditions
+/// without a live asset bundle or device.  (Phase 10 — §1.8)
+final probeImageLoaderProvider = Provider<Future<Uint8List> Function()>(
+  (ref) => () async =>
+      (await rootBundle.load('assets/images/s2_probe.jpg')).buffer.asUint8List(),
+);
+
+/// Public provider for the S2 spike controller.
+///
+/// Exposed (no leading `_`) so that [test/s2_spike_test.dart] can override
+/// [probeImageLoaderProvider] and assert on state without needing a live
+/// asset bundle or native model.  (Phase 10)
+final spikeCtlProvider =
     NotifierProvider<_SpikeController, _SpikeState>(_SpikeController.new);
 
 class _SpikeState {
@@ -148,13 +163,27 @@ class _SpikeController extends Notifier<_SpikeState> {
   }
 
   Future<void> runBurst() async {
+    // Pre-flight: load the probe image BEFORE touching the session.
+    // This surfaces a clean, actionable error instead of an unhandled
+    // FlutterError when the operator-provided asset is absent. (Phase 10)
+    Uint8List img;
+    try {
+      img = await ref.read(probeImageLoaderProvider)();
+    } catch (e) {
+      state = state.copyWith(
+        error: 'S2 probe image not found.\n'
+            'Place a JPEG at assets/images/s2_probe.jpg and rebuild the app.\n'
+            'See apps/cairn_mobile/docs/s2_checklist.md for instructions.\n'
+            '(Error: $e)',
+      );
+      return;
+    }
+
     final session = state.session;
     if (session == null) {
       state = state.copyWith(error: 'load model first');
       return;
     }
-    final img =
-        (await rootBundle.load('assets/images/s2_probe.jpg')).buffer.asUint8List();
     const userTurn =
         '{"task":"describe_photo","asked_in":"en","prompt_id":"fema_p154_q02_exterior_walls",'
         '"image_refs":["img-1"],"user_text":null}';
@@ -227,12 +256,12 @@ class S2SpikePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final s = ref.watch(_spikeCtlProvider);
-    final ctl = ref.read(_spikeCtlProvider.notifier);
+    final s = ref.watch(spikeCtlProvider);
+    final ctl = ref.read(spikeCtlProvider.notifier);
     final loaded = s.session != null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Cairn — S2 flutter_gemma spike (web)')),
+      appBar: AppBar(title: const Text('Cairn — S2 flutter_gemma spike (Android)')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
