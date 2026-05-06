@@ -37,6 +37,9 @@
             android:name="flutterEmbedding"
             android:value="2" />
         <uses-native-library
+            android:name="libvndksupport.so"
+            android:required="false" />
+        <uses-native-library
             android:name="libOpenCL.so"
             android:required="false" />
         <uses-native-library

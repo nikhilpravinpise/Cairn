@@ -520,65 +520,71 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
             const FlowStepper(
                 steps: FlowStepper.kScreeningSteps, currentIndex: 1),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  if (_modelLoading)
-                    _Banner(
-                      color: Colors.blue,
-                      icon: Icons.memory_outlined,
-                      text: _modelLoadingLabel,
-                    ),
-                  const Text(
-                    'Take one photo per reference view. When all photos are '
-                    'captured, tap "Describe photos" to run Gemma on all of them.',
-                    style: TextStyle(color: Colors.black54),
-                  ),
-                  const SizedBox(height: 12),
-                  for (final spec in _slots)
-                    _SlotCard(
-                      spec: spec,
-                      state: _state[spec.slot]!,
-                      onCapture:
-                          _describeAllInProgress ? null : () => _capture(spec),
-                      onRetry: (_describeAllInProgress || _modelLoading)
-                          ? null
-                          : () => _retry(spec),
-                      lastObs: _findLastObsForSlot(draft, spec.slot),
-                    ),
-                  const SizedBox(height: 16),
-                  // Phase B trigger: "Describe photos (N)"
-                  if (canDescribe)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: FilledButton.tonal(
-                        onPressed: _describeAll,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          child: Text(
-                            'Describe photos ($_capturedCount)',
-                            style: const TextStyle(fontSize: 16),
+              child: _describeAllInProgress
+                  ? _ProcessingPhotosView(
+                      slots: _slots,
+                      states: _state,
+                      loadingLabel: _modelLoadingLabel,
+                      findLastObsForSlot: (slot) =>
+                          _findLastObsForSlot(draft, slot),
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        if (_modelLoading)
+                          _Banner(
+                            color: Colors.blue,
+                            icon: Icons.memory_outlined,
+                            text: _modelLoadingLabel,
+                          ),
+                        const Text(
+                          'Take one photo per reference view. When all photos are '
+                          'captured, tap "Describe photos" to run Gemma on all of them.',
+                          style: TextStyle(color: Colors.black54),
+                        ),
+                        const SizedBox(height: 12),
+                        for (final spec in _slots)
+                          _SlotCard(
+                            spec: spec,
+                            state: _state[spec.slot]!,
+                            onCapture: () => _capture(spec),
+                            onRetry: _modelLoading ? null : () => _retry(spec),
+                            lastObs: _findLastObsForSlot(draft, spec.slot),
+                          ),
+                        const SizedBox(height: 16),
+                        // Phase B trigger: "Describe photos (N)"
+                        if (canDescribe)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: FilledButton.tonal(
+                              onPressed: _describeAll,
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
+                                child: Text(
+                                  'Describe photos ($_capturedCount)',
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                              ),
+                            ),
+                          ),
+                        FilledButton(
+                          onPressed: canContinue
+                              ? () => context.push(AppRoutes.audio)
+                              : null,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            child: Text(
+                              canContinue
+                                  ? 'Continue'
+                                  : 'Capture all ${kRequiredPhotoSlots.length} '
+                                      'reference photos',
+                              style: const TextStyle(fontSize: 16),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  FilledButton(
-                    onPressed: canContinue
-                        ? () => context.push(AppRoutes.audio)
-                        : null,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      child: Text(
-                        canContinue
-                            ? 'Continue'
-                            : 'Capture all ${kRequiredPhotoSlots.length} '
-                                'reference photos',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ),
           ],
         ),
@@ -595,6 +601,61 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
       if (o.imageRefs.contains(ref)) return o;
     }
     return null;
+  }
+}
+
+class _ProcessingPhotosView extends StatelessWidget {
+  const _ProcessingPhotosView({
+    required this.slots,
+    required this.states,
+    required this.loadingLabel,
+    required this.findLastObsForSlot,
+  });
+
+  final List<_SlotSpec> slots;
+  final Map<String, _SlotState> states;
+  final String loadingLabel;
+  final Observation? Function(String slot) findLastObsForSlot;
+
+  @override
+  Widget build(BuildContext context) {
+    final done =
+        slots.where((s) => states[s.slot]!.status == _SlotStatus.done).length;
+    final total =
+        slots.where((s) => states[s.slot]!.status != _SlotStatus.empty).length;
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _Banner(
+          color: Colors.blue,
+          icon: Icons.memory_outlined,
+          text: loadingLabel.isEmpty
+              ? 'Processing photos with Gemma...'
+              : loadingLabel,
+        ),
+        const SizedBox(height: 12),
+        LinearProgressIndicator(
+          value: total == 0 ? null : done / total,
+          minHeight: 8,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          '$done / $total photos described',
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 12),
+        for (final spec in slots.where(
+          (s) => states[s.slot]!.status != _SlotStatus.empty,
+        ))
+          _SlotCard(
+            spec: spec,
+            state: states[spec.slot]!,
+            onCapture: null,
+            onRetry: null,
+            lastObs: findLastObsForSlot(spec.slot),
+          ),
+      ],
+    );
   }
 }
 

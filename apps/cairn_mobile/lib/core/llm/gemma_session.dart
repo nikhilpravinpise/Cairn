@@ -15,6 +15,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/flutter_gemma.dart' hide ModelSpec;
 import 'package:logging/logging.dart';
 
+import 'cairn_tools.dart';
 import 'model_registry.dart';
 import 'perf_log.dart';
 import 'session_config.dart';
@@ -35,6 +36,26 @@ abstract interface class GemmaSessionInterface {
   });
 }
 
+abstract interface class BatchGemmaSessionInterface {
+  Future<GemmaInferenceResult> generateBatch({
+    required String userText,
+    required List<Uint8List> images,
+    Duration timeout = const Duration(seconds: 240),
+  });
+}
+
+class GemmaToolCall {
+  const GemmaToolCall({required this.name, required this.args});
+
+  final String name;
+  final Map<String, Object?> args;
+
+  Map<String, Object?> toJson() => {
+        'name': name,
+        'args': args,
+      };
+}
+
 class GemmaLoadProgress {
   const GemmaLoadProgress({required this.phase, required this.fraction});
   final String phase;
@@ -50,6 +71,8 @@ class GemmaInferenceResult {
     required this.ttftMs,
     required this.wallclockMs,
     required this.outputCharCount,
+    this.toolCalls = const [],
+    this.runtimeName = 'test',
   });
 
   final String text;
@@ -61,6 +84,8 @@ class GemmaInferenceResult {
   final int ttftMs;
   final int wallclockMs;
   final int outputCharCount;
+  final List<GemmaToolCall> toolCalls;
+  final String runtimeName;
 
   Map<String, Object?> toJson() => {
         'text': text,
@@ -68,6 +93,9 @@ class GemmaInferenceResult {
         'ttft_ms': ttftMs,
         'wallclock_ms': wallclockMs,
         'output_char_count': outputCharCount,
+        if (toolCalls.isNotEmpty)
+          'tool_calls': toolCalls.map((c) => c.toJson()).toList(),
+        'runtime_name': runtimeName,
       };
 }
 
@@ -81,6 +109,7 @@ class GemmaSession implements GemmaSessionInterface {
   }) : _config = config;
 
   static final _log = Logger('GemmaSession');
+  static const runtimeName = 'flutter_gemma';
 
   /// Open a session with explicit capability flags.
   ///
@@ -231,7 +260,8 @@ class GemmaSession implements GemmaSessionInterface {
       modelType: ModelType.gemma4,
       fileType: _spec.resolvedFileType,
     );
-    await installer.fromNetwork(url)
+    await installer
+        .fromNetwork(url)
         .withProgress(
           (percent) => onProgress?.call(
             GemmaLoadProgress(phase: 'download', fraction: percent / 100.0),
@@ -240,8 +270,8 @@ class GemmaSession implements GemmaSessionInterface {
         .install();
     installSw.stop();
     onProgress?.call(const GemmaLoadProgress(phase: 'download', fraction: 1.0));
-    PerfLogger.emit(
-        PerfEvent(phase: 'install', wallclockMs: installSw.elapsedMilliseconds));
+    PerfLogger.emit(PerfEvent(
+        phase: 'install', wallclockMs: installSw.elapsedMilliseconds));
     // LoRA is attached at `createChat(loraPath:)` time. On web MediaPipe
     // currently ignores the parameter; on Android the adapter flatbuffer is
     // loaded by MediaPipe LLM Inference.
@@ -257,14 +287,23 @@ class GemmaSession implements GemmaSessionInterface {
       supportAudio: supportAudio,
       maxNumImages: _config.maxNumImages,
     );
+    final tools = toolsForSession(
+      supportImage: supportImage,
+      supportAudio: supportAudio,
+      isThinking: isThinking,
+    );
     _chat = await _model!.createChat(
       temperature: _config.temperature,
       topK: _config.topK,
       topP: _config.topP,
       supportImage: supportImage,
+      supportAudio: supportAudio,
       isThinking: isThinking,
       loraPath: loraPath,
       modelType: ModelType.gemma4,
+      supportsFunctionCalls: tools.isNotEmpty,
+      tools: tools,
+      toolChoice: tools.isEmpty ? ToolChoice.none : ToolChoice.required,
       systemInstruction: systemPrompt,
     );
     createSw.stop();
@@ -311,6 +350,7 @@ class GemmaSession implements GemmaSessionInterface {
     int? ttftMs;
     final textBuf = StringBuffer();
     final thinkBuf = StringBuffer();
+    final toolCalls = <GemmaToolCall>[];
 
     final Message msg;
     if (image != null) {
@@ -332,8 +372,11 @@ class GemmaSession implements GemmaSessionInterface {
           textBuf.write(response.token);
         } else if (response is ThinkingResponse) {
           thinkBuf.write(response.content);
+        } else if (response is FunctionCallResponse) {
+          toolCalls.add(_toolCallFromResponse(response));
+        } else if (response is ParallelFunctionCallResponse) {
+          toolCalls.addAll(response.calls.map(_toolCallFromResponse));
         }
-        // Function-call subclasses are ignored in Cairn (no tools wired).
       }
     } finally {
       // Cairn task turns are independent JSON contracts. Clearing history after
@@ -351,11 +394,13 @@ class GemmaSession implements GemmaSessionInterface {
     sw.stop();
     final text = textBuf.toString();
     final thinkText = thinkBuf.toString();
+    final structuredChars =
+        toolCalls.fold<int>(0, (sum, c) => sum + c.toJson().toString().length);
     PerfLogger.emit(PerfEvent(
       phase: 'generate',
       wallclockMs: sw.elapsedMilliseconds,
       ttftMs: ttftMs ?? sw.elapsedMilliseconds,
-      outputCharCount: text.length,
+      outputCharCount: text.isEmpty ? structuredChars : text.length,
       thinkingChars: thinkText.length,
       imageSizeBytes: image?.length,
     ));
@@ -364,7 +409,16 @@ class GemmaSession implements GemmaSessionInterface {
       thinking: thinkText,
       ttftMs: ttftMs ?? sw.elapsedMilliseconds,
       wallclockMs: sw.elapsedMilliseconds,
-      outputCharCount: text.length,
+      outputCharCount: text.isEmpty ? structuredChars : text.length,
+      toolCalls: toolCalls,
+      runtimeName: runtimeName,
+    );
+  }
+
+  GemmaToolCall _toolCallFromResponse(FunctionCallResponse response) {
+    return GemmaToolCall(
+      name: response.name,
+      args: Map<String, Object?>.from(response.args),
     );
   }
 

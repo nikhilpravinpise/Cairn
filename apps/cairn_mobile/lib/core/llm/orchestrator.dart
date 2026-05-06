@@ -75,6 +75,37 @@ class DescribePhotoResult {
   final int outputCharCount;
 }
 
+class DescribePhotosBatchResult {
+  const DescribePhotosBatchResult._({
+    required this.results,
+    required this.turns,
+    required this.fallbackReason,
+  });
+
+  factory DescribePhotosBatchResult.success({
+    required List<DescribePhotoResult> results,
+    required List<TurnRecord> turns,
+  }) =>
+      DescribePhotosBatchResult._(
+        results: results,
+        turns: turns,
+        fallbackReason: null,
+      );
+
+  factory DescribePhotosBatchResult.fallback(String reason) =>
+      DescribePhotosBatchResult._(
+        results: const [],
+        turns: const [],
+        fallbackReason: reason,
+      );
+
+  final List<DescribePhotoResult> results;
+  final List<TurnRecord> turns;
+  final String? fallbackReason;
+
+  bool get shouldFallback => fallbackReason != null;
+}
+
 /// One run of `describe_audio`.
 class DescribeAudioResult {
   const DescribeAudioResult({
@@ -284,7 +315,9 @@ class GemmaOrchestrator {
   GemmaOrchestrator(
     this._session, {
     ImagePreprocessor preprocessor = const PassthroughImagePreprocessor(),
-  }) : _preprocessor = preprocessor;
+    bool enableBatchVision = false,
+  })  : _preprocessor = preprocessor,
+        _enableBatchVision = enableBatchVision;
 
   /// Accepts [GemmaSessionInterface] so tests can supply a fake without
   /// instantiating a real model.
@@ -293,6 +326,7 @@ class GemmaOrchestrator {
   /// Image preprocessor used on the inference path in [describePhoto] and
   /// [describeAll]. Capture bytes in [SessionDraft.photos] are never modified.
   final ImagePreprocessor _preprocessor;
+  final bool _enableBatchVision;
 
   /// Vision turn: ask Gemma to describe one photo against a P-154 prompt.
   ///
@@ -319,88 +353,18 @@ class GemmaOrchestrator {
     });
     final inferenceBytes = await _preprocessor.prepareForInference(imageBytes);
     final out = await _session.generate(userText: user, image: inferenceBytes);
-    final parsed = extractFirstJsonObject(out.text);
-    if (parsed == null) {
-      throw GemmaContractError(
-        'no JSON object in describe_photo response',
-        rawText: out.text,
-        task: 'describe_photo',
-      );
-    }
-
-    final tags =
-        (parsed['model_tags'] as List? ?? const []).cast<String>();
-    for (final tag in tags) {
-      if (!EvidencePacketValidator.kAllowedModelTags.contains(tag)) {
-        throw GemmaContractError(
-          'describe_photo: model_tags contains unknown tag "$tag"',
-          rawText: out.text,
-          task: 'describe_photo',
-        );
-      }
-    }
-
-    final bbox =
-        (parsed['bbox_annotations'] as List? ?? const [])
-            .cast<Map<String, Object?>>();
-    for (var i = 0; i < bbox.length; i++) {
-      final b = bbox[i];
-      final box2d = (b['box_2d'] as List?)?.cast<num>().toList();
-      if (box2d == null || box2d.length != 4) {
-        throw GemmaContractError(
-          'describe_photo: bbox_annotations[$i].box_2d must have exactly 4 '
-          'elements [y1,x1,y2,x2]',
-          rawText: out.text,
-          task: 'describe_photo',
-        );
-      }
-      for (final v in box2d) {
-        if (v < 0 || v > 1000) {
-          throw GemmaContractError(
-            'describe_photo: bbox_annotations[$i].box_2d value $v is outside '
-            '0..1000',
-            rawText: out.text,
-            task: 'describe_photo',
-          );
-        }
-      }
-      // Ordering: [y1, x1, y2, x2] — y1 < y2 and x1 < x2.
-      if (box2d[0] >= box2d[2]) {
-        throw GemmaContractError(
-          'describe_photo: bbox_annotations[$i].box_2d y1 (${box2d[0]}) '
-          'must be < y2 (${box2d[2]})',
-          rawText: out.text,
-          task: 'describe_photo',
-        );
-      }
-      if (box2d[1] >= box2d[3]) {
-        throw GemmaContractError(
-          'describe_photo: bbox_annotations[$i].box_2d x1 (${box2d[1]}) '
-          'must be < x2 (${box2d[3]})',
-          rawText: out.text,
-          task: 'describe_photo',
-        );
-      }
-    }
-
-    return DescribePhotoResult(
-      observationId: parsed['observation_id'] as String? ?? observationId,
-      promptId: parsed['prompt_id'] as String? ?? promptId,
-      askedIn: parsed['asked_in'] as String? ?? askedIn,
-      imageRefs:
-          (parsed['image_refs'] as List? ?? [imageRef]).cast<String>(),
-      modelDescription:
-          (parsed['model_description'] as String?)?.trim() ??
-              (throw GemmaContractError(
-                'missing model_description',
-                rawText: out.text,
-                task: 'describe_photo',
-              )),
-      modelTags: tags,
-      modelConfidence:
-          ((parsed['model_confidence'] as num?) ?? 0.5).toDouble(),
-      bbox: bbox,
-      raw: parsed,
+    final parsed = _parseTaskObject(
+      out,
+      task: 'describe_photo',
+      expectedToolName: 'describe_photo',
+    );
+    return _describePhotoResultFromParsed(
+      parsed,
+      rawText: out.text,
+      observationId: observationId,
+      promptId: promptId,
+      askedIn: askedIn,
+      imageRef: imageRef,
       ttftMs: out.ttftMs,
       wallclockMs: out.wallclockMs,
       outputCharCount: out.outputCharCount,
@@ -430,9 +394,8 @@ class GemmaOrchestrator {
       'audio_refs': [audioRef],
       'user_text': userText,
     });
-    final out =
-        await _session.generate(userText: user, audioBytes: audioBytes);
-    final parsed = extractFirstJsonObject(out.text);
+    final out = await _session.generate(userText: user, audioBytes: audioBytes);
+    final parsed = _parseTaskObject(out, task: 'describe_audio');
     if (parsed == null) {
       throw GemmaContractError(
         'no JSON object in describe_audio response',
@@ -441,8 +404,7 @@ class GemmaOrchestrator {
       );
     }
 
-    final tags =
-        (parsed['model_tags'] as List? ?? const []).cast<String>();
+    final tags = (parsed['model_tags'] as List? ?? const []).cast<String>();
     for (final tag in tags) {
       if (!EvidencePacketValidator.kAllowedModelTags.contains(tag)) {
         throw GemmaContractError(
@@ -458,16 +420,14 @@ class GemmaOrchestrator {
       promptId: parsed['prompt_id'] as String? ?? promptId,
       askedIn: parsed['asked_in'] as String? ?? askedIn,
       audioRefs: (parsed['audio_refs'] as List? ?? [audioRef]).cast<String>(),
-      modelDescription:
-          (parsed['model_description'] as String?)?.trim() ??
-              (throw GemmaContractError(
-                'missing model_description',
-                rawText: out.text,
-                task: 'describe_audio',
-              )),
+      modelDescription: (parsed['model_description'] as String?)?.trim() ??
+          (throw GemmaContractError(
+            'missing model_description',
+            rawText: out.text,
+            task: 'describe_audio',
+          )),
       modelTags: tags,
-      modelConfidence:
-          ((parsed['model_confidence'] as num?) ?? 0.5).toDouble(),
+      modelConfidence: ((parsed['model_confidence'] as num?) ?? 0.5).toDouble(),
       raw: parsed,
       ttftMs: out.ttftMs,
       wallclockMs: out.wallclockMs,
@@ -492,14 +452,11 @@ class GemmaOrchestrator {
       'target_observation': targetObservationSummary,
     });
     final out = await _session.generate(userText: user);
-    final parsed = extractFirstJsonObject(out.text);
-    if (parsed == null) {
-      throw GemmaContractError(
-        'no JSON object in ask_followup response',
-        rawText: out.text,
-        task: 'ask_followup',
-      );
-    }
+    final parsed = _parseTaskObject(
+      out,
+      task: 'ask_followup',
+      expectedToolName: 'ask_followup',
+    );
 
     final f = parsed['followup'];
     String? question;
@@ -551,11 +508,11 @@ class GemmaOrchestrator {
       'user_text': userText,
     });
     final out = await _session.generate(userText: user);
-    final parsed = extractFirstJsonObject(out.text);
-    if (parsed == null) {
-      throw GemmaContractError('no JSON object in protocol_answer',
-          rawText: out.text, task: 'protocol_answer');
-    }
+    final parsed = _parseTaskObject(
+      out,
+      task: 'protocol_answer',
+      expectedToolName: 'protocol_answer',
+    );
     final delta = parsed['protocol_answers_delta'] as Map<String, Object?>?;
     if (delta == null || delta.length != 1) {
       throw GemmaContractError(
@@ -614,6 +571,26 @@ class GemmaOrchestrator {
   /// ```
   Stream<DescribePhotoEvent> describeAll(
       List<DescribePhotoRequest> photos) async* {
+    if (_enableBatchVision && photos.length > 1) {
+      for (var i = 0; i < photos.length; i++) {
+        yield DescribePhotoStarted(
+          request: photos[i],
+          index: i,
+          total: photos.length,
+        );
+      }
+      final batch = await describePhotosBatch(photos);
+      if (!batch.shouldFallback) {
+        for (var i = 0; i < batch.results.length; i++) {
+          yield DescribePhotoSucceeded(
+            result: batch.results[i],
+            turn: batch.turns[i],
+          );
+        }
+        return;
+      }
+    }
+
     for (var i = 0; i < photos.length; i++) {
       final req = photos[i];
       yield DescribePhotoStarted(request: req, index: i, total: photos.length);
@@ -642,6 +619,100 @@ class GemmaOrchestrator {
     }
   }
 
+  Future<DescribePhotosBatchResult> describePhotosBatch(
+      List<DescribePhotoRequest> photos) async {
+    if (photos.isEmpty) {
+      return DescribePhotosBatchResult.success(
+          results: const [], turns: const []);
+    }
+    final batchSession = _session is BatchGemmaSessionInterface
+        ? _session as BatchGemmaSessionInterface
+        : null;
+    if (batchSession == null) {
+      return DescribePhotosBatchResult.fallback(
+          'session does not support batch');
+    }
+
+    try {
+      final inferenceBytes = <Uint8List>[];
+      for (final req in photos) {
+        inferenceBytes
+            .add(await _preprocessor.prepareForInference(req.imageBytes));
+      }
+      final user = jsonEncode({
+        'task': 'describe_photos_batch',
+        'photos': [
+          for (final req in photos)
+            {
+              'observation_id': req.observationId,
+              'prompt_id': req.promptId,
+              'asked_in': req.askedIn,
+              'image_refs': [req.imageRef],
+              'audio_refs': <String>[],
+              'user_text': req.userText,
+            },
+        ],
+      });
+      final ts = DateTime.now().toUtc();
+      final out = await batchSession.generateBatch(
+        userText: user,
+        images: inferenceBytes,
+      );
+      final parsed = _parseTaskObject(out, task: 'describe_photos_batch');
+      final rawObservations = parsed['observations'] as List?;
+      if (rawObservations == null || rawObservations.length != photos.length) {
+        return DescribePhotosBatchResult.fallback(
+          'batch returned ${rawObservations?.length ?? 0} observations for '
+          '${photos.length} requests',
+        );
+      }
+
+      final results = <DescribePhotoResult>[];
+      final turns = <TurnRecord>[];
+      for (var i = 0; i < photos.length; i++) {
+        final item = rawObservations[i];
+        if (item is! Map) {
+          return DescribePhotosBatchResult.fallback(
+            'batch observation $i is ${item.runtimeType}, expected object',
+          );
+        }
+        final req = photos[i];
+        final parsedItem = Map<String, Object?>.from(item);
+        final result = _describePhotoResultFromParsed(
+          parsedItem,
+          rawText: out.text,
+          observationId: req.observationId,
+          promptId: req.promptId,
+          askedIn: req.askedIn,
+          imageRef: req.imageRef,
+          ttftMs: out.ttftMs,
+          wallclockMs: out.wallclockMs,
+          outputCharCount: out.outputCharCount,
+        );
+        final returnedRef =
+            result.imageRefs.isEmpty ? null : result.imageRefs.first;
+        if (returnedRef != req.imageRef) {
+          return DescribePhotosBatchResult.fallback(
+            'batch observation $i image_ref mismatch: $returnedRef != '
+            '${req.imageRef}',
+          );
+        }
+        results.add(result);
+        turns.add(TurnRecord(
+          ts: ts,
+          task: 'describe_photo',
+          observationId: req.observationId,
+          ttftMs: out.ttftMs,
+          wallclockMs: out.wallclockMs,
+          outputCharCount: out.outputCharCount,
+        ));
+      }
+      return DescribePhotosBatchResult.success(results: results, turns: turns);
+    } catch (e) {
+      return DescribePhotosBatchResult.fallback(e.toString());
+    }
+  }
+
   /// Final synthesis (thinking mode). The orchestrator only collects the
   /// rationale + uncertainty bullets; the priority score is computed by Dart
   /// (`core/triage/priority.dart`) — never the LLM.
@@ -660,11 +731,11 @@ class GemmaOrchestrator {
     });
     final out = await _session.generate(userText: user);
     final raw = out.text;
-    final parsed = extractFirstJsonObject(raw);
-    if (parsed == null) {
-      throw GemmaContractError('no JSON object in synthesize response',
-          rawText: raw, task: 'synthesize');
-    }
+    final parsed = _parseTaskObject(
+      out,
+      task: 'synthesize',
+      expectedToolName: 'synthesize',
+    );
     final draft = parsed['triage_draft'] as Map<String, Object?>?;
     if (draft == null) {
       throw GemmaContractError('missing triage_draft',
@@ -701,6 +772,123 @@ class GemmaOrchestrator {
       raw: parsed,
       ttftMs: out.ttftMs,
       wallclockMs: out.wallclockMs,
+    );
+  }
+
+  Map<String, Object?> _parseTaskObject(
+    GemmaInferenceResult out, {
+    required String task,
+    String? expectedToolName,
+  }) {
+    if (expectedToolName != null) {
+      GemmaToolCall? matching;
+      for (final call in out.toolCalls) {
+        if (call.name == expectedToolName) {
+          matching = call;
+          break;
+        }
+      }
+      if (matching != null) return matching.args;
+      if (out.runtimeName == GemmaSession.runtimeName) {
+        throw GemmaContractError(
+          'required tool call "$expectedToolName" missing',
+          rawText: out.text,
+          task: task,
+        );
+      }
+    }
+    final parsed = extractFirstJsonObject(out.text);
+    if (parsed == null) {
+      throw GemmaContractError(
+        'no JSON object in $task response',
+        rawText: out.text,
+        task: task,
+      );
+    }
+    return parsed;
+  }
+
+  DescribePhotoResult _describePhotoResultFromParsed(
+    Map<String, Object?> parsed, {
+    required String rawText,
+    required String observationId,
+    required String promptId,
+    required String askedIn,
+    required String imageRef,
+    required int ttftMs,
+    required int wallclockMs,
+    required int outputCharCount,
+  }) {
+    final tags = (parsed['model_tags'] as List? ?? const []).cast<String>();
+    for (final tag in tags) {
+      if (!EvidencePacketValidator.kAllowedModelTags.contains(tag)) {
+        throw GemmaContractError(
+          'describe_photo: model_tags contains unknown tag "$tag"',
+          rawText: rawText,
+          task: 'describe_photo',
+        );
+      }
+    }
+
+    final bbox = (parsed['bbox_annotations'] as List? ?? const [])
+        .cast<Map<String, Object?>>();
+    for (var i = 0; i < bbox.length; i++) {
+      final b = bbox[i];
+      final box2d = (b['box_2d'] as List?)?.cast<num>().toList();
+      if (box2d == null || box2d.length != 4) {
+        throw GemmaContractError(
+          'describe_photo: bbox_annotations[$i].box_2d must have exactly 4 '
+          'elements [y1,x1,y2,x2]',
+          rawText: rawText,
+          task: 'describe_photo',
+        );
+      }
+      for (final v in box2d) {
+        if (v < 0 || v > 1000) {
+          throw GemmaContractError(
+            'describe_photo: bbox_annotations[$i].box_2d value $v is outside '
+            '0..1000',
+            rawText: rawText,
+            task: 'describe_photo',
+          );
+        }
+      }
+      if (box2d[0] >= box2d[2]) {
+        throw GemmaContractError(
+          'describe_photo: bbox_annotations[$i].box_2d y1 (${box2d[0]}) '
+          'must be < y2 (${box2d[2]})',
+          rawText: rawText,
+          task: 'describe_photo',
+        );
+      }
+      if (box2d[1] >= box2d[3]) {
+        throw GemmaContractError(
+          'describe_photo: bbox_annotations[$i].box_2d x1 (${box2d[1]}) '
+          'must be < x2 (${box2d[3]})',
+          rawText: rawText,
+          task: 'describe_photo',
+        );
+      }
+    }
+
+    return DescribePhotoResult(
+      observationId: parsed['observation_id'] as String? ?? observationId,
+      promptId: parsed['prompt_id'] as String? ?? promptId,
+      askedIn: parsed['asked_in'] as String? ?? askedIn,
+      imageRefs: (parsed['image_refs'] as List? ?? [imageRef]).cast<String>(),
+      modelDescription: (parsed['model_description'] as String?)?.trim() ??
+          (throw GemmaContractError(
+            'missing model_description',
+            rawText: rawText,
+            task: 'describe_photo',
+          )),
+      modelTags: tags,
+      modelConfidence: ((parsed['model_confidence'] as num?) ?? 0.5).toDouble(),
+      bbox: bbox,
+      raw: parsed,
+      ttftMs: ttftMs,
+      wallclockMs: wallclockMs,
+      outputCharCount: outputCharCount,
     );
   }
 }

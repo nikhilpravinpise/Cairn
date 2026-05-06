@@ -47,6 +47,17 @@
 /// ```
 ///
 /// Supported values: `cpu`, `gpu` (default when not set).
+///
+/// ### INFERENCE_RUNTIME / BENCH_RUNTIME — runtime selector (MTP bridge)
+///
+/// `flutter_gemma` is the production default. `native_mtp` enables the Android
+/// LiteRT-LM bridge that turns on Gemma 4 speculative decoding / MTP.
+///
+/// ### BENCH_BATCH / BENCH_MTP
+///
+/// `BENCH_BATCH=true` enables the native multi-image batch experiment when the
+/// selected runtime is `native_mtp`. `BENCH_MTP=true` is recorded for benchmark
+/// scripts; native_mtp always requests MTP because that is its purpose.
 library;
 
 import 'package:flutter/services.dart';
@@ -55,7 +66,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'images/image_preprocessor.dart';
 import 'llm/gemma_session.dart';
+import 'llm/inference_runtime.dart';
 import 'llm/model_registry.dart';
+import 'llm/native_mtp_session.dart';
 import 'llm/orchestrator.dart';
 import 'llm/session_config.dart';
 import 'state/session_controller.dart';
@@ -83,6 +96,23 @@ const _kBenchImagePx = int.fromEnvironment('BENCH_IMAGE_PX', defaultValue: 0);
 /// Empty string = gpu (production). 'cpu' = force CPU.
 const _kBenchBackend =
     String.fromEnvironment('BENCH_BACKEND', defaultValue: '');
+
+const _kInferenceRuntime =
+    String.fromEnvironment('INFERENCE_RUNTIME', defaultValue: '');
+
+const _kBenchRuntime =
+    String.fromEnvironment('BENCH_RUNTIME', defaultValue: '');
+
+const _kBenchBatch = bool.fromEnvironment('BENCH_BATCH', defaultValue: false);
+
+const _kBenchMtp = bool.fromEnvironment('BENCH_MTP', defaultValue: false);
+
+final selectedInferenceRuntimeProvider = Provider<InferenceRuntime>((_) {
+  return inferenceRuntimeFromDefines(
+    inferenceRuntime: _kInferenceRuntime,
+    benchRuntime: _kBenchRuntime,
+  );
+});
 
 /// Maps a [benchKey] string to a [SessionConfig] for the given [profile].
 ///
@@ -159,11 +189,11 @@ enum SessionProfile {
 
 /// Holds the live Gemma session. `null` until the user clicks "Load model"
 /// on the Start screen. Disposed on app shutdown by Riverpod.
-class GemmaSessionNotifier extends Notifier<GemmaSession?> {
+class GemmaSessionNotifier extends Notifier<GemmaSessionInterface?> {
   @override
-  GemmaSession? build() {
+  GemmaSessionInterface? build() {
     ref.onDispose(() async {
-      await state?.close();
+      await _close(state);
     });
     return null;
   }
@@ -181,9 +211,10 @@ class GemmaSessionNotifier extends Notifier<GemmaSession?> {
   }) async {
     final previous = state;
     state = null;
-    await previous?.close();
+    await _close(previous);
     final spec = ref.read(selectedModelSpecProvider);
     final sys = await ref.read(systemPromptProvider.future);
+    final runtime = ref.read(selectedInferenceRuntimeProvider);
 
     // Benchmark override chain (compile-time constants — zero cost in release):
     //   1. Explicit caller-supplied config takes highest priority.
@@ -192,44 +223,73 @@ class GemmaSessionNotifier extends Notifier<GemmaSession?> {
     //   4. BENCH_BACKEND applies a backend-only override on top of whichever
     //      config was selected in steps 1–3.
     SessionConfig resolved(SessionConfig productionDefault) =>
-        _applyBenchBackend(config ?? _benchConfigForKey(_kBenchConfig) ?? productionDefault);
+        _applyBenchBackend(
+            config ?? _benchConfigForKey(_kBenchConfig) ?? productionDefault);
 
-    state = switch (profile) {
-      SessionProfile.vision =>
-        await GemmaSession.openForVision(spec,
-            systemPrompt: sys,
-            config: resolved(SessionConfig.vision),
-            loraPath: loraPath,
-            onProgress: onProgress),
-      SessionProfile.audio =>
-        await GemmaSession.openForAudio(spec,
-            systemPrompt: sys,
-            config: resolved(SessionConfig.audio),
-            loraPath: loraPath,
-            onProgress: onProgress),
-      SessionProfile.synthesis =>
-        await GemmaSession.openForSynthesis(spec,
-            systemPrompt: sys,
-            config: resolved(SessionConfig.synthesis),
-            loraPath: loraPath,
-            onProgress: onProgress),
-      SessionProfile.standard =>
-        await GemmaSession.openStandard(spec,
-            systemPrompt: sys,
-            config: resolved(SessionConfig.standard),
-            loraPath: loraPath,
-            onProgress: onProgress),
+    state = switch ((runtime, profile)) {
+      (InferenceRuntime.nativeMtp, SessionProfile.vision) =>
+        await NativeMtpGemmaSession.openForVision(
+          spec,
+          systemPrompt: sys,
+          config: resolved(SessionConfig.vision),
+          loraPath: loraPath,
+          onProgress: onProgress,
+        ),
+      (InferenceRuntime.nativeMtp, SessionProfile.synthesis) =>
+        await NativeMtpGemmaSession.openForSynthesis(
+          spec,
+          systemPrompt: sys,
+          config: resolved(SessionConfig.synthesis),
+          loraPath: loraPath,
+          onProgress: onProgress,
+        ),
+      (_, SessionProfile.vision) => await GemmaSession.openForVision(
+          spec,
+          systemPrompt: sys,
+          config: resolved(SessionConfig.vision),
+          loraPath: loraPath,
+          onProgress: onProgress,
+        ),
+      (_, SessionProfile.audio) => await GemmaSession.openForAudio(
+          spec,
+          systemPrompt: sys,
+          config: resolved(SessionConfig.audio),
+          loraPath: loraPath,
+          onProgress: onProgress,
+        ),
+      (_, SessionProfile.synthesis) => await GemmaSession.openForSynthesis(
+          spec,
+          systemPrompt: sys,
+          config: resolved(SessionConfig.synthesis),
+          loraPath: loraPath,
+          onProgress: onProgress,
+        ),
+      (_, SessionProfile.standard) => await GemmaSession.openStandard(
+          spec,
+          systemPrompt: sys,
+          config: resolved(SessionConfig.standard),
+          loraPath: loraPath,
+          onProgress: onProgress,
+        ),
     };
   }
 
   Future<void> unload() async {
-    await state?.close();
+    await _close(state);
     state = null;
+  }
+
+  Future<void> _close(GemmaSessionInterface? session) async {
+    if (session is GemmaSession) {
+      await session.close();
+    } else if (session is NativeMtpGemmaSession) {
+      await session.close();
+    }
   }
 }
 
 final gemmaSessionProvider =
-    NotifierProvider<GemmaSessionNotifier, GemmaSession?>(
+    NotifierProvider<GemmaSessionNotifier, GemmaSessionInterface?>(
         GemmaSessionNotifier.new);
 
 final orchestratorProvider = Provider<GemmaOrchestrator?>((ref) {
@@ -247,8 +307,15 @@ final orchestratorProvider = Provider<GemmaOrchestrator?>((ref) {
     _ => BoundedImagePreprocessor(maxLongEdgePx: _kBenchImagePx),
   };
 
-  return GemmaOrchestrator(session, preprocessor: preprocessor);
+  final runtime = ref.watch(selectedInferenceRuntimeProvider);
+  return GemmaOrchestrator(
+    session,
+    preprocessor: preprocessor,
+    enableBatchVision: runtime == InferenceRuntime.nativeMtp && _kBenchBatch,
+  );
 });
+
+bool get benchmarkMtpRequested => _kBenchMtp;
 
 /// File-backed vault on native targets; in-memory on web.
 ///
