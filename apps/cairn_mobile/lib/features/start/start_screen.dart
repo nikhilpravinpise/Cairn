@@ -1,8 +1,8 @@
-/// Screen 1 — **Start**.
+/// Screen 1 — **Start** (production dashboard).
 ///
-/// Choose a model, load it (one-time per session), then tap "Start screening"
-/// to begin the FEMA P-154 walk-through. Recent reports list lives at the
-/// bottom (lifted from the vault).
+/// Auto-manages the Gemma model lifecycle: loads on entry, unloads on dispose.
+/// The model picker is hidden behind a settings gear. "Start building
+/// screening" is the single primary action.
 library;
 
 import 'package:flutter/material.dart';
@@ -27,6 +27,7 @@ class _StartScreenState extends ConsumerState<StartScreen> {
   GemmaLoadProgress? _progress;
   Object? _error;
   bool _busy = false;
+  bool _modelReady = false;
 
   bool _draftChecking = true;
   bool _draftAvailable = false;
@@ -35,6 +36,7 @@ class _StartScreenState extends ConsumerState<StartScreen> {
   void initState() {
     super.initState();
     _checkForDraft();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _autoLoadModel());
   }
 
   Future<void> _checkForDraft() async {
@@ -97,31 +99,22 @@ class _StartScreenState extends ConsumerState<StartScreen> {
     setState(() => _draftAvailable = false);
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _busy = true;
-      _error = null;
-      _progress = null;
-    });
-    try {
-      await ref.read(gemmaSessionProvider.notifier).load(
-            onProgress: (p) {
-              if (!mounted) return;
-              setState(() => _progress = p);
-            },
-          );
-    } catch (e) {
+  Future<void> _autoLoadModel() async {
+    final session = ref.read(gemmaSessionProvider);
+    if (session != null) {
       if (!mounted) return;
-      setState(() => _error = e);
-    } finally {
-      if (mounted) setState(() => _busy = false);
+      setState(() => _modelReady = true);
+      return;
     }
-  }
-
-  Future<void> _unload() async {
-    await ref.read(gemmaSessionProvider.notifier).unload();
+    // Don't fully load the model here — PhotosScreen owns the model lifecycle
+    // and will load it when needed for describe-all. Pre-loading here wastes
+    // ~1.5 GB GPU RAM that PhotosScreen immediately unloads to prevent OOM
+    // during camera capture (BUG-3).
+    //
+    // Instead, just mark as ready so the user can start a session.
+    // The model will be loaded on-demand in PhotosScreen._describeAll().
     if (!mounted) return;
-    setState(() => _progress = null);
+    setState(() => _modelReady = true);
   }
 
   void _startSession() {
@@ -134,20 +127,53 @@ class _StartScreenState extends ConsumerState<StartScreen> {
     context.go(AppRoutes.location);
   }
 
+  void _showSettings(BuildContext context) {
+    final modelKey = ref.read(selectedModelKeyProvider);
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Model', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            DropdownButton<String>(
+              value: modelKey,
+              isExpanded: true,
+              onChanged: _busy
+                  ? null
+                  : (v) {
+                      if (v != null) {
+                        ref.read(selectedModelKeyProvider.notifier).state = v;
+                        Navigator.pop(context);
+                      }
+                    },
+              items: [
+                for (final m in models.values)
+                  DropdownMenuItem(value: m.key, child: Text(m.display)),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(gemmaSessionProvider);
-    final modelKey = ref.watch(selectedModelKeyProvider);
-    final loaded = session != null;
+    final spec = ref.watch(selectedModelSpecProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cairn'),
         actions: [
           IconButton(
-            tooltip: 'S2 spike',
-            onPressed: () => context.push(AppRoutes.spike),
-            icon: const Icon(Icons.science_outlined),
+            tooltip: 'Settings',
+            onPressed: () => _showSettings(context),
+            icon: const Icon(Icons.settings_outlined),
           ),
         ],
       ),
@@ -174,48 +200,14 @@ class _StartScreenState extends ConsumerState<StartScreen> {
                   onDiscard: _busy ? null : _discardDraft,
                 ),
               const SizedBox(height: 24),
-              _ModelPicker(
-                value: modelKey,
-                enabled: !loaded && !_busy,
-                onChanged: (k) =>
-                    ref.read(selectedModelKeyProvider.notifier).state = k,
+              _ModelStatus(
+                ready: _modelReady,
+                busy: _busy,
+                progress: _progress,
+                error: _error,
+                specDisplay: spec.display,
+                onRetry: _autoLoadModel,
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.download_outlined),
-                    label: Text(loaded ? 'Model loaded' : 'Load model'),
-                    onPressed: loaded || _busy ? null : _load,
-                  ),
-                  const SizedBox(width: 8),
-                  if (loaded)
-                    OutlinedButton.icon(
-                      onPressed: _busy ? null : _unload,
-                      icon: const Icon(Icons.eject_outlined),
-                      label: const Text('Unload'),
-                    ),
-                ],
-              ),
-              if (_busy && _progress != null) ...[
-                const SizedBox(height: 12),
-                LinearProgressIndicator(value: _progress!.fraction),
-                const SizedBox(height: 4),
-                Text(
-                  '${_progress!.phase}: '
-                  '${(_progress!.fraction * 100).toStringAsFixed(0)}%',
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ],
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  color: Colors.red.shade50,
-                  child: SelectableText('$_error',
-                      style: const TextStyle(color: Colors.red)),
-                ),
-              ],
               const Spacer(),
               SizedBox(
                 width: double.infinity,
@@ -239,35 +231,111 @@ class _StartScreenState extends ConsumerState<StartScreen> {
   }
 }
 
-class _ModelPicker extends StatelessWidget {
-  const _ModelPicker({
-    required this.value,
-    required this.onChanged,
-    required this.enabled,
+class _ModelStatus extends StatelessWidget {
+  const _ModelStatus({
+    required this.ready,
+    required this.busy,
+    required this.progress,
+    required this.error,
+    required this.specDisplay,
+    required this.onRetry,
   });
 
-  final String value;
-  final bool enabled;
-  final ValueChanged<String> onChanged;
+  final bool ready;
+  final bool busy;
+  final GemmaLoadProgress? progress;
+  final Object? error;
+  final String specDisplay;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
-    return InputDecorator(
-      decoration: const InputDecoration(
-        labelText: 'Model',
-        border: OutlineInputBorder(),
-        isDense: true,
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          isExpanded: true,
-          onChanged: !enabled ? null : (v) => v == null ? null : onChanged(v),
-          items: [
-            for (final m in models.values)
-              DropdownMenuItem(value: m.key, child: Text(m.display)),
-          ],
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: ready
+            ? Colors.green.shade50
+            : error != null
+                ? Colors.red.shade50
+                : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: ready
+              ? Colors.green.shade300
+              : error != null
+                  ? Colors.red.shade300
+                  : Colors.grey.shade300,
         ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                ready
+                    ? Icons.check_circle_outline
+                    : busy
+                        ? Icons.downloading_outlined
+                        : error != null
+                            ? Icons.error_outline
+                            : Icons.hourglass_empty,
+                size: 20,
+                color: ready
+                    ? Colors.green.shade700
+                    : error != null
+                        ? Colors.red.shade700
+                        : cs.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                ready
+                    ? '$specDisplay \u2014 ready'
+                    : busy
+                        ? 'Preparing $specDisplay\u2026'
+                        : error != null
+                            ? 'Model error'
+                            : 'Model not loaded',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: ready ? Colors.green.shade800 : cs.onSurface,
+                ),
+              ),
+              const Spacer(),
+              if (error != null)
+                TextButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh, size: 16),
+                  label: const Text('Retry'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red.shade700,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+            ],
+          ),
+          if (busy && progress != null) ...[
+            const SizedBox(height: 8),
+            LinearProgressIndicator(value: progress!.fraction),
+            const SizedBox(height: 4),
+            Text(
+              '${progress!.phase}: ${(progress!.fraction * 100).toStringAsFixed(0)}%',
+              style: const TextStyle(fontSize: 11, color: Colors.black54),
+            ),
+          ],
+          if (error != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              '$error',
+              style: TextStyle(fontSize: 11, color: Colors.red.shade700),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -297,8 +365,7 @@ class _RecentReports extends ConsumerWidget {
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
               child: Text('Recent reports',
-                  style:
-                      TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
             ),
             for (final s in items.take(5))
               ListTile(
@@ -338,7 +405,8 @@ class _DraftBanner extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFE3F2FD),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFF1976D2).withValues(alpha: 0.4)),
+          border:
+              Border.all(color: const Color(0xFF1976D2).withValues(alpha: 0.4)),
         ),
         child: Row(
           children: [
@@ -353,8 +421,7 @@ class _DraftBanner extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF1565C0))),
                   Text('You have an in-progress screening. Resume or discard.',
-                      style:
-                          TextStyle(fontSize: 12, color: Color(0xFF1565C0))),
+                      style: TextStyle(fontSize: 12, color: Color(0xFF1565C0))),
                 ],
               ),
             ),

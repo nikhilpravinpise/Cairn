@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/providers.dart';
 import 'core/routing/app_router.dart';
 import 'core/state/session_controller.dart';
+import 'core/theme/cairn_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,11 +46,8 @@ class CairnApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Cairn',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2F5D62)),
-        useMaterial3: true,
-        appBarTheme: const AppBarTheme(centerTitle: false),
-      ),
+      theme: CairnTheme.light(),
+      darkTheme: CairnTheme.dark(),
       routerConfig: appRouter,
     );
   }

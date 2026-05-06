@@ -17,6 +17,7 @@ import '../../core/location/location_service.dart';
 import '../../core/models/evidence_packet.dart';
 import '../../core/providers.dart';
 import '../../core/routing/app_router.dart';
+import '../../core/widgets/flow_stepper.dart';
 
 const _typologies = <String, String>{
   'wood_light_frame': 'Wood light frame',
@@ -60,8 +61,7 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
       _locationError = null;
     });
     final result = await resolveLocation(
-      resolver:
-          widget.resolverOverride ?? const GeolocatorLocationResolver(),
+      resolver: widget.resolverOverride ?? const GeolocatorLocationResolver(),
     );
     if (!mounted) return;
     if (result.isSuccess) {
@@ -119,117 +119,133 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Location & building')),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Where are you?',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-
-              // ── Status / error ───────────────────────────────────────────
-              if (_busy) const LinearProgressIndicator(),
-
-              if (_locationError != null)
-                _LocationErrorCard(
-                  failure: _locationError!,
-                  onRetry: _locationError!.kind.canRetryInApp ? _acquire : null,
-                  onOpenSettings: _locationError!.kind.requiresSettings
-                      ? _openSettings
-                      : null,
-                  onSkip: _skipGps,
-                ),
-
-              // ── Skipped sentinel banner ──────────────────────────────────
-              if (_loc != null && isSkippedLocation(_loc!))
-                _SkippedLocationBanner(onReacquire: _acquire),
-
-              // ── Live location card + address edit ────────────────────────
-              if (_loc != null && !isSkippedLocation(_loc!)) ...[
-                _LocationCard(loc: _loc!),
-                const SizedBox(height: 8),
-                TextFormField(
-                  initialValue: _address,
-                  decoration: const InputDecoration(
-                    labelText: 'Address (correct if needed)',
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: (v) => _address = v,
-                ),
-              ],
-
-              // ── Re-acquire + skip controls ───────────────────────────────
-              if (_locationError == null) ...[
-                const SizedBox(height: 4),
-                Row(
+        child: Column(
+          children: [
+            const FlowStepper(
+                steps: FlowStepper.kScreeningSteps, currentIndex: 0),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TextButton.icon(
-                      onPressed: _busy ? null : _acquire,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Re-acquire GPS'),
-                    ),
-                    if (_loc == null && !_busy)
-                      TextButton(
-                        onPressed: _skipGps,
-                        child: const Text('Skip GPS'),
+                    const Text('Where are you?',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+
+                    // ── Status / error ───────────────────────────────────────────
+                    if (_busy) const LinearProgressIndicator(),
+
+                    if (_locationError != null)
+                      _LocationErrorCard(
+                        failure: _locationError!,
+                        onRetry: _locationError!.kind.canRetryInApp
+                            ? _acquire
+                            : null,
+                        onOpenSettings: _locationError!.kind.requiresSettings
+                            ? _openSettings
+                            : null,
+                        onSkip: _skipGps,
                       ),
+
+                    // ── Skipped sentinel banner ──────────────────────────────────
+                    if (_loc != null && isSkippedLocation(_loc!))
+                      _SkippedLocationBanner(onReacquire: _acquire),
+
+                    // ── Live location card + address edit ────────────────────────
+                    if (_loc != null && !isSkippedLocation(_loc!)) ...[
+                      _LocationCard(loc: _loc!),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        initialValue: _address,
+                        decoration: const InputDecoration(
+                          labelText: 'Address (correct if needed)',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (v) => _address = v,
+                      ),
+                    ],
+
+                    // ── Re-acquire + skip controls ───────────────────────────────
+                    if (_locationError == null) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          TextButton.icon(
+                            onPressed: _busy ? null : _acquire,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Re-acquire GPS'),
+                          ),
+                          if (_loc == null && !_busy)
+                            TextButton(
+                              onPressed: _skipGps,
+                              child: const Text('Skip GPS'),
+                            ),
+                        ],
+                      ),
+                    ],
+
+                    const Divider(height: 32),
+
+                    // ── Building typology ────────────────────────────────────────
+                    const Text('Building typology',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final entry in _typologies.entries)
+                          ChoiceChip(
+                            selected: _typology == entry.key,
+                            label: Text(entry.value),
+                            onSelected: (s) => s
+                                ? setState(() => _typology = entry.key)
+                                : null,
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        const Text('Stories above grade:'),
+                        const SizedBox(width: 12),
+                        IconButton(
+                          onPressed: _stories > 1
+                              ? () => setState(() => _stories--)
+                              : null,
+                          icon: const Icon(Icons.remove_circle_outline),
+                        ),
+                        Text('$_stories',
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.w600)),
+                        IconButton(
+                          onPressed: _stories < 30
+                              ? () => setState(() => _stories++)
+                              : null,
+                          icon: const Icon(Icons.add_circle_outline),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: _loc == null ? null : _continue,
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          child:
+                              Text('Continue', style: TextStyle(fontSize: 16)),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-              ],
-
-              const Divider(height: 32),
-
-              // ── Building typology ────────────────────────────────────────
-              const Text('Building typology',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final entry in _typologies.entries)
-                    ChoiceChip(
-                      selected: _typology == entry.key,
-                      label: Text(entry.value),
-                      onSelected: (s) =>
-                          s ? setState(() => _typology = entry.key) : null,
-                    ),
-                ],
               ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  const Text('Stories above grade:'),
-                  const SizedBox(width: 12),
-                  IconButton(
-                    onPressed:
-                        _stories > 1 ? () => setState(() => _stories--) : null,
-                    icon: const Icon(Icons.remove_circle_outline),
-                  ),
-                  Text('$_stories',
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w600)),
-                  IconButton(
-                    onPressed:
-                        _stories < 30 ? () => setState(() => _stories++) : null,
-                    icon: const Icon(Icons.add_circle_outline),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _loc == null ? null : _continue,
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                    child: Text('Continue', style: TextStyle(fontSize: 16)),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -13,6 +13,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
 import '../../core/routing/app_router.dart';
 import '../../core/state/session_controller.dart';
+import '../../core/widgets/flow_stepper.dart';
 
 // ---------------------------------------------------------------------------
 // State machine
@@ -144,9 +145,17 @@ class _SynthesizeScreenState extends ConsumerState<SynthesizeScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Synthesizing')),
       body: SafeArea(
-        child: Padding(
+        child: Column(
+          children: [
+            const FlowStepper(
+                steps: FlowStepper.kScreeningSteps, currentIndex: 5),
+            Expanded(
+              child: Padding(
           padding: const EdgeInsets.all(24),
           child: _buildBody(),
+        ),
+            ),
+          ],
         ),
       ),
     );

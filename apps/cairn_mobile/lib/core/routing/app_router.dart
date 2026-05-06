@@ -3,11 +3,14 @@
 /// Routes intentionally form a linear progression: each screen pushes the
 /// next; the back button returns to the prior. Reports + the initial start
 /// screen are independent.
+///
+/// All flow screens use a smooth slide-left transition for a polished UX.
 library;
 
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/bootstrap/bootstrap_screen.dart';
+import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/audio/audio_screen.dart';
 import '../../features/describe/describe_screen.dart';
 import '../../features/humility/humility_screen.dart';
@@ -33,25 +36,103 @@ class AppRoutes {
   static const spike = '/spike';
 }
 
+// ---------------------------------------------------------------------------
+// Smooth transitions
+// ---------------------------------------------------------------------------
+
+/// Slide-left page transition for the linear screening flow.
+CustomTransitionPage<void> _slidePage(Widget child, GoRouterState state) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 300),
+    reverseTransitionDuration: const Duration(milliseconds: 250),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final tween = Tween<Offset>(
+        begin: const Offset(1.0, 0.0),
+        end: Offset.zero,
+      ).chain(CurveTween(curve: Curves.easeInOutCubic));
+
+      final secondaryTween = Tween<Offset>(
+        begin: Offset.zero,
+        end: const Offset(-0.3, 0.0),
+      ).chain(CurveTween(curve: Curves.easeInOutCubic));
+
+      return SlideTransition(
+        position: secondaryAnimation.drive(secondaryTween),
+        child: SlideTransition(
+          position: animation.drive(tween),
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
+/// Fade transition for entry/exit screens (start, report).
+CustomTransitionPage<void> _fadePage(Widget child, GoRouterState state) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 350),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return FadeTransition(opacity: animation, child: child);
+    },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Router
+// ---------------------------------------------------------------------------
+
 final appRouter = GoRouter(
   initialLocation: AppRoutes.bootstrap,
   routes: [
-    GoRoute(path: AppRoutes.bootstrap, builder: (_, __) => const BootstrapScreen()),
-    GoRoute(path: AppRoutes.start, builder: (_, __) => const StartScreen()),
     GoRoute(
-        path: AppRoutes.location, builder: (_, __) => const LocationScreen()),
-    GoRoute(path: AppRoutes.photos, builder: (_, __) => const PhotosScreen()),
-    GoRoute(path: AppRoutes.audio, builder: (_, __) => const AudioScreen()),
+      path: AppRoutes.bootstrap,
+      builder: (_, __) => const OnboardingScreen(),
+    ),
     GoRoute(
-        path: AppRoutes.describe, builder: (_, __) => const DescribeScreen()),
+      path: AppRoutes.start,
+      pageBuilder: (_, state) => _fadePage(const StartScreen(), state),
+    ),
+    // ── Linear screening flow with slide transitions ──
     GoRoute(
-        path: AppRoutes.protocol, builder: (_, __) => const ProtocolScreen()),
+      path: AppRoutes.location,
+      pageBuilder: (_, state) => _slidePage(const LocationScreen(), state),
+    ),
     GoRoute(
-        path: AppRoutes.humility, builder: (_, __) => const HumilityScreen()),
+      path: AppRoutes.photos,
+      pageBuilder: (_, state) => _slidePage(const PhotosScreen(), state),
+    ),
     GoRoute(
-        path: AppRoutes.synthesize,
-        builder: (_, __) => const SynthesizeScreen()),
-    GoRoute(path: AppRoutes.report, builder: (_, __) => const ReportScreen()),
-    GoRoute(path: AppRoutes.spike, builder: (_, __) => const S2SpikePage()),
+      path: AppRoutes.audio,
+      pageBuilder: (_, state) => _slidePage(const AudioScreen(), state),
+    ),
+    GoRoute(
+      path: AppRoutes.describe,
+      pageBuilder: (_, state) => _slidePage(const DescribeScreen(), state),
+    ),
+    GoRoute(
+      path: AppRoutes.protocol,
+      pageBuilder: (_, state) => _slidePage(const ProtocolScreen(), state),
+    ),
+    GoRoute(
+      path: AppRoutes.humility,
+      pageBuilder: (_, state) => _slidePage(const HumilityScreen(), state),
+    ),
+    GoRoute(
+      path: AppRoutes.synthesize,
+      pageBuilder: (_, state) => _slidePage(const SynthesizeScreen(), state),
+    ),
+    GoRoute(
+      path: AppRoutes.report,
+      pageBuilder: (_, state) => _fadePage(const ReportScreen(), state),
+    ),
+    // ── Dev tools ──
+    GoRoute(
+      path: AppRoutes.spike,
+      builder: (_, __) => const S2SpikePage(),
+    ),
   ],
 );

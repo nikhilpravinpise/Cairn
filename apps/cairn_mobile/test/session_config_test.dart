@@ -23,20 +23,20 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('production defaults — maxTokens', () {
-    test('vision maxTokens is 4096 (Sprint 2 baseline)', () {
-      expect(SessionConfig.vision.maxTokens, 4096);
+    test('vision maxTokens is 2048 (optimized with Rule 11 constraints)', () {
+      expect(SessionConfig.vision.maxTokens, 2048);
     });
 
-    test('audio maxTokens is 4096', () {
-      expect(SessionConfig.audio.maxTokens, 4096);
+    test('audio maxTokens is 2048', () {
+      expect(SessionConfig.audio.maxTokens, 2048);
     });
 
     test('synthesis maxTokens is 4096', () {
       expect(SessionConfig.synthesis.maxTokens, 4096);
     });
 
-    test('standard maxTokens is 4096', () {
-      expect(SessionConfig.standard.maxTokens, 4096);
+    test('standard maxTokens is 2048', () {
+      expect(SessionConfig.standard.maxTokens, 2048);
     });
 
     test('all production profiles are in the safe token range', () {
@@ -57,8 +57,8 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('production defaults — temperature', () {
-    test('vision temperature is 0.2', () {
-      expect(SessionConfig.vision.temperature, 0.2);
+    test('vision temperature is 0.1', () {
+      expect(SessionConfig.vision.temperature, 0.1);
     });
 
     test('synthesis temperature is 0.2 (do not lower without device evidence)', () {
@@ -211,8 +211,8 @@ void main() {
   });
 
   group('benchmark variants — visionTemp01', () {
-    test('temperature is 0.1', () {
-      expect(SessionConfig.visionTemp01.temperature, 0.1);
+    test('temperature is 0.05', () {
+      expect(SessionConfig.visionTemp01.temperature, 0.05);
     });
 
     test('temperature is strictly less than production vision', () {
@@ -231,8 +231,8 @@ void main() {
   });
 
   group('benchmark variants — standardTemp01', () {
-    test('temperature is 0.1', () {
-      expect(SessionConfig.standardTemp01.temperature, 0.1);
+    test('temperature is 0.05', () {
+      expect(SessionConfig.standardTemp01.temperature, 0.05);
     });
 
     test('maxTokens unchanged from production standard', () {
@@ -305,11 +305,11 @@ void main() {
 
   group('toLogString and toString', () {
     test('toLogString includes maxTokens', () {
-      expect(SessionConfig.vision.toLogString(), contains('maxTokens=4096'));
+      expect(SessionConfig.vision.toLogString(), contains('maxTokens=2048'));
     });
 
     test('toLogString includes temperature', () {
-      expect(SessionConfig.vision.toLogString(), contains('temperature=0.2'));
+      expect(SessionConfig.vision.toLogString(), contains('temperature=0.1'));
     });
 
     test('toLogString includes topK', () {
@@ -339,7 +339,7 @@ void main() {
       final s = SessionConfig.vision.toString();
       expect(s, startsWith('SessionConfig('));
       expect(s, endsWith(')'));
-      expect(s, contains('maxTokens=4096'));
+      expect(s, contains('maxTokens=2048'));
     });
 
     test('benchmark variant toLogString differs from production baseline', () {

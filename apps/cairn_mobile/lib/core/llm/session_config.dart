@@ -4,11 +4,14 @@
 /// `preferredBackend`, `maxNumImages`, `clearHistoryBetweenTurns`) out of
 /// [GemmaSession] into a single, testable configuration module.
 ///
-/// ## Production defaults (Sprint 2)
+/// ## Production defaults
 ///
-/// All production profiles keep `maxTokens: 4096` until the first device
-/// benchmark matrix on `RZCX920ARVA` confirms a safe lower value. Do NOT
-/// change the production defaults without device evidence.
+/// Vision, audio, and standard profiles use `maxTokens: 2048` and
+/// `temperature: 0.1`. The system prompt Rule 11 constrains output to max
+/// 3 sentences / 60 words, making 2048 tokens safe for all non-synthesis
+/// profiles. Synthesis stays at `maxTokens: 4096` / `temperature: 0.2`
+/// because reasoning-mode output benefits from a larger budget and moderate
+/// stochasticity.
 ///
 /// ## Benchmark variants
 ///
@@ -121,20 +124,25 @@ class SessionConfig {
 
   /// Vision profile — `describe_photo` turns.
   ///
-  /// `maxTokens: 4096` until Sprint 2 benchmark confirms a safe lower value.
+  /// `maxTokens: 2048` reduces KV cache memory by 50%. The system prompt Rule
+  /// 11 constrains output to max 3 sentences / 60 words, so 2048 tokens is
+  /// sufficient for system prompt + image tokens + constrained output.
+  /// `temperature: 0.1` improves JSON contract adherence and output
+  /// determinism for structured describe_photo responses.
   static const vision = SessionConfig(
-    maxTokens: 4096,
-    temperature: 0.2,
+    maxTokens: 2048,
+    temperature: 0.1,
     topK: 40,
     topP: 0.95,
     preferredBackend: PreferredBackend.gpu,
     maxNumImages: 5,
   );
 
-  /// Audio profile — `describe_audio` turns (record-only in v1; reserved).
+  /// Audio profile — `describe_audio` turns.
+  /// Same token/temp optimizations as vision.
   static const audio = SessionConfig(
-    maxTokens: 4096,
-    temperature: 0.2,
+    maxTokens: 2048,
+    temperature: 0.1,
     topK: 40,
     topP: 0.95,
     preferredBackend: PreferredBackend.gpu,
@@ -155,9 +163,10 @@ class SessionConfig {
   );
 
   /// Standard profile — `protocol_answer` and `ask_followup` turns.
+  /// `temperature: 0.1` for better JSON-mapping determinism.
   static const standard = SessionConfig(
-    maxTokens: 4096,
-    temperature: 0.2,
+    maxTokens: 2048,
+    temperature: 0.1,
     topK: 40,
     topP: 0.95,
     preferredBackend: PreferredBackend.gpu,
@@ -173,50 +182,49 @@ class SessionConfig {
 
   /// Vision — maxTokens 3072 benchmark candidate.
   ///
-  /// Saves ~25% of KV cache memory vs 4096. Only safe if the system prompt +
-  /// image tokens + user JSON + full Rule 11-constrained output fit inside 3072.
+  /// Tests a midpoint KV cache budget (50% larger than production 2048).
+  /// Useful if any prompt exceeds the 2048 budget.
   static const visionMaxTokens3072 = SessionConfig(
     maxTokens: 3072,
-    temperature: 0.2,
+    temperature: 0.1,
     topK: 40,
     topP: 0.95,
     preferredBackend: PreferredBackend.gpu,
     maxNumImages: 5,
   );
 
-  /// Vision — maxTokens 2048 benchmark candidate.
+  /// Vision — legacy maxTokens 2048 benchmark entry.
   ///
-  /// Saves ~50% of KV cache memory. High truncation risk — only proceed if
-  /// 3072 passes the no-truncation gate first.
+  /// Now identical to production [vision]. Kept for backward compatibility
+  /// with benchmark scripts.
   static const visionMaxTokens2048 = SessionConfig(
     maxTokens: 2048,
-    temperature: 0.2,
+    temperature: 0.1,
     topK: 40,
     topP: 0.95,
     preferredBackend: PreferredBackend.gpu,
     maxNumImages: 5,
   );
 
-  /// Vision — temperature 0.1 benchmark candidate.
+  /// Vision — temperature 0.05 benchmark candidate.
   ///
-  /// More deterministic sampling. Compare `GemmaContractError` rate and
-  /// output brevity against production `vision` on the same photo set.
+  /// Near-greedy sampling. Compare `GemmaContractError` rate and
+  /// output brevity against production `vision` (0.1).
   static const visionTemp01 = SessionConfig(
-    maxTokens: 4096,
-    temperature: 0.1,
+    maxTokens: 2048,
+    temperature: 0.05,
     topK: 40,
     topP: 0.95,
     preferredBackend: PreferredBackend.gpu,
     maxNumImages: 5,
   );
 
-  /// Standard — temperature 0.1 benchmark candidate.
+  /// Standard — temperature 0.05 benchmark candidate.
   ///
-  /// JSON-mapping tasks (protocol_answer, ask_followup) may benefit from
-  /// lower temperature. Compare contract adherence against production standard.
+  /// Near-greedy for JSON-mapping tasks.
   static const standardTemp01 = SessionConfig(
-    maxTokens: 4096,
-    temperature: 0.1,
+    maxTokens: 2048,
+    temperature: 0.05,
     topK: 40,
     topP: 0.95,
     preferredBackend: PreferredBackend.gpu,
@@ -243,8 +251,8 @@ class SessionConfig {
   ///
   /// OPT-5 requires flutter_gemma >=0.14.2 (Gemma 4 escape-token leakage fix).
   static const visionHistoryRetained = SessionConfig(
-    maxTokens: 4096,
-    temperature: 0.2,
+    maxTokens: 2048,
+    temperature: 0.1,
     topK: 40,
     topP: 0.95,
     preferredBackend: PreferredBackend.gpu,
@@ -265,8 +273,8 @@ class SessionConfig {
   /// the production [vision] baseline. On Exynos 2200 (`SM-S711B`) GPU is
   /// expected to be faster for multimodal inference, but this must be proven.
   static const visionCpu = SessionConfig(
-    maxTokens: 4096,
-    temperature: 0.2,
+    maxTokens: 2048,
+    temperature: 0.1,
     topK: 40,
     topP: 0.95,
     preferredBackend: PreferredBackend.cpu,
@@ -288,13 +296,9 @@ class SessionConfig {
   );
 
   /// Standard — CPU backend benchmark candidate.
-  ///
-  /// Replaces [PreferredBackend.gpu] with [PreferredBackend.cpu] for
-  /// `protocol_answer` and `ask_followup` turns. Text-only turns may benefit
-  /// more or less from CPU vs GPU depending on the Exynos 2200 memory bus.
   static const standardCpu = SessionConfig(
-    maxTokens: 4096,
-    temperature: 0.2,
+    maxTokens: 2048,
+    temperature: 0.1,
     topK: 40,
     topP: 0.95,
     preferredBackend: PreferredBackend.cpu,

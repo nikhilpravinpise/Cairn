@@ -36,18 +36,19 @@ import '../../core/io/audio_cache.dart';
 import '../../core/providers.dart';
 import '../../core/routing/app_router.dart';
 import '../../core/state/session_controller.dart';
+import '../../core/widgets/flow_stepper.dart';
 
 // ---------------------------------------------------------------------------
 // Private state enums
 // ---------------------------------------------------------------------------
 
 enum _CaptureState {
-  idle,        // Mic button visible, no recording in progress.
-  permDenied,  // RECORD_AUDIO permission denied.
-  recording,   // AudioRecorder.start() called; amplitude stream live.
-  processing,  // AudioRecorder.stop() called; reading + enrolling bytes.
-  ready,       // Bytes enrolled in SessionDraft; Continue enabled.
-  error,       // Hardware error or file read failure.
+  idle, // Mic button visible, no recording in progress.
+  permDenied, // RECORD_AUDIO permission denied.
+  recording, // AudioRecorder.start() called; amplitude stream live.
+  processing, // AudioRecorder.stop() called; reading + enrolling bytes.
+  ready, // Bytes enrolled in SessionDraft; Continue enabled.
+  error, // Hardware error or file read failure.
 }
 
 // ---------------------------------------------------------------------------
@@ -191,8 +192,7 @@ class _AudioScreenState extends ConsumerState<AudioScreen> {
     if (result == null || result.bytes.isEmpty) {
       setState(() {
         _captureState = _CaptureState.error;
-        _errorMessage =
-            'Recording produced no data. Please try again.';
+        _errorMessage = 'Recording produced no data. Please try again.';
       });
       return;
     }
@@ -285,56 +285,66 @@ class _AudioScreenState extends ConsumerState<AudioScreen> {
         title: const Text('Audio observations'),
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+        child: Column(
           children: [
-            // Not-supported banner (web).
-            if (!_recorder.isSupported) ...[
-              const _Banner(
-                color: Colors.amber,
-                icon: Icons.info_outline,
-                text: 'Audio capture is not available in this environment. '
-                    'Tap Skip to continue.',
-              ),
-              const SizedBox(height: 16),
-            ],
+            const FlowStepper(
+                steps: FlowStepper.kScreeningSteps, currentIndex: 2),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  // Not-supported banner (web).
+                  if (!_recorder.isSupported) ...[
+                    const _Banner(
+                      color: Colors.amber,
+                      icon: Icons.info_outline,
+                      text:
+                          'Audio capture is not available in this environment. '
+                          'Tap Skip to continue.',
+                    ),
+                    const SizedBox(height: 16),
+                  ],
 
-            // Instruction text.
-            const Text(
-              'Record ambient sounds, structural feedback, or verbal notes '
-              'while you walk around the building. Up to 30 seconds.',
-              style: TextStyle(color: Colors.black54, fontSize: 14),
-            ),
-            const SizedBox(height: 24),
+                  // Instruction text.
+                  const Text(
+                    'Record ambient sounds, structural feedback, or verbal notes '
+                    'while you walk around the building. Up to 30 seconds.',
+                    style: TextStyle(color: Colors.black54, fontSize: 14),
+                  ),
+                  const SizedBox(height: 24),
 
-            // Core capture widget.
-            if (!_recorder.isSupported)
-              _NotSupportedCard()
-            else ...[
-              _buildCaptureCard(context),
-            ],
+                  // Core capture widget.
+                  if (!_recorder.isSupported)
+                    _NotSupportedCard()
+                  else ...[
+                    _buildCaptureCard(context),
+                  ],
 
-            const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-            // Continue button.
-            FilledButton(
-              onPressed: _captureState == _CaptureState.ready ? _continue : null,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 14),
-                child: Text('Continue', style: TextStyle(fontSize: 16)),
-              ),
-            ),
-            const SizedBox(height: 8),
+                  // Continue button.
+                  FilledButton(
+                    onPressed:
+                        _captureState == _CaptureState.ready ? _continue : null,
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 14),
+                      child: Text('Continue', style: TextStyle(fontSize: 16)),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
 
-            // Skip is always available.
-            Center(
-              child: TextButton(
-                onPressed: _skip,
-                child: Text(
-                  _captureState == _CaptureState.ready
-                      ? 'Skip — discard this recording'
-                      : 'Skip — no audio to add',
-                ),
+                  // Skip is always available.
+                  Center(
+                    child: TextButton(
+                      onPressed: _skip,
+                      child: Text(
+                        _captureState == _CaptureState.ready
+                            ? 'Skip — discard this recording'
+                            : 'Skip — no audio to add',
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -346,8 +356,7 @@ class _AudioScreenState extends ConsumerState<AudioScreen> {
   Widget _buildCaptureCard(BuildContext context) {
     return Card(
       elevation: 0,
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -425,8 +434,7 @@ class _IdleWidget extends StatelessWidget {
           style: FilledButton.styleFrom(
             backgroundColor: Colors.red.shade700,
             foregroundColor: Colors.white,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           ),
         ),
       ],
@@ -613,9 +621,9 @@ class _AmplitudeBar extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(barCount, (i) {
             // Centre bars taller than edges to create a waveform shape.
-            final centreBoost = 1.0 -
-                (i - barCount / 2).abs() / (barCount / 2);
-            final barHeight = (amplitude * 32 * centreBoost + 4).clamp(4.0, 40.0);
+            final centreBoost = 1.0 - (i - barCount / 2).abs() / (barCount / 2);
+            final barHeight =
+                (amplitude * 32 * centreBoost + 4).clamp(4.0, 40.0);
             return Container(
               width: barWidth,
               height: barHeight,
@@ -760,8 +768,7 @@ class _NotSupportedCard extends StatelessWidget {
 }
 
 class _Banner extends StatelessWidget {
-  const _Banner(
-      {required this.color, required this.icon, required this.text});
+  const _Banner({required this.color, required this.icon, required this.text});
   final MaterialColor color;
   final IconData icon;
   final String text;

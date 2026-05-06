@@ -57,6 +57,7 @@ import '../../core/photos/pending_slot_store.dart';
 import '../../core/providers.dart';
 import '../../core/routing/app_router.dart';
 import '../../core/state/session_controller.dart';
+import '../../core/widgets/flow_stepper.dart';
 
 /// The four required reference views + one optional extra. Kept in display
 /// order; prompt_ids match the locked system-prompt contract.
@@ -381,9 +382,8 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
             });
           }
         case DescribePhotoSucceeded(:final result, :final turn):
-          final imgRef = result.imageRefs.isNotEmpty
-              ? result.imageRefs.first
-              : '';
+          final imgRef =
+              result.imageRefs.isNotEmpty ? result.imageRefs.first : '';
           final spec = refToSpec[imgRef];
           ctrl.recordObservation(
             _observationFrom(result,
@@ -515,61 +515,69 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
         ],
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+        child: Column(
           children: [
-            if (_modelLoading)
-              _Banner(
-                color: Colors.blue,
-                icon: Icons.memory_outlined,
-                text: _modelLoadingLabel,
-              ),
-            const Text(
-              'Take one photo per reference view. When all photos are '
-              'captured, tap "Describe photos" to run Gemma on all of them.',
-              style: TextStyle(color: Colors.black54),
-            ),
-            const SizedBox(height: 12),
-            for (final spec in _slots)
-              _SlotCard(
-                spec: spec,
-                state: _state[spec.slot]!,
-                onCapture: _describeAllInProgress
-                    ? null
-                    : () => _capture(spec),
-                onRetry: (_describeAllInProgress || _modelLoading)
-                    ? null
-                    : () => _retry(spec),
-                lastObs: _findLastObsForSlot(draft, spec.slot),
-              ),
-            const SizedBox(height: 16),
-            // Phase B trigger: "Describe photos (N)"
-            if (canDescribe)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: FilledButton.tonal(
-                  onPressed: _describeAll,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: Text(
-                      'Describe photos ($_capturedCount)',
-                      style: const TextStyle(fontSize: 16),
+            const FlowStepper(
+                steps: FlowStepper.kScreeningSteps, currentIndex: 1),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  if (_modelLoading)
+                    _Banner(
+                      color: Colors.blue,
+                      icon: Icons.memory_outlined,
+                      text: _modelLoadingLabel,
+                    ),
+                  const Text(
+                    'Take one photo per reference view. When all photos are '
+                    'captured, tap "Describe photos" to run Gemma on all of them.',
+                    style: TextStyle(color: Colors.black54),
+                  ),
+                  const SizedBox(height: 12),
+                  for (final spec in _slots)
+                    _SlotCard(
+                      spec: spec,
+                      state: _state[spec.slot]!,
+                      onCapture:
+                          _describeAllInProgress ? null : () => _capture(spec),
+                      onRetry: (_describeAllInProgress || _modelLoading)
+                          ? null
+                          : () => _retry(spec),
+                      lastObs: _findLastObsForSlot(draft, spec.slot),
+                    ),
+                  const SizedBox(height: 16),
+                  // Phase B trigger: "Describe photos (N)"
+                  if (canDescribe)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: FilledButton.tonal(
+                        onPressed: _describeAll,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          child: Text(
+                            'Describe photos ($_capturedCount)',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ),
+                    ),
+                  FilledButton(
+                    onPressed: canContinue
+                        ? () => context.push(AppRoutes.audio)
+                        : null,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      child: Text(
+                        canContinue
+                            ? 'Continue'
+                            : 'Capture all ${kRequiredPhotoSlots.length} '
+                                'reference photos',
+                        style: const TextStyle(fontSize: 16),
+                      ),
                     ),
                   ),
-                ),
-              ),
-            FilledButton(
-              onPressed:
-                  canContinue ? () => context.push(AppRoutes.audio) : null,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                child: Text(
-                  canContinue
-                      ? 'Continue'
-                      : 'Capture all ${kRequiredPhotoSlots.length} '
-                          'reference photos',
-                  style: const TextStyle(fontSize: 16),
-                ),
+                ],
               ),
             ),
           ],
@@ -661,16 +669,15 @@ class _SlotCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(spec.hint,
-                    style: const TextStyle(
-                        fontSize: 12, color: Colors.black54)),
+                    style:
+                        const TextStyle(fontSize: 12, color: Colors.black54)),
                 const SizedBox(height: 8),
                 if (lastObs != null) _ObsSummary(obs: lastObs!),
                 if (status == _SlotStatus.error) ...[
                   const SizedBox(height: 8),
                   SelectableText(
                     state.error?.toString() ?? 'unknown error',
-                    style: TextStyle(
-                        color: Colors.red.shade700, fontSize: 12),
+                    style: TextStyle(color: Colors.red.shade700, fontSize: 12),
                   ),
                 ],
                 const SizedBox(height: 8),
@@ -715,12 +722,21 @@ class _StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final (text, fg, bg) = switch (status) {
       _SlotStatus.empty => ('empty', Colors.black54, Colors.grey.shade200),
-      _SlotStatus.captured =>
-        ('ready', Colors.orange.shade800, Colors.orange.shade50),
-      _SlotStatus.describing =>
-        ('describing…', Colors.blue.shade800, Colors.blue.shade50),
-      _SlotStatus.done =>
-        ('described', Colors.green.shade800, Colors.green.shade50),
+      _SlotStatus.captured => (
+          'ready',
+          Colors.orange.shade800,
+          Colors.orange.shade50
+        ),
+      _SlotStatus.describing => (
+          'describing…',
+          Colors.blue.shade800,
+          Colors.blue.shade50
+        ),
+      _SlotStatus.done => (
+          'described',
+          Colors.green.shade800,
+          Colors.green.shade50
+        ),
       _SlotStatus.error => ('error', Colors.red.shade800, Colors.red.shade50),
     };
     return Container(
@@ -730,8 +746,8 @@ class _StatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(text,
-          style: TextStyle(
-              color: fg, fontSize: 11, fontWeight: FontWeight.w600)),
+          style:
+              TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w600)),
     );
   }
 }
@@ -752,8 +768,7 @@ class _ObsSummary extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (obs.modelDescription != null)
-            Text(obs.modelDescription!,
-                style: const TextStyle(fontSize: 13)),
+            Text(obs.modelDescription!, style: const TextStyle(fontSize: 13)),
           if (obs.modelTags.isNotEmpty) ...[
             const SizedBox(height: 6),
             Wrap(
@@ -762,16 +777,15 @@ class _ObsSummary extends StatelessWidget {
               children: [
                 for (final t in obs.modelTags)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: Colors.indigo.shade50,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(t,
                         style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.indigo.shade800)),
+                            fontSize: 11, color: Colors.indigo.shade800)),
                   ),
               ],
             ),

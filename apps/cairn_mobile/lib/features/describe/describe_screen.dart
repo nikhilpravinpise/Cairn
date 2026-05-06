@@ -16,6 +16,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/models/evidence_packet.dart';
 import '../../core/providers.dart';
 import '../../core/routing/app_router.dart';
+import '../../core/widgets/flow_stepper.dart';
 
 class DescribeScreen extends ConsumerStatefulWidget {
   const DescribeScreen({super.key});
@@ -79,9 +80,14 @@ class _DescribeScreenState extends ConsumerState<DescribeScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Describe what you saw')),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+        child: Column(
           children: [
+            const FlowStepper(
+                steps: FlowStepper.kScreeningSteps, currentIndex: 3),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
             const Text(
               'Add anything the photos might have missed: smells of gas, '
               'sounds of water, occupants still inside, evacuation signs, etc. '
@@ -125,6 +131,9 @@ class _DescribeScreenState extends ConsumerState<DescribeScreen> {
               child: TextButton(
                 onPressed: () => context.push(AppRoutes.protocol),
                 child: const Text('Skip — I have nothing to add'),
+              ),
+            ),
+          ],
               ),
             ),
           ],

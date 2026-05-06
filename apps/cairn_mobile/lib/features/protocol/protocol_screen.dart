@@ -13,6 +13,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
 import '../../core/routing/app_router.dart';
+import '../../core/widgets/flow_stepper.dart';
 
 class _Question {
   const _Question({
@@ -135,7 +136,12 @@ class _ProtocolScreenState extends ConsumerState<ProtocolScreen> {
         title: Text('Quick questions  ${_i + 1} / ${_qs.length}'),
       ),
       body: SafeArea(
-        child: Padding(
+        child: Column(
+          children: [
+            const FlowStepper(
+                steps: FlowStepper.kScreeningSteps, currentIndex: 4),
+            Expanded(
+              child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,6 +183,9 @@ class _ProtocolScreenState extends ConsumerState<ProtocolScreen> {
               ),
             ],
           ),
+              ),
+            ),
+          ],
         ),
       ),
     );

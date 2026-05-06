@@ -27,6 +27,7 @@ import '../../core/pdf/report_pdf_builder.dart';
 import '../../core/providers.dart';
 import '../../core/routing/app_router.dart';
 import '../../core/state/session_controller.dart';
+import '../../core/widgets/flow_stepper.dart';
 
 // ---------------------------------------------------------------------------
 // Colours for priority bands
@@ -120,7 +121,9 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
     });
     try {
       final bytes = await buildReportPdf(packet, imageBytes: _photoBytes);
-      await ref.read(evidenceVaultProvider).saveReportPdf(packet.packetId, bytes);
+      await ref
+          .read(evidenceVaultProvider)
+          .saveReportPdf(packet.packetId, bytes);
       if (!mounted) return;
       if (kIsWeb) {
         await Printing.layoutPdf(onLayout: (_) async => bytes);
@@ -187,71 +190,79 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
         automaticallyImplyLeading: false,
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+        child: Column(
           children: [
-            // Priority badge
-            _PriorityBadge(triage: triage, color: color),
-            const SizedBox(height: 16),
+            const FlowStepper(
+                steps: FlowStepper.kScreeningSteps, currentIndex: 6),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  // Priority badge
+                  _PriorityBadge(triage: triage, color: color),
+                  const SizedBox(height: 16),
 
-            // Building + location
-            _InfoCard(packet: packet),
-            const SizedBox(height: 12),
+                  // Building + location
+                  _InfoCard(packet: packet),
+                  const SizedBox(height: 12),
 
-            // Rationale
-            _Section(
-              title: 'Triage Rationale',
-              child: _BulletList(items: triage.rationaleBullets),
-            ),
-            if (triage.uncertaintyNotes.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              _Section(
-                title: 'Uncertainty Notes',
-                child: _BulletList(items: triage.uncertaintyNotes),
+                  // Rationale
+                  _Section(
+                    title: 'Triage Rationale',
+                    child: _BulletList(items: triage.rationaleBullets),
+                  ),
+                  if (triage.uncertaintyNotes.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    _Section(
+                      title: 'Uncertainty Notes',
+                      child: _BulletList(items: triage.uncertaintyNotes),
+                    ),
+                  ],
+                  if (triage.recommendEngineerFollowup) ...[
+                    const SizedBox(height: 10),
+                    _EngineerBanner(),
+                  ],
+
+                  // Photos
+                  if (_photos.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    _Section(
+                      title: 'Photos (${_photos.length})',
+                      child: _PhotoGrid(photos: _photos),
+                    ),
+                  ],
+
+                  // Packet QR
+                  const SizedBox(height: 12),
+                  _PacketIdRow(packetId: packet.packetId),
+
+                  // PDF errors
+                  if (_pdfError != null) ...[
+                    const SizedBox(height: 8),
+                    Text('PDF error: $_pdfError',
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                            fontSize: 12)),
+                  ],
+
+                  // Action buttons
+                  const SizedBox(height: 20),
+                  _ActionButtons(
+                    pdfGenerating: _pdfGenerating,
+                    pdfDone: _pdfDone,
+                    onSavePdf: _generateAndSharePdf,
+                    onShareJson: _shareJson,
+                    onStartNew: () {
+                      context.go(AppRoutes.start);
+                    },
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Disclaimer
+                  const _Disclaimer(),
+                ],
               ),
-            ],
-            if (triage.recommendEngineerFollowup) ...[
-              const SizedBox(height: 10),
-              _EngineerBanner(),
-            ],
-
-            // Photos
-            if (_photos.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              _Section(
-                title: 'Photos (${_photos.length})',
-                child: _PhotoGrid(photos: _photos),
-              ),
-            ],
-
-            // Packet QR
-            const SizedBox(height: 12),
-            _PacketIdRow(packetId: packet.packetId),
-
-            // PDF errors
-            if (_pdfError != null) ...[
-              const SizedBox(height: 8),
-              Text('PDF error: $_pdfError',
-                  style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                      fontSize: 12)),
-            ],
-
-            // Action buttons
-            const SizedBox(height: 20),
-            _ActionButtons(
-              pdfGenerating: _pdfGenerating,
-              pdfDone: _pdfDone,
-              onSavePdf: _generateAndSharePdf,
-              onShareJson: _shareJson,
-              onStartNew: () {
-                context.go(AppRoutes.start);
-              },
             ),
-            const SizedBox(height: 24),
-
-            // Disclaimer
-            const _Disclaimer(),
           ],
         ),
       ),
@@ -337,15 +348,14 @@ class _InfoCard extends StatelessWidget {
             _row(
               Icons.domain,
               '${_buildingLabel(b.type)}, ${b.storiesAboveGrade} '
-                  'stor${b.storiesAboveGrade == 1 ? 'y' : 'ies'}'
-                  '${b.yearBuiltEst != null ? ' (~${b.yearBuiltEst})' : ''}',
+              'stor${b.storiesAboveGrade == 1 ? 'y' : 'ies'}'
+              '${b.yearBuiltEst != null ? ' (~${b.yearBuiltEst})' : ''}',
             ),
             if (l.addressText.isNotEmpty)
               _row(Icons.place_outlined, l.addressText),
             _row(Icons.gps_fixed_outlined,
                 '${l.lat.toStringAsFixed(5)}, ${l.lng.toStringAsFixed(5)}'),
-            _row(Icons.schedule_outlined,
-                _fmtDate(packet.createdAtUtc)),
+            _row(Icons.schedule_outlined, _fmtDate(packet.createdAtUtc)),
           ],
         ),
       ),
@@ -358,9 +368,7 @@ class _InfoCard extends StatelessWidget {
           children: [
             Icon(icon, size: 16, color: Colors.black54),
             const SizedBox(width: 8),
-            Expanded(
-                child: Text(text,
-                    style: const TextStyle(fontSize: 13))),
+            Expanded(child: Text(text, style: const TextStyle(fontSize: 13))),
           ],
         ),
       );
@@ -376,8 +384,10 @@ class _Section extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary)),
+              style: Theme.of(context)
+                  .textTheme
+                  .titleSmall
+                  ?.copyWith(color: Theme.of(context).colorScheme.primary)),
           const SizedBox(height: 6),
           Container(
             width: double.infinity,
@@ -407,11 +417,9 @@ class _BulletList extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('• ',
-                      style: TextStyle(fontSize: 14)),
+                  const Text('• ', style: TextStyle(fontSize: 14)),
                   Expanded(
-                      child: Text(item,
-                          style: const TextStyle(fontSize: 13))),
+                      child: Text(item, style: const TextStyle(fontSize: 13))),
                 ],
               ),
             ),
@@ -432,8 +440,7 @@ class _EngineerBanner extends StatelessWidget {
         ),
         child: const Row(
           children: [
-            Icon(Icons.warning_amber_outlined,
-                color: Color(0xFF856404)),
+            Icon(Icons.warning_amber_outlined, color: Color(0xFF856404)),
             SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -484,12 +491,10 @@ class _PacketIdRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Packet ID',
-                    style: TextStyle(
-                        fontSize: 11, color: Colors.black54)),
+                    style: TextStyle(fontSize: 11, color: Colors.black54)),
                 SelectableText(
                   packetId,
-                  style: const TextStyle(
-                      fontSize: 11, fontFamily: 'monospace'),
+                  style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
                 ),
               ],
             ),
@@ -604,8 +609,7 @@ class _ErrorScaffold extends StatelessWidget {
               const SizedBox(height: 8),
               Text(error,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: Colors.black54, fontSize: 13)),
+                  style: const TextStyle(color: Colors.black54, fontSize: 13)),
               const SizedBox(height: 24),
               FilledButton.icon(
                 onPressed: onRetry,
@@ -623,7 +627,6 @@ class _ErrorScaffold extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
 
 String _buildingLabel(String type) => type
     .replaceAll('_', ' ')
