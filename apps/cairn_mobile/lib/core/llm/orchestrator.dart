@@ -396,13 +396,6 @@ class GemmaOrchestrator {
     });
     final out = await _session.generate(userText: user, audioBytes: audioBytes);
     final parsed = _parseTaskObject(out, task: 'describe_audio');
-    if (parsed == null) {
-      throw GemmaContractError(
-        'no JSON object in describe_audio response',
-        rawText: out.text,
-        task: 'describe_audio',
-      );
-    }
 
     final tags = (parsed['model_tags'] as List? ?? const []).cast<String>();
     for (final tag in tags) {
@@ -419,7 +412,13 @@ class GemmaOrchestrator {
       observationId: parsed['observation_id'] as String? ?? observationId,
       promptId: parsed['prompt_id'] as String? ?? promptId,
       askedIn: parsed['asked_in'] as String? ?? askedIn,
-      audioRefs: (parsed['audio_refs'] as List? ?? [audioRef]).cast<String>(),
+      audioRefs: _expectedRefs(
+        parsed,
+        field: 'audio_refs',
+        expectedRef: audioRef,
+        rawText: out.text,
+        task: 'describe_audio',
+      ),
       modelDescription: (parsed['model_description'] as String?)?.trim() ??
           (throw GemmaContractError(
             'missing model_description',
@@ -427,7 +426,8 @@ class GemmaOrchestrator {
             task: 'describe_audio',
           )),
       modelTags: tags,
-      modelConfidence: ((parsed['model_confidence'] as num?) ?? 0.5).toDouble(),
+      modelConfidence:
+          _modelConfidence(parsed, rawText: out.text, task: 'describe_audio'),
       raw: parsed,
       ttftMs: out.ttftMs,
       wallclockMs: out.wallclockMs,
@@ -819,6 +819,13 @@ class GemmaOrchestrator {
     required int wallclockMs,
     required int outputCharCount,
   }) {
+    final imageRefs = _expectedRefs(
+      parsed,
+      field: 'image_refs',
+      expectedRef: imageRef,
+      rawText: rawText,
+      task: 'describe_photo',
+    );
     final tags = (parsed['model_tags'] as List? ?? const []).cast<String>();
     for (final tag in tags) {
       if (!EvidencePacketValidator.kAllowedModelTags.contains(tag)) {
@@ -830,10 +837,23 @@ class GemmaOrchestrator {
       }
     }
 
-    final bbox = (parsed['bbox_annotations'] as List? ?? const [])
-        .cast<Map<String, Object?>>();
+    final bbox = [
+      for (final item in (parsed['bbox_annotations'] as List? ?? const []))
+        Map<String, Object?>.from(item as Map),
+    ];
     for (var i = 0; i < bbox.length; i++) {
       final b = bbox[i];
+      final bboxImageRef = b['image_ref'] as String?;
+      if (bboxImageRef == null) {
+        b['image_ref'] = imageRef;
+      } else if (bboxImageRef != imageRef) {
+        throw GemmaContractError(
+          'describe_photo: bbox_annotations[$i].image_ref "$bboxImageRef" '
+          'does not match request image_ref "$imageRef"',
+          rawText: rawText,
+          task: 'describe_photo',
+        );
+      }
       final box2d = (b['box_2d'] as List?)?.cast<num>().toList();
       if (box2d == null || box2d.length != 4) {
         throw GemmaContractError(
@@ -875,7 +895,7 @@ class GemmaOrchestrator {
       observationId: parsed['observation_id'] as String? ?? observationId,
       promptId: parsed['prompt_id'] as String? ?? promptId,
       askedIn: parsed['asked_in'] as String? ?? askedIn,
-      imageRefs: (parsed['image_refs'] as List? ?? [imageRef]).cast<String>(),
+      imageRefs: imageRefs,
       modelDescription: (parsed['model_description'] as String?)?.trim() ??
           (throw GemmaContractError(
             'missing model_description',
@@ -883,12 +903,64 @@ class GemmaOrchestrator {
             task: 'describe_photo',
           )),
       modelTags: tags,
-      modelConfidence: ((parsed['model_confidence'] as num?) ?? 0.5).toDouble(),
+      modelConfidence:
+          _modelConfidence(parsed, rawText: rawText, task: 'describe_photo'),
       bbox: bbox,
       raw: parsed,
       ttftMs: ttftMs,
       wallclockMs: wallclockMs,
       outputCharCount: outputCharCount,
     );
+  }
+
+  List<String> _expectedRefs(
+    Map<String, Object?> parsed, {
+    required String field,
+    required String expectedRef,
+    required String rawText,
+    required String task,
+  }) {
+    final rawRefs = parsed[field];
+    if (rawRefs == null) return [expectedRef];
+    if (rawRefs is! List) {
+      throw GemmaContractError(
+        '$task: $field must be an array',
+        rawText: rawText,
+        task: task,
+      );
+    }
+    final refs = rawRefs.cast<String>();
+    if (refs.length != 1 || refs.first != expectedRef) {
+      throw GemmaContractError(
+        '$task: $field must contain exactly "$expectedRef", got $refs',
+        rawText: rawText,
+        task: task,
+      );
+    }
+    return refs;
+  }
+
+  double _modelConfidence(
+    Map<String, Object?> parsed, {
+    required String rawText,
+    required String task,
+  }) {
+    final rawConfidence = parsed['model_confidence'];
+    if (rawConfidence is! num) {
+      throw GemmaContractError(
+        '$task: model_confidence must be a number in 0..1',
+        rawText: rawText,
+        task: task,
+      );
+    }
+    final confidence = rawConfidence.toDouble();
+    if (confidence < 0 || confidence > 1) {
+      throw GemmaContractError(
+        '$task: model_confidence $confidence is outside 0..1',
+        rawText: rawText,
+        task: task,
+      );
+    }
+    return confidence;
   }
 }

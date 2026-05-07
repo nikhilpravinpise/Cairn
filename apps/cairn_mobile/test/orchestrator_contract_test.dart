@@ -57,24 +57,28 @@ GemmaOrchestrator _orch(String response) =>
 // ---------------------------------------------------------------------------
 
 String _photoJson({
+  String imageRefs = '["img-1"]',
   String tags = '["diagonal_crack"]',
   String bbox = '[]',
   String description = '"Some cracking visible."',
+  String confidence = '0.7',
 }) =>
     '{"observation_id": "obs-1", "prompt_id": "fema_p154_q01", '
-    '"asked_in": "en", "image_refs": ["img-1"], '
+    '"asked_in": "en", "image_refs": $imageRefs, '
     '"model_description": $description, '
-    '"model_tags": $tags, "model_confidence": 0.7, '
+    '"model_tags": $tags, "model_confidence": $confidence, '
     '"bbox_annotations": $bbox}';
 
 String _audioJson({
+  String audioRefs = '["aud-1"]',
   String tags = '["no_visible_damage"]',
   String description = '"Volunteer reported no damage."',
+  String confidence = '0.8',
 }) =>
     '{"observation_id": "obs-2", "prompt_id": "fema_p154_q01", '
-    '"asked_in": "en", "audio_refs": ["aud-1"], '
+    '"asked_in": "en", "audio_refs": $audioRefs, '
     '"model_description": $description, '
-    '"model_tags": $tags, "model_confidence": 0.8}';
+    '"model_tags": $tags, "model_confidence": $confidence}';
 
 String _synthJson({Map<String, Object?>? extra}) {
   final extraKeys = extra == null
@@ -103,8 +107,7 @@ Future<DescribeAudioResult> _audio(String response) =>
       audioRef: 'aud-1',
     );
 
-Future<SynthesizeResult> _synth(String response) =>
-    _orch(response).synthesize(
+Future<SynthesizeResult> _synth(String response) => _orch(response).synthesize(
       askedIn: 'en',
       packetSummary: {'observations': []},
     );
@@ -116,7 +119,8 @@ Future<SynthesizeResult> _synth(String response) =>
 void main() {
   group('describePhoto — tag contract', () {
     test('valid tags → DescribePhotoResult without error', () async {
-      final res = await _photo(_photoJson(tags: '["diagonal_crack","no_visible_damage"]'));
+      final res = await _photo(
+          _photoJson(tags: '["diagonal_crack","no_visible_damage"]'));
       expect(res.modelTags, ['diagonal_crack', 'no_visible_damage']);
     });
 
@@ -288,6 +292,70 @@ void main() {
         throwsA(isA<GemmaContractError>()),
       );
     });
+
+    test('bbox image_ref mismatch → throws GemmaContractError', () async {
+      const bbox =
+          '[{"box_2d": [100, 200, 300, 400], "label": "crack", "image_ref": "img-99"}]';
+      await expectLater(
+        _photo(_photoJson(bbox: bbox)),
+        throwsA(isA<GemmaContractError>().having(
+          (e) => e.message,
+          'message',
+          contains('image_ref'),
+        )),
+      );
+    });
+
+    test('bbox missing image_ref is normalised to request image_ref', () async {
+      const bbox = '[{"box_2d": [100, 200, 300, 400], "label": "crack"}]';
+      final res = await _photo(_photoJson(bbox: bbox));
+      expect(res.bbox.single['image_ref'], 'img-1');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // describe_photo — ref / confidence validation
+  // ---------------------------------------------------------------------------
+
+  group('describePhoto — ref and confidence contract', () {
+    test('omitted image_refs falls back to request imageRef', () async {
+      const json = '{"observation_id": "obs-1", "prompt_id": "fema_p154_q01", '
+          '"asked_in": "en", '
+          '"model_description": "Some cracking visible.", '
+          '"model_tags": ["diagonal_crack"], "model_confidence": 0.7, '
+          '"bbox_annotations": []}';
+      final res = await _photo(json);
+      expect(res.imageRefs, ['img-1']);
+    });
+
+    test('wrong image_refs value → throws GemmaContractError', () async {
+      await expectLater(
+        _photo(_photoJson(imageRefs: '["img-99"]')),
+        throwsA(isA<GemmaContractError>().having(
+          (e) => e.message,
+          'message',
+          contains('image_refs'),
+        )),
+      );
+    });
+
+    test('empty image_refs → throws GemmaContractError', () async {
+      await expectLater(
+        _photo(_photoJson(imageRefs: '[]')),
+        throwsA(isA<GemmaContractError>()),
+      );
+    });
+
+    test('model_confidence outside 0..1 → throws GemmaContractError', () async {
+      await expectLater(
+        _photo(_photoJson(confidence: '1.2')),
+        throwsA(isA<GemmaContractError>().having(
+          (e) => e.message,
+          'message',
+          contains('model_confidence'),
+        )),
+      );
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -361,6 +429,28 @@ void main() {
       expect(res.ttftMs, 30);
       expect(res.wallclockMs, 90);
     });
+
+    test('wrong audio_refs value → throws GemmaContractError', () async {
+      await expectLater(
+        _audio(_audioJson(audioRefs: '["aud-99"]')),
+        throwsA(isA<GemmaContractError>().having(
+          (e) => e.message,
+          'message',
+          contains('audio_refs'),
+        )),
+      );
+    });
+
+    test('model_confidence outside 0..1 → throws GemmaContractError', () async {
+      await expectLater(
+        _audio(_audioJson(confidence: '-0.1')),
+        throwsA(isA<GemmaContractError>().having(
+          (e) => e.message,
+          'message',
+          contains('model_confidence'),
+        )),
+      );
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -424,8 +514,8 @@ void main() {
     test('ttftMs and wallclockMs propagated', () async {
       final orch = GemmaOrchestrator(
           _FakeSession(_synthJson(), ttftMs: 88, wallclockMs: 300));
-      final res = await orch.synthesize(
-          askedIn: 'en', packetSummary: {'observations': []});
+      final res = await orch
+          .synthesize(askedIn: 'en', packetSummary: {'observations': []});
       expect(res.ttftMs, 88);
       expect(res.wallclockMs, 300);
     });

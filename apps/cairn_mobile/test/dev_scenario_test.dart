@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:cairn_mobile/core/dev_model/dev_scenario.dart';
 import 'package:cairn_mobile/core/llm/gemma_session.dart';
@@ -123,12 +122,12 @@ void main() {
       title: base.title,
       building: base.building,
       photos: base.photos,
-      expected: ExpectedScenarioOutcome(
+      expected: const ExpectedScenarioOutcome(
         priorityBand: 'CRITICAL',
         priorityScoreMin: 9,
         priorityScoreMax: 10,
-        protocolAnswers: const ProtocolAnswersRecord(),
-        hazardsFlagged: const [],
+        protocolAnswers: ProtocolAnswersRecord(),
+        hazardsFlagged: [],
       ),
     );
     final bundle = _MemoryAssetBundle({

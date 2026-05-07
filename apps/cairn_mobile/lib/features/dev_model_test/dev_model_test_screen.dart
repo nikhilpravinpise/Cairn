@@ -1,7 +1,6 @@
 library;
 
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -77,7 +76,8 @@ class _DevModelTestScreenState extends ConsumerState<DevModelTestScreen> {
     };
     final name =
         'dev_model_eval_${DateTime.now().toUtc().toIso8601String().replaceAll(':', '-')}.json';
-    final bytes = utf8.encode(const JsonEncoder.withIndent('  ').convert(payload));
+    final bytes =
+        utf8.encode(const JsonEncoder.withIndent('  ').convert(payload));
     await Share.shareXFiles(
       [
         XFile.fromData(

@@ -94,11 +94,12 @@ class _CountingPreprocessor implements ImagePreprocessor {
 
 String _validPhoto({
   String obsId = 'obs-1',
+  String imageRef = 'img-1',
   String desc = '"Diagonal crack visible."',
   String tags = '["diagonal_crack"]',
 }) =>
     '{"observation_id": "$obsId", "prompt_id": "fema_p154_q01", '
-    '"asked_in": "en", "image_refs": ["img-1"], '
+    '"asked_in": "en", "image_refs": ["$imageRef"], '
     '"model_description": $desc, '
     '"model_tags": $tags, "model_confidence": 0.7, '
     '"bbox_annotations": []}';
@@ -191,8 +192,7 @@ void main() {
 
     test('observationId comes from the request', () async {
       final orch = _orch(_FakeSession(_validPhoto(obsId: 'obs-42')));
-      final events =
-          await orch.describeAll([_req(obsId: 'obs-42')]).toList();
+      final events = await orch.describeAll([_req(obsId: 'obs-42')]).toList();
       final succeeded = events.whereType<DescribePhotoSucceeded>().first;
       expect(succeeded.turn.observationId, 'obs-42');
     });
@@ -214,7 +214,8 @@ void main() {
     });
 
     test('ts is a recent UTC timestamp', () async {
-      final before = DateTime.now().toUtc().subtract(const Duration(seconds: 1));
+      final before =
+          DateTime.now().toUtc().subtract(const Duration(seconds: 1));
       final orch = _orch(_FakeSession(_validPhoto()));
       final events = await orch.describeAll([_req()]).toList();
       final succeeded = events.whereType<DescribePhotoSucceeded>().first;
@@ -264,8 +265,10 @@ void main() {
       // dispatcher fake.
       final responses = [
         null, // photo 1: throw
-        _validPhoto(obsId: 'obs-2', tags: '["no_visible_damage"]'),
-        _validPhoto(obsId: 'obs-3', tags: '["vertical_crack"]'),
+        _validPhoto(
+            obsId: 'obs-2', imageRef: 'img-2', tags: '["no_visible_damage"]'),
+        _validPhoto(
+            obsId: 'obs-3', imageRef: 'img-3', tags: '["vertical_crack"]'),
       ];
 
       final dispatchFake = _DispatchSession(responses);
@@ -281,12 +284,9 @@ void main() {
       // Each photo emits Start + (Succeeded or Failed) → 3×2 = 6 events
       expect(events.length, 6);
 
-      final started =
-          events.whereType<DescribePhotoStarted>().toList();
-      final succeeded =
-          events.whereType<DescribePhotoSucceeded>().toList();
-      final failed =
-          events.whereType<DescribePhotoFailed>().toList();
+      final started = events.whereType<DescribePhotoStarted>().toList();
+      final succeeded = events.whereType<DescribePhotoSucceeded>().toList();
+      final failed = events.whereType<DescribePhotoFailed>().toList();
 
       expect(started.length, 3, reason: 'all photos emit Started');
       expect(failed.length, 1, reason: 'only photo 1 fails');
@@ -316,10 +316,12 @@ void main() {
 
   group('multiple photos happy path', () {
     test('4 photos emit 8 events (4× Started + 4× Succeeded)', () async {
-      final orch = _orch(_FakeSession(_validPhoto()));
-      final reqs = [
+      final orch = _orch(_DispatchSession([
         for (var i = 1; i <= 4; i++)
-          _req(obsId: 'obs-$i', imageRef: 'img-$i'),
+          _validPhoto(obsId: 'obs-$i', imageRef: 'img-$i'),
+      ]));
+      final reqs = [
+        for (var i = 1; i <= 4; i++) _req(obsId: 'obs-$i', imageRef: 'img-$i'),
       ];
       final events = await orch.describeAll(reqs).toList();
       expect(events.length, 8);
@@ -328,24 +330,26 @@ void main() {
     });
 
     test('Started events have sequential indices 0..3', () async {
-      final orch = _orch(_FakeSession(_validPhoto()));
-      final reqs = [
+      final orch = _orch(_DispatchSession([
         for (var i = 1; i <= 4; i++)
-          _req(obsId: 'obs-$i', imageRef: 'img-$i'),
+          _validPhoto(obsId: 'obs-$i', imageRef: 'img-$i'),
+      ]));
+      final reqs = [
+        for (var i = 1; i <= 4; i++) _req(obsId: 'obs-$i', imageRef: 'img-$i'),
       ];
       final events = await orch.describeAll(reqs).toList();
-      final indices = events
-          .whereType<DescribePhotoStarted>()
-          .map((e) => e.index)
-          .toList();
+      final indices =
+          events.whereType<DescribePhotoStarted>().map((e) => e.index).toList();
       expect(indices, [0, 1, 2, 3]);
     });
 
     test('all total fields equal 4', () async {
-      final orch = _orch(_FakeSession(_validPhoto()));
-      final reqs = [
+      final orch = _orch(_DispatchSession([
         for (var i = 1; i <= 4; i++)
-          _req(obsId: 'obs-$i', imageRef: 'img-$i'),
+          _validPhoto(obsId: 'obs-$i', imageRef: 'img-$i'),
+      ]));
+      final reqs = [
+        for (var i = 1; i <= 4; i++) _req(obsId: 'obs-$i', imageRef: 'img-$i'),
       ];
       final events = await orch.describeAll(reqs).toList();
       for (final e in events.whereType<DescribePhotoStarted>()) {
@@ -376,8 +380,7 @@ void main() {
       // When no preprocessor is supplied the default is Passthrough.
       // Verify that describeAll runs without error and produces results.
       final orch = GemmaOrchestrator(_FakeSession(_validPhoto()));
-      final events =
-          await orch.describeAll([_req()]).toList();
+      final events = await orch.describeAll([_req()]).toList();
       expect(events.whereType<DescribePhotoSucceeded>().length, 1);
     });
 
@@ -419,10 +422,10 @@ void main() {
     test('after a contract error subsequent photos continue', () async {
       final sessions = [
         null, // first fails
-        _validPhoto(obsId: 'obs-2', tags: '["no_visible_damage"]'),
+        _validPhoto(
+            obsId: 'obs-2', imageRef: 'img-2', tags: '["no_visible_damage"]'),
       ];
-      final orch =
-          _orch(_DispatchSession([null, sessions[1]]));
+      final orch = _orch(_DispatchSession([null, sessions[1]]));
       final reqs = [
         _req(obsId: 'obs-1', imageRef: 'img-1'),
         _req(obsId: 'obs-2', imageRef: 'img-2'),

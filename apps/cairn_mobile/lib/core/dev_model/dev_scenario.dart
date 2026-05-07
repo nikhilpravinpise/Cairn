@@ -1,7 +1,6 @@
 library;
 
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 
@@ -29,9 +28,8 @@ class DevScenario {
   factory DevScenario.fromJson(Map<String, Object?> json) => DevScenario(
         scenarioId: json['scenario_id'] as String,
         title: json['title'] as String,
-        building:
-            BuildingInfo.fromJson(
-                Map<String, Object?>.from(json['building'] as Map)),
+        building: BuildingInfo.fromJson(
+            Map<String, Object?>.from(json['building'] as Map)),
         photos: [
           for (final item in json['photos'] as List)
             DevScenarioPhoto.fromJson(Map<String, Object?>.from(item as Map)),
@@ -271,7 +269,8 @@ Future<DevScenarioRunResult> runDevScenario({
     ));
   }
 
-  schemaFailures += evals.fold<int>(0, (sum, eval) => sum + eval.schemaFailures);
+  schemaFailures +=
+      evals.fold<int>(0, (sum, eval) => sum + eval.schemaFailures);
   final score = priorityScore(
     protocolAnswers: ProtocolAnswers(
       visibleCollapse: scenario.expected.protocolAnswers.visibleCollapse,
