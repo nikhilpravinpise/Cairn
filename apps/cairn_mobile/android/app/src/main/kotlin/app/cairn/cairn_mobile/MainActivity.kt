@@ -10,6 +10,7 @@ import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.ExperimentalApi
 import com.google.ai.edge.litertlm.ExperimentalFlags
 import com.google.ai.edge.litertlm.SamplerConfig
+import android.os.StatFs
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.plugin.common.MethodChannel
@@ -77,6 +78,18 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "app.cairn/storage_health"
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "availableBytes" -> {
+                    val stat = StatFs(filesDir.absolutePath)
+                    result.success(stat.availableBytes)
+                }
+                else -> result.notImplemented()
+            }
+        }
     }
 
     @OptIn(ExperimentalApi::class)
@@ -112,6 +125,7 @@ class MainActivity : FlutterActivity() {
         conversation = newEngine.createConversation(config)
     }
 
+    @OptIn(ExperimentalApi::class)
     private suspend fun generateNative(
         text: String,
         images: List<ByteArray>,

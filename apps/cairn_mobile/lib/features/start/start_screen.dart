@@ -208,6 +208,8 @@ class _StartScreenState extends ConsumerState<StartScreen> {
                 specDisplay: spec.display,
                 onRetry: _autoLoadModel,
               ),
+              const SizedBox(height: 12),
+              const _StorageWarning(),
               const Spacer(),
               SizedBox(
                 width: double.infinity,
@@ -222,11 +224,74 @@ class _StartScreenState extends ConsumerState<StartScreen> {
                 ),
               ),
               const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _busy ? null : () => context.push(AppRoutes.saved),
+                  icon: const Icon(Icons.inventory_2_outlined),
+                  label: const Text('Saved screenings'),
+                ),
+              ),
+              if (kDevModelTestEnabled) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _busy
+                        ? null
+                        : () => context.push(AppRoutes.devModelTest),
+                    icon: const Icon(Icons.science_outlined),
+                    label: const Text('Developer Model Test'),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
               const _RecentReports(),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _StorageWarning extends ConsumerWidget {
+  const _StorageWarning();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final service = ref.watch(storageHealthProvider);
+    return FutureBuilder(
+      future: service.check(),
+      builder: (_, snap) {
+        final status = snap.data;
+        if (status == null || !status.lowDisk) return const SizedBox.shrink();
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.orange.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.orange.shade200),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.sd_storage_outlined, color: Colors.orange.shade800),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Low phone storage: ${status.label}. Save or export old '
+                  'packets before starting a long screening.',
+                  style: TextStyle(
+                    color: Colors.orange.shade900,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -370,6 +435,7 @@ class _RecentReports extends ConsumerWidget {
             for (final s in items.take(5))
               ListTile(
                 dense: true,
+                onTap: () => context.push(AppRoutes.packetPath(s.packetId)),
                 leading: CircleAvatar(
                   backgroundColor:
                       _bandColor(s.priorityBand).withValues(alpha: 0.2),

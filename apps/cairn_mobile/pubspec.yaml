@@ -32,6 +32,7 @@ dependencies:
   printing: ^5.13.0
   pdf: ^3.11.1
   qr_flutter: ^4.1.0
+  archive: ^4.0.9
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
   share_plus: ^10.0.0

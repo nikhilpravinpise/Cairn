@@ -148,6 +148,7 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
 
   /// True while [_describeAll] is running — disables capture buttons.
   bool _describeAllInProgress = false;
+  int _pipelineStageIndex = 0;
 
   @override
   void initState() {
@@ -318,7 +319,14 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
     setState(() {
       _describeAllInProgress = true;
       _modelLoading = true;
-      _modelLoadingLabel = 'Loading Gemma\u2026';
+      _pipelineStageIndex = 0;
+      _modelLoadingLabel = 'Preparing photos\u2026';
+    });
+    await Future<void>.delayed(Duration.zero);
+    if (!mounted) return;
+    setState(() {
+      _pipelineStageIndex = 1;
+      _modelLoadingLabel = 'Loading Gemma 4\u2026';
     });
     try {
       await ref
@@ -376,8 +384,9 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
           if (spec != null) {
             setState(() {
               _state[spec.slot]!.status = _SlotStatus.describing;
+              _pipelineStageIndex = 2;
               _modelLoadingLabel =
-                  'Describing photo ${index + 1} of $total\u2026';
+                  'Reading 4 views: photo ${index + 1} of $total\u2026';
               _modelLoading = true;
             });
           }
@@ -407,6 +416,7 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
 
     if (!mounted) return;
     setState(() {
+      _pipelineStageIndex = 3;
       _modelLoading = false;
       _describeAllInProgress = false;
     });
@@ -525,6 +535,7 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
                       slots: _slots,
                       states: _state,
                       loadingLabel: _modelLoadingLabel,
+                      stageIndex: _pipelineStageIndex,
                       findLastObsForSlot: (slot) =>
                           _findLastObsForSlot(draft, slot),
                     )
@@ -609,12 +620,14 @@ class _ProcessingPhotosView extends StatelessWidget {
     required this.slots,
     required this.states,
     required this.loadingLabel,
+    required this.stageIndex,
     required this.findLastObsForSlot,
   });
 
   final List<_SlotSpec> slots;
   final Map<String, _SlotState> states;
   final String loadingLabel;
+  final int stageIndex;
   final Observation? Function(String slot) findLastObsForSlot;
 
   @override
@@ -633,6 +646,8 @@ class _ProcessingPhotosView extends StatelessWidget {
               ? 'Processing photos with Gemma...'
               : loadingLabel,
         ),
+        const SizedBox(height: 12),
+        _PipelineStrip(currentIndex: stageIndex),
         const SizedBox(height: 12),
         LinearProgressIndicator(
           value: total == 0 ? null : done / total,
@@ -657,6 +672,57 @@ class _ProcessingPhotosView extends StatelessWidget {
       ],
     );
   }
+}
+
+class _PipelineStrip extends StatelessWidget {
+  const _PipelineStrip({required this.currentIndex});
+
+  final int currentIndex;
+
+  static const _steps = [
+    'Preparing photos',
+    'Loading Gemma 4',
+    'Reading 4 views',
+    'Synthesizing triage',
+    'Saving packet/PDF',
+  ];
+
+  @override
+  Widget build(BuildContext context) => Column(
+        children: [
+          for (var i = 0; i < _steps.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Icon(
+                    i < currentIndex
+                        ? Icons.check_circle
+                        : i == currentIndex
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_unchecked,
+                    size: 18,
+                    color: i <= currentIndex
+                        ? Colors.blue.shade700
+                        : Colors.grey.shade400,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _steps[i],
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: i == currentIndex
+                            ? FontWeight.w700
+                            : FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      );
 }
 
 /// Single card per photo slot.

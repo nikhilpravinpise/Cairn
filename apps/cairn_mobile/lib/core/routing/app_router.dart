@@ -13,11 +13,15 @@ import 'package:go_router/go_router.dart';
 import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/audio/audio_screen.dart';
 import '../../features/describe/describe_screen.dart';
+import '../../features/dev_model_test/dev_model_test_screen.dart';
 import '../../features/humility/humility_screen.dart';
 import '../../features/location/location_screen.dart';
 import '../../features/photos/photos_screen.dart';
 import '../../features/protocol/protocol_screen.dart';
 import '../../features/report/report_screen.dart';
+import '../../features/saved/packet_detail_screen.dart';
+import '../../features/saved/photo_evidence_detail_screen.dart';
+import '../../features/saved/saved_screenings_screen.dart';
 import '../../features/start/start_screen.dart';
 import '../../features/synthesize/synthesize_screen.dart';
 import '../../spike/s2_spike_page.dart';
@@ -33,8 +37,19 @@ class AppRoutes {
   static const humility = '/humility';
   static const synthesize = '/synthesize';
   static const report = '/report';
+  static const saved = '/saved';
+  static const packet = '/saved/:packetId';
+  static const packetPhoto = '/saved/:packetId/photo/:imageRef';
   static const spike = '/spike';
+  static const devModelTest = '/dev/model-test';
+
+  static String packetPath(String packetId) => '/saved/$packetId';
+  static String packetPhotoPath(String packetId, String imageRef) =>
+      '/saved/$packetId/photo/$imageRef';
 }
+
+const bool kDevModelTestEnabled =
+    bool.fromEnvironment('DEV_MODEL_TEST', defaultValue: false);
 
 // ---------------------------------------------------------------------------
 // Smooth transitions
@@ -129,10 +144,37 @@ final appRouter = GoRouter(
       path: AppRoutes.report,
       pageBuilder: (_, state) => _fadePage(const ReportScreen(), state),
     ),
+    GoRoute(
+      path: AppRoutes.saved,
+      pageBuilder: (_, state) =>
+          _fadePage(const SavedScreeningsScreen(), state),
+    ),
+    GoRoute(
+      path: AppRoutes.packet,
+      pageBuilder: (_, state) => _slidePage(
+        PacketDetailScreen(packetId: state.pathParameters['packetId']!),
+        state,
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.packetPhoto,
+      pageBuilder: (_, state) => _slidePage(
+        PhotoEvidenceDetailScreen(
+          packetId: state.pathParameters['packetId']!,
+          imageRef: state.pathParameters['imageRef']!,
+        ),
+        state,
+      ),
+    ),
     // ── Dev tools ──
     GoRoute(
       path: AppRoutes.spike,
       builder: (_, __) => const S2SpikePage(),
     ),
+    if (kDevModelTestEnabled)
+      GoRoute(
+        path: AppRoutes.devModelTest,
+        builder: (_, __) => const DevModelTestScreen(),
+      ),
   ],
 );

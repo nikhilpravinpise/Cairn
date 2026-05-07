@@ -76,6 +76,7 @@ import 'storage/draft_persistence.dart';
 import 'storage/evidence_vault.dart';
 import 'storage/file_draft_persistence.dart';
 import 'storage/file_evidence_vault.dart';
+import 'storage/storage_health.dart';
 
 // ---------------------------------------------------------------------------
 // Benchmark dart-define constants
@@ -332,6 +333,10 @@ final evidenceVaultProvider = Provider<EvidenceVault>((_) {
 /// after the app is killed mid-flow.
 final draftPersistenceProvider = Provider<DraftPersistence>((_) {
   return createDraftPersistence();
+});
+
+final storageHealthProvider = Provider<StorageHealthService>((_) {
+  return StorageHealthService();
 });
 
 final sessionControllerProvider =

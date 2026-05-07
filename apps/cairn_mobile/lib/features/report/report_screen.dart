@@ -22,6 +22,7 @@ import 'package:printing/printing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/export/evidence_bundle.dart';
 import '../../core/models/evidence_packet.dart';
 import '../../core/pdf/report_pdf_builder.dart';
 import '../../core/providers.dart';
@@ -155,6 +156,30 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
     } catch (_) {}
   }
 
+  Future<void> _shareBundle() async {
+    final packet = _packet;
+    if (packet == null) return;
+    try {
+      final bundle =
+          await buildEvidenceBundle(ref.read(evidenceVaultProvider), packet);
+      await Share.shareXFiles(
+        [
+          XFile.fromData(
+            bundle.bytes,
+            mimeType: 'application/zip',
+            name: bundle.filename,
+            length: bundle.bytes.length,
+          ),
+        ],
+        subject: 'Cairn packet ${packet.packetId.substring(0, 8)} bundle',
+        fileNameOverrides: [bundle.filename],
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _pdfError = e);
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Build
   // ---------------------------------------------------------------------------
@@ -252,6 +277,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                     pdfDone: _pdfDone,
                     onSavePdf: _generateAndSharePdf,
                     onShareJson: _shareJson,
+                    onShareBundle: _shareBundle,
                     onStartNew: () {
                       context.go(AppRoutes.start);
                     },
@@ -518,12 +544,14 @@ class _ActionButtons extends StatelessWidget {
     required this.pdfDone,
     required this.onSavePdf,
     required this.onShareJson,
+    required this.onShareBundle,
     required this.onStartNew,
   });
   final bool pdfGenerating;
   final bool pdfDone;
   final VoidCallback onSavePdf;
   final VoidCallback onShareJson;
+  final VoidCallback onShareBundle;
   final VoidCallback onStartNew;
 
   @override
@@ -550,6 +578,12 @@ class _ActionButtons extends StatelessWidget {
             onPressed: onShareJson,
             icon: const Icon(Icons.share_outlined),
             label: const Text('Share packet JSON'),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: onShareBundle,
+            icon: const Icon(Icons.folder_zip_outlined),
+            label: const Text('Share export bundle'),
           ),
           const SizedBox(height: 8),
           OutlinedButton.icon(

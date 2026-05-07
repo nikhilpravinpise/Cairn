@@ -108,7 +108,11 @@ class FileEvidenceVaultIo implements EvidenceVault {
         try {
           final raw =
               jsonDecode(await f.readAsString()) as Map<String, Object?>;
-          summaries.add(PacketSummary.fromPacket(EvidencePacket.fromJson(raw)));
+          final packet = EvidencePacket.fromJson(raw);
+          summaries.add(PacketSummary.fromPacket(
+            packet,
+            hasReportPdf: File('${entry.path}/report.pdf').existsSync(),
+          ));
         } catch (_) {
           // Skip corrupt entries without crashing.
         }
@@ -171,6 +175,20 @@ class FileEvidenceVaultIo implements EvidenceVault {
   Future<Uint8List?> loadReportPdf(String packetId) async {
     final base = await _base;
     final f = File('${base.path}/$_kVaultDir/$packetId/report.pdf');
+    if (!f.existsSync()) return null;
+    return f.readAsBytes();
+  }
+
+  @override
+  Future<bool> hasReportPdf(String packetId) async {
+    final base = await _base;
+    return File('${base.path}/$_kVaultDir/$packetId/report.pdf').existsSync();
+  }
+
+  @override
+  Future<Uint8List?> loadTurnsJsonl(String packetId) async {
+    final base = await _base;
+    final f = File('${base.path}/$_kVaultDir/$packetId/turns.jsonl');
     if (!f.existsSync()) return null;
     return f.readAsBytes();
   }

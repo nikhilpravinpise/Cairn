@@ -25,6 +25,9 @@ class PacketSummary {
     required this.priorityBand,
     required this.buildingType,
     required this.locale,
+    required this.addressText,
+    required this.photoCount,
+    required this.hasReportPdf,
   });
 
   final String packetId;
@@ -33,14 +36,24 @@ class PacketSummary {
   final String priorityBand;
   final String buildingType;
   final String locale;
+  final String addressText;
+  final int photoCount;
+  final bool hasReportPdf;
 
-  factory PacketSummary.fromPacket(EvidencePacket p) => PacketSummary(
+  factory PacketSummary.fromPacket(
+    EvidencePacket p, {
+    bool hasReportPdf = false,
+  }) =>
+      PacketSummary(
         packetId: p.packetId,
         createdAtUtc: p.createdAtUtc,
         priorityScore: p.triage.priorityScore,
         priorityBand: p.triage.priorityBand,
         buildingType: p.building.type,
         locale: p.volunteer.locale,
+        addressText: p.location.addressText,
+        photoCount: p.images.length,
+        hasReportPdf: hasReportPdf,
       );
 }
 
@@ -67,6 +80,12 @@ abstract class EvidenceVault {
 
   /// Load a previously saved report PDF, or null if not yet generated.
   Future<Uint8List?> loadReportPdf(String packetId);
+
+  /// True when [packetId] already has a generated `report.pdf`.
+  Future<bool> hasReportPdf(String packetId);
+
+  /// Load the persisted `turns.jsonl`, or null if no turn log was written.
+  Future<Uint8List?> loadTurnsJsonl(String packetId);
 }
 
 class InMemoryEvidenceVault implements EvidenceVault {
@@ -118,4 +137,12 @@ class InMemoryEvidenceVault implements EvidenceVault {
   @override
   Future<Uint8List?> loadReportPdf(String packetId) async =>
       _assets[packetId]?['report.pdf'];
+
+  @override
+  Future<bool> hasReportPdf(String packetId) async =>
+      _assets[packetId]?.containsKey('report.pdf') ?? false;
+
+  @override
+  Future<Uint8List?> loadTurnsJsonl(String packetId) async =>
+      _assets[packetId]?['turns.jsonl'];
 }
