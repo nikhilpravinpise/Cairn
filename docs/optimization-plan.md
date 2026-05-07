@@ -4,8 +4,8 @@
 **Status:** Grilled, source-verified implementation plan
 **Scope:** Android-first optimization and correctness plan for `apps/cairn_mobile`
 **Device target:** Samsung S23 FE family, `SM-S711B`, Exynos 2200, Android API 36, from `docs/android_repivot_v5_runlog.md`
-**Current manifest pin:** `flutter_gemma: 0.14.0`
-**Recommended target:** `flutter_gemma: ^0.14.2`
+**Current manifest pin:** `flutter_gemma: ^0.14.5`
+**Model policy:** Gemma 4 only (`e2b` / `e4b`)
 
 This file replaces the previous optimization plan after a file-by-file audit of
 the app code, project docs, schema, prompt, local package cache, and current
@@ -22,7 +22,7 @@ When sources conflict, use this order:
    - `flutter_gemma` pub.dev changelog and README.
    - Google Gemma vision docs.
    - Google AI Edge MediaPipe LLM Inference docs.
-4. Older overview docs (`README.md`, `PROJECT_OVERVIEW.md`, archived repivot plans) only as history.
+4. Archived repivot plans only as history.
 
 ## What Changed After Grilling
 
@@ -104,7 +104,7 @@ schema needs explicit absence semantics, add a schema field such as
 - Add a `sealAndSave` regression: set skipped location, compute triage, save,
   and assert no `SchemaValidationException`.
 
-### BUG-1: `ModelType.gemmaIt` Is Wrong For Gemma 4, But The Fix Requires The Upgrade
+### BUG-1: Gemma 4 Model Type Guardrail
 
 **Files**
 
@@ -114,22 +114,14 @@ schema needs explicit absence semantics, add a schema field such as
 
 **Evidence**
 
-Current code uses `ModelType.gemmaIt` in both `FlutterGemma.installModel()` and
-`InferenceModel.createChat()`.
-
-The local `flutter_gemma-0.14.0` cache does not expose `ModelType.gemma4` in
-`lib/core/model.dart`, so changing the enum before upgrading will not compile.
-The upstream `flutter_gemma` 0.14.1 changelog says the Gemma 4 E2B/E4B example
-entries switched to `ModelType.gemma4`, and 0.14.1 introduced the Gemma 4
-routing path. The 0.14.2 release is current on 2026-05-03.
+Current code uses `ModelType.gemma4` through `ModelSpec.requiredModelType`.
+The model registry is the source of truth for runtime model type.
 
 **Fix order**
 
-1. Upgrade `flutter_gemma` to `^0.14.2`.
-2. Run `flutter pub get`.
-3. Update API probe to prove `ModelType.gemma4` exists.
-4. Change both call sites in `gemma_session.dart` from `ModelType.gemmaIt` to
-   `ModelType.gemma4`.
+1. Keep `flutter_gemma` on a Gemma 4-compatible line.
+2. Keep `ModelSpec.requiredModelType` set to `ModelType.gemma4`.
+3. Keep `test/model_registry_platform_test.dart` green.
 
 **Tests**
 
@@ -137,7 +129,7 @@ routing path. The 0.14.2 release is current on 2026-05-03.
 - Unit/API wrapper test or probe that proves install and chat use the same model type.
 - `flutter analyze` and `flutter test`.
 
-### BUG-2: Upgrade To `flutter_gemma` 0.14.2 For Instrumentation And History Safety
+### BUG-2: Keep `flutter_gemma` On Current Gemma 4-Compatible Line
 
 **File**
 
@@ -145,7 +137,7 @@ routing path. The 0.14.2 release is current on 2026-05-03.
 
 **Evidence**
 
-Current manifest pins `flutter_gemma: 0.14.0`.
+Current manifest pins `flutter_gemma: ^0.14.5`.
 
 Upstream 0.14.2 adds `[*/perf]` logs for dylib load, engine creation, prefill,
 and decode. It also fixes Gemma 4 escape-token leakage in chat history. Those
@@ -161,7 +153,7 @@ messages.
 
 ```yaml
 dependencies:
-  flutter_gemma: ^0.14.2
+  flutter_gemma: ^0.14.5
 ```
 
 After this, rerun:

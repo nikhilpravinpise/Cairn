@@ -26,11 +26,11 @@ One JSON object per line in `data/eval/gold.jsonl`:
 ## Run baseline
 
 ```bash
-# E4B via Ollama on Mac (pre-start: `ollama serve`, `ollama pull gemma3n:e4b`)
+# E4B via an approved local Gemma 4 runner.
 # Run from `scripts/` with PYTHONPATH=. so the `eval` package resolves.
 PYTHONPATH=. python -m eval.eval_baseline \
   --gold data/eval/gold.jsonl \
-  --runner ollama:gemma3n:e4b \
+  --runner ollama:<local-gemma-4-e4b-tag> \
   --strategy strict_schema \
   --out scripts/eval/reports/baseline_e4b_strict.json
 

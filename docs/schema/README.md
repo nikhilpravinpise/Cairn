@@ -25,11 +25,13 @@ Canonical source of truth: `evidence_packet_v1.schema.json` (JSON Schema draft 2
 | CRITICAL  | 9–10  |
 
 ## Validation
-- Dart (app-side): `apps/cairn_mobile/lib/core/schema/validator.dart`.
-- Python (training/eval): `scripts/eval/schema_validator.py` using `jsonschema`.
-- TypeScript (console): `apps/cairn_console/lib/schema/validator.ts` using `ajv`.
+- Dart (app-side): `apps/cairn_mobile/lib/core/models/evidence_packet_validator.dart`.
+- Python (training/eval): `scripts/cairn/schema.py` using `jsonschema`.
 
-All three import **the same** `evidence_packet_v1.schema.json`.
+Both readers validate against the same canonical
+`docs/schema/evidence_packet_v1.schema.json`. The Flutter app also bundles a
+copy at `apps/cairn_mobile/assets/schema/evidence_packet_v1.schema.json`; keep
+the copies byte-identical.
 
 ## Versioning
 Breaking changes → bump to `cairn.evidence.v2` and keep a v1 reader. Non-breaking

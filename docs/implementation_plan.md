@@ -11,9 +11,9 @@
 
 | Area | Status |
 |:---|:---|
-| **Phases 0-9** | ✅ All COMPLETE (331/331 tests pass, dart analyze clean) |
+| **Phases 0-9** | ✅ Complete; keep the current suite green before behavior changes |
 | **Phase 10** (manual device test) | ⏳ PENDING |
-| **flutter_gemma** | Pinned `^0.14.2`, latest is **0.14.5** |
+| **flutter_gemma** | Pinned `^0.14.5` |
 | **Screens** | 10/10 implemented (Bootstrap, Start, Location, Photos, Audio, Describe, Protocol, Humility, Synthesize, Report) |
 | **Optimizations** | Sprint 3 (image preprocessing 768px, describeAll stream) ✅ implemented; Sprint 4 (history retention, CPU/GPU benchmark, batch feasibility probed) ✅ implemented — **all pending device benchmarks** |
 | **User flow** | Functional but "beta" — raw Material widgets, no onboarding, no polished UX transitions |
@@ -29,8 +29,8 @@
 
 | Decision | Resolution |
 |:---|:---|
-| **Model family** | ✅ **Gemma 4 only** — no Gemma 3n. Open to fine-tuning/quantizing Gemma 4 if needed. |
-| **flutter_gemma upgrade** | ✅ **Approved** — upgrade to 0.14.5 |
+| **Model family** | ✅ **Gemma 4 only** — registry is guarded to `e2b` / `e4b` LiteRT-LM artifacts. |
+| **flutter_gemma upgrade** | ✅ Complete — `^0.14.5` |
 | **Timeline priority** | ✅ Model working properly first → optimization → UX → deliverables. Do it all once model works. |
 | **Audio** | ✅ **Keep audio description** — fix BUG-4 so audio describe is reachable |
 | **Demo device** | ✅ **Mobile (S23 FE)** — all optimizations target physical device |
@@ -46,11 +46,11 @@ These are the **unfired optimizations** that are already implemented but awaitin
 
 ---
 
-#### A1. Upgrade flutter_gemma to 0.14.5
+#### A1. Keep flutter_gemma on the Gemma 4-compatible line
 
 #### [MODIFY] [pubspec.yaml](file:///Users/Hetansh/Github/kaggle_gemma/apps/cairn_mobile/pubspec.yaml)
 
-- Change `flutter_gemma: ^0.14.2` → `flutter_gemma: ^0.14.5`
+- Current manifest: `flutter_gemma: ^0.14.5`
 - Benefits:
   - iOS ITMS-90208 fix (App Store submission)
   - Android 16KB page-size rebuild (Play Store compliance)
@@ -135,41 +135,13 @@ Rationale:
 
 ---
 
-#### A7. New Research: Gemma 3n E2B Evaluation (Conditional — See User Review)
+#### A7. Gemma 4-only performance path
 
-If approved, add Gemma 3n E2B to model registry as a third option:
+Do not add a third model family. The current architecture intentionally keeps
+the registry restricted to Gemma 4 E2B/E4B LiteRT-LM artifacts and uses tests to
+guard that constraint.
 
-#### [MODIFY] [model_registry.dart](file:///Users/Hetansh/Github/kaggle_gemma/apps/cairn_mobile/lib/core/llm/model_registry.dart)
-#### [MODIFY] [constants.py](file:///Users/Hetansh/Github/kaggle_gemma/scripts/cairn/constants.py)
-
-```dart
-'3n-e2b': ModelSpec(
-  key: '3n-e2b',
-  display: 'Gemma 3n E2B (Fast)',
-  repo: 'google/gemma-3n-E2B-it-litert-lm',
-  taskFileName: 'gemma-3n-E2B-it.task',
-  litertlmFileName: 'gemma-3n-E2B-it.litertlm',
-  quant: 'int4',
-  modalities: ['text', 'image', 'audio'],
-  contextLength: 32768, // 32K vs 8K on Gemma 4
-  inferenceMaxLongEdgePx: 512, // MobileNetV5 is fast, can go smaller
-),
-```
-
-**Why Gemma 3n is the speed nuclear option:**
-
-| Feature | Gemma 4 E2B | Gemma 3n E2B |
-|:---|:---|:---|
-| Vision encoder | SigLIP (SoViT) | **MobileNet-V5** (13× faster with quant) |
-| KV cache | Standard | **Shared** (2× faster prefill) |
-| Architecture | Per-Layer Embedding | **MatFormer** (elastic, nested sub-models) |
-| Memory | ~1.5 GB | ~2 GB (PLE cached to storage) |
-| Context window | 8K | **32K** |
-| Prefill speed | Baseline | **~1.5-2× faster** |
-| flutter_gemma | ✅ 0.14.0+ | ✅ 0.14.0+ (.litertlm) |
-| Official LiteRT-LM | `google/gemma-3n-E2B-it-litert-lm` | Available on HuggingFace |
-
-**Combined speed estimate with all optimizations:**
+**Combined speed estimate with approved optimizations:**
 
 | Optimization Stack | Per-Photo Time |
 |:---|:---|
@@ -177,8 +149,8 @@ If approved, add Gemma 3n E2B to model registry as a third option:
 | + Image preprocessing (768px) | ~50-60s |
 | + maxTokens 2048 + output constraints | ~35-45s |
 | + History retention (if safe) | ~30-40s |
-| + **Gemma 3n swap** | **~10-20s** |
-| **5 photos total** | **~50-100s** (vs current ~10 min) |
+| + LiteRT-LM MTP on supported Android runtime | device-gated |
+| **5 photos total** | device-gated target, no model-family swap |
 
 ---
 
@@ -489,7 +461,7 @@ python -m pytest -q tests/
 | **D3-4** (May 7-8) | UX overhaul foundation | Theme system, onboarding, start screen redesign |
 | **D5-6** (May 9-10) | Screen polish | Step indicator, screen-by-screen enhancements |
 | **D7-8** (May 11-12) | Model lifecycle + bugs | Auto-management, BUG fixes, flow testing |
-| **D9** (May 13) | Gemma 3n eval (if approved) | Add to registry, benchmark, quality check |
+| **D9** (May 13) | Gemma 4 runtime gate | Benchmark default runtime vs native MTP and keep registry guard green |
 | **D10-11** (May 14-15) | Integration + testing | Full-flow device test, edge cases, CI |
 | **D12** (May 16) | Submission artifacts | Video, writeup, Kaggle notebook |
 | **D13** (May 17) | Submit | Final checks, submit |

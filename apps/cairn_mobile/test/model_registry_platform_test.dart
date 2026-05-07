@@ -26,7 +26,43 @@ void main() {
     expect(models.containsKey('e2b'), isTrue,
         reason: 'e2b is the S23-FE Android target per §1.2');
     expect(models.containsKey('e4b'), isTrue,
-        reason: 'e4b retained for future use (out of scope for S23-FE per §1.2)');
+        reason:
+            'e4b retained for future use (out of scope for S23-FE per §1.2)');
+  });
+
+  group('Gemma 4-only architecture guard', () {
+    test('registry exposes only approved Gemma 4 keys', () {
+      expect(
+        models.keys,
+        unorderedEquals(['e2b', 'e4b']),
+        reason: 'Cairn strictly permits only Gemma 4 E2B/E4B variants.',
+      );
+    });
+
+    for (final entry in models.entries) {
+      final key = entry.key;
+      final spec = entry.value;
+
+      test('$key declares Gemma 4 family and runtime model type', () {
+        expect(spec.family, ModelFamily.gemma4);
+        expect(spec.requiredModelType, ModelType.gemma4);
+      });
+
+      test('$key HuggingFace repo is a LiteRT Community Gemma 4 repo', () {
+        expect(spec.hfRepo, startsWith('litert-community/gemma-4-'));
+        expect(spec.hfRepo, endsWith('-it-litert-lm'));
+        expect(spec.hfRepo.toLowerCase(), isNot(contains('gemma-3')));
+        expect(spec.hfRepo.toLowerCase(), isNot(contains('gemma3n')));
+        expect(spec.hfRepo.toLowerCase(), isNot(contains('medgemma')));
+      });
+
+      test('$key artifact filenames are Gemma 4 LiteRT-LM artifacts', () {
+        expect(spec.taskFilenameWeb, startsWith('gemma-4-'));
+        expect(spec.taskFilenameWeb, endsWith('-web.task'));
+        expect(spec.taskFilenameAndroid, startsWith('gemma-4-'));
+        expect(spec.taskFilenameAndroid, endsWith('.litertlm'));
+      });
+    }
   });
 
   // -------------------------------------------------------------------------
@@ -41,7 +77,11 @@ void main() {
       expect(spec.hfRepo, 'litert-community/gemma-4-E2B-it-litert-lm');
     });
     test('quant', () => expect(spec.quant, 'int4'));
-    test('contextTokens', () => expect(spec.contextTokens, 8192));
+    test('appContextBudgetTokens', () {
+      expect(spec.appContextBudgetTokens, 8192);
+      expect(spec.contextTokens, spec.appContextBudgetTokens,
+          reason: 'contextTokens is a backwards-compatible app-budget alias');
+    });
     test('modalities contains text and image', () {
       expect(spec.modalities, containsAll(['text', 'image']));
     });
@@ -67,7 +107,9 @@ void main() {
   group('e2b download URLs', () {
     final spec = models['e2b']!;
 
-    test('hfDownloadUrl(isWeb=true) is well-formed HuggingFace URL with web filename', () {
+    test(
+        'hfDownloadUrl(isWeb=true) is well-formed HuggingFace URL with web filename',
+        () {
       final url = spec.hfDownloadUrl(true);
       expect(url, _expectedUrl(spec.hfRepo, spec.taskFilenameWeb));
       expect(url, startsWith(_kHfBase));
@@ -75,7 +117,9 @@ void main() {
       expect(url, endsWith('.task'));
     });
 
-    test('hfDownloadUrl(isWeb=false) is well-formed HuggingFace URL with android filename', () {
+    test(
+        'hfDownloadUrl(isWeb=false) is well-formed HuggingFace URL with android filename',
+        () {
       final url = spec.hfDownloadUrl(false);
       expect(url, _expectedUrl(spec.hfRepo, spec.taskFilenameAndroid));
       expect(url, startsWith(_kHfBase));
@@ -83,7 +127,9 @@ void main() {
       expect(url, endsWith('.litertlm'));
     });
 
-    test('resolvedDownloadUrl in test environment (kIsWeb=false) returns android URL', () {
+    test(
+        'resolvedDownloadUrl in test environment (kIsWeb=false) returns android URL',
+        () {
       // flutter test runs outside a browser, so kIsWeb == false.
       expect(spec.resolvedDownloadUrl, spec.hfDownloadUrl(false));
       expect(spec.resolvedDownloadUrl, endsWith('.litertlm'));
@@ -101,7 +147,8 @@ void main() {
       expect(spec.fileType(isWeb: false), ModelFileType.litertlm);
     });
 
-    test('resolvedFileType in test environment (kIsWeb=false) returns litertlm', () {
+    test('resolvedFileType in test environment (kIsWeb=false) returns litertlm',
+        () {
       // flutter test runs outside a browser, so kIsWeb == false.
       expect(spec.resolvedFileType, ModelFileType.litertlm);
     });
@@ -225,7 +272,8 @@ void main() {
         expect(
           entry.value.inferenceMaxLongEdgePx,
           greaterThan(0),
-          reason: '${entry.key}.inferenceMaxLongEdgePx must be a positive pixel count',
+          reason:
+              '${entry.key}.inferenceMaxLongEdgePx must be a positive pixel count',
         );
       }
     });
@@ -241,7 +289,8 @@ void main() {
           reason: 'Same vision encoder as e2b — same token geometry');
     });
 
-    test('all models have inferenceMaxLongEdgePx in sane benchmark range '
+    test(
+        'all models have inferenceMaxLongEdgePx in sane benchmark range '
         '(256..2048)', () {
       for (final entry in models.entries) {
         expect(
@@ -258,7 +307,8 @@ void main() {
       // If inferenceMaxLongEdgePx were 0 or negative, this assert would fire.
       final spec = models['e2b']!;
       expect(
-        () => BoundedImagePreprocessor(maxLongEdgePx: spec.inferenceMaxLongEdgePx),
+        () => BoundedImagePreprocessor(
+            maxLongEdgePx: spec.inferenceMaxLongEdgePx),
         returnsNormally,
       );
     });

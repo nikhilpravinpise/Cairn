@@ -100,47 +100,35 @@ Currently `chat.clearHistory()` is called after EVERY describe_photo turn. This 
 
 ### 🟡 TIER 2 — HIGH IMPACT, MEDIUM EFFORT
 
-#### 2D. Upgrade to flutter_gemma 0.14.2 + LiteRT-LM (.litertlm) path
+#### 2D. Stay on the current flutter_gemma Gemma 4-compatible line
 
-The codebase uses `flutter_gemma: 0.14.0`. Version 0.14.2 introduced:
-- **Dart FFI direct path for .litertlm models on Android** (bypasses Kotlin MediaPipe AAR overhead)
-- **NPU acceleration support** (Qualcomm, MediaTek, Google Tensor)
-- **Unified FFI client** across all platforms
+The codebase uses `flutter_gemma: ^0.14.5`. The active model path must remain
+Gemma 4-compatible and use `ModelType.gemma4`.
 
-The current pipeline uses `.task` files (MediaPipe path). The `.litertlm` path is newer, faster, and has direct hardware acceleration.
+The current registry defines `.task` files for web and `.litertlm` files for
+Android/non-web runtime paths.
 
 **Action:**
-1. Upgrade to `flutter_gemma: ^0.14.2`
-2. Switch model file from `gemma-4-E2B-it.litertlm` (already in the registry!) to actually USE the LiteRT-LM path
-3. The model_registry.dart already defines both `.task` and `.litertlm` filenames — the infrastructure is there
+1. Keep `flutter_gemma` on the current Gemma 4-compatible line.
+2. Keep the registry constrained to Gemma 4 E2B/E4B LiteRT-LM artifacts.
+3. Benchmark the default runtime against the Android `native_mtp` bridge.
 
 **Note on NPU:** The S23 FE (Exynos 2200) does NOT have a viable NPU for LLM inference. NPU acceleration is primarily for Qualcomm (Snapdragon 8 Gen 2+), MediaTek (Dimensity 9200+), and Google Tensor (Pixel 8+). However, the LiteRT-LM FFI path is still faster than the MediaPipe .task path even on GPU.
 
 **Estimated speedup: 15-30%** (reduced bridge overhead, better GPU scheduling)
 
-#### 2E. Switch to Gemma 3n E2B
+#### 2E. Gemma 4-only runtime acceleration
 
-**This is the nuclear option for speed.** Gemma 3n is purpose-built for on-device inference with several architectural advantages over Gemma 4 E2B:
+The active architecture is Gemma 4 only. Do not use this research document as
+approval to add another model family.
 
-| Feature | Gemma 4 E2B | Gemma 3n E2B |
-|---|---|---|
-| Total params | ~2B (PLE-based) | 5B total, ~2B effective |
-| Vision encoder | SoViT (SigLIP) | **MobileNet-V5** (13× faster with quant, 6.5× without) |
-| Memory footprint | ~1.5 GB | **As low as 2 GB** (but PLE cached to storage) |
-| KV Cache | Standard | **KV Cache Sharing** (2× faster prefill vs Gemma 3 4B) |
-| Architecture | Per-Layer Embedding | **MatFormer** (elastic inference — use E2B inner model for speed) |
-| Resolution | Variable (70-1120 tokens) | **256×256, 512×512, 768×768** (fixed, optimized) |
-| Prefill speed | Baseline | **~2× faster** (KV cache sharing across layers) |
-| flutter_gemma | Supported (0.14.0+) | **Supported (0.14.0+, .litertlm)** |
+Allowed optimization paths:
 
-**Key advantage:** MobileNet-V5 vision encoder is specifically designed for mobile. It processes up to **60 FPS on a Pixel** — the vision encoding step that currently takes 30-50s could drop to **5-10s**.
-
-**Risks:**
-- Quality regression: Need to verify damage description quality matches Gemma 4 E2B
-- LoRA compatibility: Existing Phase A LoRA won't work — need to retrain
-- Competition angle: The hackathon specifically targets Gemma models, both 3n and 4 qualify
-
-**Estimated speedup: 3-5× overall** (especially on vision encoding)
+- Android LiteRT-LM MTP / speculative decoding.
+- Image preprocessing and visual-token reduction.
+- Shorter structured outputs.
+- Lower session `maxTokens` after contract-failure gates pass.
+- Temperature/backend benchmarking on the target device.
 
 #### 2F. Prompt engineering for shorter output
 
@@ -277,12 +265,13 @@ Meta's production runtime. 50KB base footprint, supports 12+ hardware backends. 
 
 **Combined Phase 1+2 estimate: 10 min → ~2-3 min**
 
-### Phase 3: Model Swap (1-2 days)
+### Phase 3: Runtime Gate (1-2 days)
 
-7. **Evaluate Gemma 3n E2B** (2E): Test quality on held-out IDEA dataset → **3-5× if quality holds**
-8. **Retrain LoRA** for Gemma 3n if switching
+7. **Benchmark Gemma 4 MTP path** (2E): default runtime vs native MTP on target Android hardware.
+8. **Keep model-registry guard green** before accepting runtime changes.
 
-**Combined Phase 1+2+3 estimate: 10 min → ~1-2 min (target: 60-90s for all 5 photos)**
+**Combined Phase 1+2+3 estimate:** device-gated; do not claim a final target
+until the Gemma 4 runtime path is measured.
 
 ### Phase 4: Architecture Change (2-3 days, if needed)
 
@@ -301,7 +290,7 @@ Meta's production runtime. 50KB base footprint, supports 12+ hardware backends. 
 - **Requirements:** Working demo + public code repo + technical writeup + video
 - **Focus areas:** Health, education, global resilience, digital equity, agriculture, assistive tech
 - **Judging criteria:** Impact, technical execution, clear use case, functionality demonstration
-- **Gemma 4 models are primary requirement** — Gemma 3n also qualifies as a Gemma family model
+- **Cairn project constraint:** Gemma 4 models only.
 
 ### 4A. EpiCast (janeodum/Epicast) — Disease Surveillance
 
@@ -350,7 +339,7 @@ Meta's production runtime. 50KB base footprint, supports 12+ hardware backends. 
 
 4. **4-bit quantization causes generation loops.** They observed the model entering "infinite loops" at 4-bit RTN quantization, especially for longer outputs. Their workaround: shorter prompts = fewer output tokens = less chance of quality degradation. Learned quantization (dynamic quant, DWQ) helped but was more complex.
 
-5. **Vision encoder is the bottleneck, not the LLM.** From their notes: "Speeding up the vision encoder... MobileNetV5 (used in Gemma-3n) enables better on-device hardware usage compared to SigLIP." They specifically cite Apple's FastVLM paper about splitting vision encoder (Neural Engine) from LLM (GPU). **This aligns with our Gemma 3n recommendation.**
+5. **Vision encoder is the bottleneck, not the LLM.** Their notes reinforce that vision encoding can dominate latency. For Cairn, address this through Gemma 4 image-size/token-budget control and LiteRT-LM runtime acceleration, not by changing model family.
 
 6. **Auto-unload after inactivity.** Sunny unloads the model after 120s idle. Our two-phase approach (capture → describe) already does this, but their 120s timer is a nice UX pattern to avoid manual unload.
 
@@ -382,7 +371,7 @@ Meta's production runtime. 50KB base footprint, supports 12+ hardware backends. 
 
 3. **Consider SFT (supervised fine-tuning) over just LoRA:** Sunny fine-tuned the full LM (frozen vision tower) on 1.1K samples. This gave them a model that produces the right output schema from a 2-word prompt. Our LoRA approach could be augmented with similar task-specific SFT.
 
-4. **Gemma 3n for vision speed (Sunny's stated future work):** Both Sunny's writeup and our research independently converge on MobileNet-V5 / Gemma 3n as the key to faster vision encoding.
+4. **Keep model policy fixed:** Faster vision architectures are useful context, but Cairn's active implementation remains Gemma 4-only.
 
 5. **maxTokens alignment:** Both competitors use 1024-2048, not 4096. We should reduce to 1024.
 
@@ -393,7 +382,6 @@ Meta's production runtime. 50KB base footprint, supports 12+ hardware backends. 
 | Resource | URL | Relevance |
 |---|---|---|
 | Gemma 4 Variable Resolution | https://ai.google.dev/gemma/docs/capabilities/vision | Token budget control |
-| Gemma 3n Developer Guide | https://developers.googleblog.com/en/introducing-gemma-3n-developer-guide/ | MatFormer + MobileNet-V5 |
 | flutter_gemma Changelog | https://pub.dev/packages/flutter_gemma/changelog | FFI rewrite, NPU support |
 | LiteRT-LM GitHub | https://github.com/google-ai-edge/LiteRT-LM | Production inference framework |
 | On-Device LLMs: State of the Union 2026 | https://v-chandra.github.io/on-device-llms/ | Speculative decoding, quantization |

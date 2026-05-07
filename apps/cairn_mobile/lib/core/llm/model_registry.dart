@@ -7,27 +7,41 @@ library;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/flutter_gemma.dart' hide ModelSpec;
 
+enum ModelFamily { gemma4 }
+
 class ModelSpec {
   const ModelSpec({
     required this.key,
     required this.display,
+    required this.family,
+    required this.requiredModelType,
     required this.hfRepo,
     required this.taskFilenameWeb,
     required this.taskFilenameAndroid,
     required this.quant,
     required this.modalities,
-    required this.contextTokens,
+    required this.appContextBudgetTokens,
     required this.inferenceMaxLongEdgePx,
   });
 
   final String key;
   final String display;
+  final ModelFamily family;
+  final ModelType requiredModelType;
   final String hfRepo;
   final String taskFilenameWeb;
   final String taskFilenameAndroid;
   final String quant;
   final Set<String> modalities;
-  final int contextTokens;
+
+  /// Cairn's prompt/session budget, not the upstream model's maximum context.
+  ///
+  /// Current Gemma 4 LiteRT-LM artifacts support larger context windows, but
+  /// Cairn intentionally budgets less to control memory, latency, and packet
+  /// synthesis cost on target Android devices.
+  final int appContextBudgetTokens;
+
+  int get contextTokens => appContextBudgetTokens;
 
   /// Maximum longest-edge size (in pixels) for images sent to inference.
   ///
@@ -44,7 +58,8 @@ class ModelSpec {
   /// | 512   | Aggressive candidate — benchmark first      |
   final int inferenceMaxLongEdgePx;
 
-  String getTaskFilename(bool isWeb) => isWeb ? taskFilenameWeb : taskFilenameAndroid;
+  String getTaskFilename(bool isWeb) =>
+      isWeb ? taskFilenameWeb : taskFilenameAndroid;
 
   String hfDownloadUrl(bool isWeb) =>
       'https://huggingface.co/$hfRepo/resolve/main/${getTaskFilename(isWeb)}';
@@ -73,23 +88,27 @@ const Map<String, ModelSpec> models = {
   'e2b': ModelSpec(
     key: 'e2b',
     display: 'Gemma E2B IT (LiteRT-LM)',
+    family: ModelFamily.gemma4,
+    requiredModelType: ModelType.gemma4,
     hfRepo: 'litert-community/gemma-4-E2B-it-litert-lm',
     taskFilenameWeb: 'gemma-4-E2B-it-web.task',
     taskFilenameAndroid: 'gemma-4-E2B-it.litertlm',
     quant: 'int4',
     modalities: {'text', 'image'},
-    contextTokens: 8192,
+    appContextBudgetTokens: 8192,
     inferenceMaxLongEdgePx: 768,
   ),
   'e4b': ModelSpec(
     key: 'e4b',
     display: 'Gemma E4B IT (LiteRT-LM)',
+    family: ModelFamily.gemma4,
+    requiredModelType: ModelType.gemma4,
     hfRepo: 'litert-community/gemma-4-E4B-it-litert-lm',
     taskFilenameWeb: 'gemma-4-E4B-it-web.task',
     taskFilenameAndroid: 'gemma-4-E4B-it.litertlm',
     quant: 'int4',
     modalities: {'text', 'image'},
-    contextTokens: 8192,
+    appContextBudgetTokens: 8192,
     inferenceMaxLongEdgePx: 768,
   ),
 };

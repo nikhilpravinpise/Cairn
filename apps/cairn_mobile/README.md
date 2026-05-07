@@ -1,51 +1,80 @@
-# `cairn_mobile` — Flutter app (Week-1 S2 scaffold)
+# `cairn_mobile`
 
-Directory name is historical — **Week 1 targets web** (see
-`docs/week1_pivot.md`). Android/iOS targets are enabled when hardware arrives.
+Flutter Android + Web app for offline FEMA P-154 building triage with Gemma 4.
 
-This is a **`flutter_gemma` stability spike** scaffold, not the real Cairn app.
-The real app ships in Week 2–3 (see `cairn-implementation-plan-0b751e.md` §5).
+## Model policy
 
-## What this app does today
-- Loads Gemma **E4B** (or E2B) via `flutter_gemma` with vision.
-- Runs **10 consecutive vision prompts** on a bundled test image.
-- Logs TTFT, wallclock, JSON-parse success per run.
-- Shows the report JSON on-page with **Copy** + **Download** buttons.
+The app is **Gemma 4 only**. Approved runtime artifacts are defined in
+`lib/core/llm/model_registry.dart`:
 
-## Pass criteria (web-pivoted — see `docs/week1_pivot.md`)
-- No tab crash during the 10-prompt run.
-- Cached reload (warm) < 10 s on M-series Mac.
-- Image TTFT < 20 s on first prompt, decode > 4 tok/s.
+- `litert-community/gemma-4-E2B-it-litert-lm`
+- `litert-community/gemma-4-E4B-it-litert-lm`
+
+`test/model_registry_platform_test.dart` fails if non-Gemma-4 repos, filenames,
+or runtime model types are introduced.
+
+## Runtime paths
+
+- `flutter_gemma` is the default runtime.
+- Android `.litertlm` files are used outside web.
+- Web uses `.task` files.
+- `INFERENCE_RUNTIME=native_mtp` enables the Android LiteRT-LM MTP bridge for
+  speculative decoding experiments.
+
+## Core flow
+
+1. Start a screening session.
+2. Collect location and building metadata.
+3. Capture required photos and optional audio.
+4. Run Gemma 4 descriptions through `GemmaOrchestrator`.
+5. Enforce output contracts before writing observations.
+6. Compute deterministic triage in Dart.
+7. Seal an `EvidencePacket` and generate a PDF report.
+
+## Important source files
+
+- `lib/core/llm/model_registry.dart` — approved model registry.
+- `lib/core/llm/gemma_session.dart` — default `flutter_gemma` session.
+- `lib/core/llm/native_mtp_session.dart` — Android MTP bridge.
+- `lib/core/llm/orchestrator.dart` — prompt construction and JSON contract
+  enforcement.
+- `lib/core/state/session_controller.dart` — Riverpod session draft state.
+- `lib/core/models/evidence_packet.dart` — packet model.
+- `lib/core/models/evidence_packet_validator.dart` — packet validation.
 
 ## Setup
+
 ```bash
 cd apps/cairn_mobile
-flutter config --enable-web
-# Generate platform folders (web, later android/ios):
-flutter create --platforms=web --project-name cairn_mobile .
-./tool/sync_assets.sh               # copy the locked system prompt into assets
 flutter pub get
+flutter analyze
+flutter test
+```
+
+Run on Android:
+
+```bash
+flutter run -d <android-device-id>
+```
+
+Run on Android with the MTP bridge:
+
+```bash
+flutter run -d <android-device-id> --dart-define=INFERENCE_RUNTIME=native_mtp
+```
+
+Run on web:
+
+```bash
+flutter config --enable-web
 flutter run -d chrome --web-browser-flag=--enable-unsafe-webgpu
 ```
 
-Put an IDEA-dataset photo at `assets/images/s2_probe.jpg` by hand before running.
+## Locked assets
 
-## Model hosting
-The first click of **Load** downloads the `.task` file from the HuggingFace
-repo defined in `lib/core/llm/model_registry.dart`. MediaPipe caches it to OPFS
-automatically; subsequent loads come from cache. If the HuggingFace slug is
-stale, the download fails loud — update `model_registry.dart` + the Python
-mirror at `scripts/cairn/constants.py` together (CI enforces parity).
+The app bundles copies of locked docs assets:
 
-If HuggingFace doesn't serve CORS headers for the direct file, mirror the
-model to Cloudflare R2 / our own bucket and point `hfRepo`/`taskFilename` at
-the mirror.
+- `assets/prompts/system_prompt_v1.txt`
+- `assets/schema/evidence_packet_v1.schema.json`
 
-## What this spike does NOT include
-- Camera, mic, GPS, maps, PDF, screens 1–9 — all Week 2+.
-- LoRA on-device load — MediaPipe Web doesn't support `setLoraPath`. Deferred
-  to the Android build when the Pixel/S23 FE arrives. S5 still validates the
-  LoRA in Colab.
-- Real UI polish.
-
-See `scripts/spikes/s1_web_feasibility.md` for the full measurement protocol.
+When source docs change, sync and verify the asset copies before committing.

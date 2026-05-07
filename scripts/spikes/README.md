@@ -1,9 +1,9 @@
-# Week-1 spike harnesses
+# Historical spike harnesses
 
-Run order and pass criteria come from `cairn-implementation-plan-0b751e.md` §7.1,
-**as pivoted by `docs/week1_pivot.md`** (web-first, no Android hardware in Week 1).
+These harnesses are retained as historical de-risk tools. They are not the
+current product quickstart; use `../../QUICKSTART.md` for app setup.
 
-| # | Spike                   | Days  | Entrypoint (web)                                    | Pass criteria (web-pivoted) |
+| # | Spike                   | Days  | Entrypoint                                          | Historical pass criteria |
 |---|-------------------------|-------|-----------------------------------------------------|-----------------------------|
 | S1| Web feasibility         | D1–D2 | `s1_web_feasibility.md` + `apps/cairn_mobile/`      | E4B TTFT<20s, decode>4 tok/s, warm reload<10s |
 | S2| `flutter_gemma` stability | D2–D3 | same page as S1 + `apps/cairn_mobile/docs/s2_checklist.md` | No tab crash on 10 vision prompts |
@@ -11,9 +11,8 @@ Run order and pass criteria come from `cairn-implementation-plan-0b751e.md` §7.
 | S4| Audio multilingual      | D3    | `s4_audio_multilingual.py`                          | ≥16/20 clips correctly identify damage |
 | S5| LoRA round-trip (Colab) | D5–D6 | `s5_lora_round_trip.md`                             | Measurable behavior diff from base on 20 held-out (Colab notebook) |
 
-**Deferred until Android device arrives** (Week 2+):
+Historical Android-deferred items:
 - `s1_device_feasibility.md` + `s1_adb_harness.py` (adb-based RAM/CPU probe).
 - LoRA on-device load (MediaPipe Web can't `setLoraPath`).
 
 Outputs of every spike are written as JSON/MD under `scripts/spikes/out/` (gitignored).
-A go/no-go row in `docs/week1_decision.md` must be filled in before the end of D7.
