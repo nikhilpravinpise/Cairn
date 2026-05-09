@@ -124,13 +124,14 @@ class SessionConfig {
 
   /// Vision profile — `describe_photo` turns.
   ///
-  /// `maxTokens: 2048` reduces KV cache memory by 50%. The system prompt Rule
-  /// 11 constrains output to max 3 sentences / 60 words, so 2048 tokens is
-  /// sufficient for system prompt + image tokens + constrained output.
+  /// `maxTokens: 4096` matches the synthesis profile ceiling. The system
+  /// prompt (~500 tokens) + image tokens (~1800 tokens at 768 px) + user JSON
+  /// (~200 tokens) sum to ~2695 tokens on device, which exceeds the former
+  /// 2048 KV cache limit and causes INVALID_ARGUMENT errors in the engine.
   /// `temperature: 0.1` improves JSON contract adherence and output
   /// determinism for structured describe_photo responses.
   static const vision = SessionConfig(
-    maxTokens: 2048,
+    maxTokens: 4096,
     temperature: 0.1,
     topK: 40,
     topP: 0.95,
@@ -139,9 +140,9 @@ class SessionConfig {
   );
 
   /// Audio profile — `describe_audio` turns.
-  /// Same token/temp optimizations as vision.
+  /// Same token budget as vision — audio prompt + context can also exceed 2048.
   static const audio = SessionConfig(
-    maxTokens: 2048,
+    maxTokens: 4096,
     temperature: 0.1,
     topK: 40,
     topP: 0.95,
@@ -165,7 +166,7 @@ class SessionConfig {
   /// Standard profile — `protocol_answer` and `ask_followup` turns.
   /// `temperature: 0.1` for better JSON-mapping determinism.
   static const standard = SessionConfig(
-    maxTokens: 2048,
+    maxTokens: 4096,
     temperature: 0.1,
     topK: 40,
     topP: 0.95,
@@ -211,7 +212,7 @@ class SessionConfig {
   /// Near-greedy sampling. Compare `GemmaContractError` rate and
   /// output brevity against production `vision` (0.1).
   static const visionTemp01 = SessionConfig(
-    maxTokens: 2048,
+    maxTokens: 4096,
     temperature: 0.05,
     topK: 40,
     topP: 0.95,
@@ -223,7 +224,7 @@ class SessionConfig {
   ///
   /// Near-greedy for JSON-mapping tasks.
   static const standardTemp01 = SessionConfig(
-    maxTokens: 2048,
+    maxTokens: 4096,
     temperature: 0.05,
     topK: 40,
     topP: 0.95,
@@ -251,7 +252,7 @@ class SessionConfig {
   ///
   /// OPT-5 requires flutter_gemma >=0.14.2 (Gemma 4 escape-token leakage fix).
   static const visionHistoryRetained = SessionConfig(
-    maxTokens: 2048,
+    maxTokens: 4096,
     temperature: 0.1,
     topK: 40,
     topP: 0.95,
@@ -273,7 +274,7 @@ class SessionConfig {
   /// the production [vision] baseline. On Exynos 2200 (`SM-S711B`) GPU is
   /// expected to be faster for multimodal inference, but this must be proven.
   static const visionCpu = SessionConfig(
-    maxTokens: 2048,
+    maxTokens: 4096,
     temperature: 0.1,
     topK: 40,
     topP: 0.95,
@@ -297,7 +298,7 @@ class SessionConfig {
 
   /// Standard — CPU backend benchmark candidate.
   static const standardCpu = SessionConfig(
-    maxTokens: 2048,
+    maxTokens: 4096,
     temperature: 0.1,
     topK: 40,
     topP: 0.95,
@@ -311,9 +312,10 @@ class SessionConfig {
 
   /// Returns `true` when [maxTokens] is within the measured-safe range.
   ///
-  /// Minimum of 2048 is the floor imposed by the Sprint 2 benchmark design;
-  /// values below this have not been tested. Maximum is the MediaPipe LLM
-  /// Inference ceiling (varies by model; 4096 is the current cap for E2B).
+  /// Minimum of 2048 is the floor for the benchmark matrix (the production
+  /// default is 4096 after the Sprint 5 token-overflow fix). Maximum is the
+  /// MediaPipe LLM Inference ceiling (varies by model; 4096 is the current
+  /// cap for E2B). Values below 2048 have not been tested.
   bool get isTokenBudgetInSafeRange => maxTokens >= 2048 && maxTokens <= 4096;
 
   /// Returns a copy of this config with the specified fields replaced.

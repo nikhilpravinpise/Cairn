@@ -353,8 +353,6 @@ bool _isModerateTag(String tag) => const {
       'chimney_damage',
     }.contains(tag);
 
-const _asset = 'assets/images/s2_probe.jpg';
-
 const _builtInScenariosJson = '''
 [
   {
@@ -367,10 +365,10 @@ const _builtInScenariosJson = '''
       "year_built_est": 2005
     },
     "photos": [
-      {"slot":"front","prompt_id":"fema_p154_q01","asset_path":"$_asset","expected_tags":["no_visible_damage"],"expected_severity_bucket":0,"expected_structural_damage":false},
-      {"slot":"ground_floor","prompt_id":"fema_p154_q02","asset_path":"$_asset","expected_tags":["no_visible_damage"],"expected_severity_bucket":0,"expected_structural_damage":false},
-      {"slot":"cracks","prompt_id":"fema_p154_q03","asset_path":"$_asset","expected_tags":["no_visible_damage"],"expected_severity_bucket":0,"expected_structural_damage":false},
-      {"slot":"foundation","prompt_id":"fema_p154_q04","asset_path":"$_asset","expected_tags":["no_visible_damage"],"expected_severity_bucket":0,"expected_structural_damage":false}
+      {"slot":"front","prompt_id":"fema_p154_q01","asset_path":"assets/images/dev_scenarios/low_no_visible_damage/front.jpg","expected_tags":["no_visible_damage"],"expected_severity_bucket":0,"expected_structural_damage":false},
+      {"slot":"ground_floor","prompt_id":"fema_p154_q02","asset_path":"assets/images/dev_scenarios/low_no_visible_damage/ground_floor.jpg","expected_tags":["no_visible_damage"],"expected_severity_bucket":0,"expected_structural_damage":false},
+      {"slot":"cracks","prompt_id":"fema_p154_q03","asset_path":"assets/images/dev_scenarios/low_no_visible_damage/cracks.jpg","expected_tags":["no_visible_damage"],"expected_severity_bucket":0,"expected_structural_damage":false},
+      {"slot":"foundation","prompt_id":"fema_p154_q04","asset_path":"assets/images/dev_scenarios/low_no_visible_damage/foundation.jpg","expected_tags":["no_visible_damage"],"expected_severity_bucket":0,"expected_structural_damage":false}
     ],
     "expected": {
       "priority_band": "LOW",
@@ -390,10 +388,10 @@ const _builtInScenariosJson = '''
       "year_built_est": 1985
     },
     "photos": [
-      {"slot":"front","prompt_id":"fema_p154_q01","asset_path":"$_asset","expected_tags":["diagonal_crack"],"expected_severity_bucket":2,"expected_structural_damage":true},
-      {"slot":"ground_floor","prompt_id":"fema_p154_q02","asset_path":"$_asset","expected_tags":["infill_wall_crack"],"expected_severity_bucket":2,"expected_structural_damage":true},
-      {"slot":"cracks","prompt_id":"fema_p154_q03","asset_path":"$_asset","expected_tags":["diagonal_crack","concrete_spalling"],"expected_severity_bucket":2,"expected_structural_damage":true},
-      {"slot":"foundation","prompt_id":"fema_p154_q04","asset_path":"$_asset","expected_tags":["uncertain_structural"],"expected_severity_bucket":1,"expected_structural_damage":false}
+      {"slot":"front","prompt_id":"fema_p154_q01","asset_path":"assets/images/dev_scenarios/medium_cracks_spalling/front.jpg","expected_tags":["diagonal_crack"],"expected_severity_bucket":2,"expected_structural_damage":true},
+      {"slot":"ground_floor","prompt_id":"fema_p154_q02","asset_path":"assets/images/dev_scenarios/medium_cracks_spalling/ground_floor.jpg","expected_tags":["infill_wall_crack"],"expected_severity_bucket":2,"expected_structural_damage":true},
+      {"slot":"cracks","prompt_id":"fema_p154_q03","asset_path":"assets/images/dev_scenarios/medium_cracks_spalling/cracks.jpg","expected_tags":["diagonal_crack","concrete_spalling"],"expected_severity_bucket":2,"expected_structural_damage":true},
+      {"slot":"foundation","prompt_id":"fema_p154_q04","asset_path":"assets/images/dev_scenarios/medium_cracks_spalling/foundation.jpg","expected_tags":["uncertain_structural"],"expected_severity_bucket":1,"expected_structural_damage":false}
     ],
     "expected": {
       "priority_band": "MEDIUM",
@@ -415,10 +413,10 @@ const _builtInScenariosJson = '''
       "year_built_est": 1974
     },
     "photos": [
-      {"slot":"front","prompt_id":"fema_p154_q01","asset_path":"$_asset","expected_tags":["soft_story_condition"],"expected_severity_bucket":3,"expected_structural_damage":true},
-      {"slot":"ground_floor","prompt_id":"fema_p154_q02","asset_path":"$_asset","expected_tags":["soft_story_condition","column_base_damage"],"expected_severity_bucket":3,"expected_structural_damage":true},
-      {"slot":"cracks","prompt_id":"fema_p154_q03","asset_path":"$_asset","expected_tags":["exposed_rebar","concrete_spalling"],"expected_severity_bucket":3,"expected_structural_damage":true},
-      {"slot":"foundation","prompt_id":"fema_p154_q04","asset_path":"$_asset","expected_tags":["foundation_displacement"],"expected_severity_bucket":3,"expected_structural_damage":true}
+      {"slot":"front","prompt_id":"fema_p154_q01","asset_path":"assets/images/dev_scenarios/high_column_soft_story/front.jpg","expected_tags":["soft_story_condition"],"expected_severity_bucket":3,"expected_structural_damage":true},
+      {"slot":"ground_floor","prompt_id":"fema_p154_q02","asset_path":"assets/images/dev_scenarios/high_column_soft_story/ground_floor.jpg","expected_tags":["soft_story_condition","column_base_damage"],"expected_severity_bucket":3,"expected_structural_damage":true},
+      {"slot":"cracks","prompt_id":"fema_p154_q03","asset_path":"assets/images/dev_scenarios/high_column_soft_story/cracks.jpg","expected_tags":["exposed_rebar","concrete_spalling"],"expected_severity_bucket":3,"expected_structural_damage":true},
+      {"slot":"foundation","prompt_id":"fema_p154_q04","asset_path":"assets/images/dev_scenarios/high_column_soft_story/foundation.jpg","expected_tags":["foundation_displacement"],"expected_severity_bucket":3,"expected_structural_damage":true}
     ],
     "expected": {
       "priority_band": "CRITICAL",
