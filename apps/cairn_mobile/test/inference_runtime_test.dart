@@ -140,15 +140,44 @@ void main() {
       expect(result.ttftMs, 11);
     });
 
-    test('flutter_gemma contract tasks fail when required tool is missing',
+    test(
+        'flutter_gemma runtime accepts text-only JSON when no tool call present',
         () async {
       final session = _ToolSession(
         const GemmaInferenceResult(
-          text: '{"model_description":"text fallback should not be accepted"}',
+          text: '{"observation_id":"obs-1","prompt_id":"p1","asked_in":"en",'
+              '"image_refs":["img-1"],"model_description":"Crack visible.",'
+              '"model_tags":["diagonal_crack"],"model_confidence":0.8,'
+              '"bbox_annotations":[]}',
           thinking: '',
           ttftMs: 1,
           wallclockMs: 2,
           outputCharCount: 50,
+          runtimeName: GemmaSession.runtimeName,
+        ),
+      );
+
+      final result = await GemmaOrchestrator(session).describePhoto(
+        observationId: 'obs-1',
+        promptId: 'p1',
+        askedIn: 'en',
+        imageBytes: Uint8List(4),
+        imageRef: 'img-1',
+      );
+      expect(result.modelTags, ['diagonal_crack']);
+      expect(result.ttftMs, 1);
+    });
+
+    test(
+        'flutter_gemma contract fails when both tool call and JSON are absent',
+        () async {
+      final session = _ToolSession(
+        const GemmaInferenceResult(
+          text: 'I cannot process this image.',
+          thinking: '',
+          ttftMs: 1,
+          wallclockMs: 2,
+          outputCharCount: 30,
           runtimeName: GemmaSession.runtimeName,
         ),
       );

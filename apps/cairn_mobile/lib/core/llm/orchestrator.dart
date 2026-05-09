@@ -790,6 +790,10 @@ class GemmaOrchestrator {
       }
       if (matching != null) return matching.args;
       if (out.runtimeName == GemmaSession.runtimeName) {
+        // The model occasionally emits a bare JSON TextResponse even with
+        // ToolChoice.required. Try the text fallback before throwing.
+        final fallback = extractFirstJsonObject(out.text);
+        if (fallback != null) return fallback;
         throw GemmaContractError(
           'required tool call "$expectedToolName" missing',
           rawText: out.text,

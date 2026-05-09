@@ -23,20 +23,20 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('production defaults — maxTokens', () {
-    test('vision maxTokens is 2048 (optimized with Rule 11 constraints)', () {
-      expect(SessionConfig.vision.maxTokens, 2048);
+    test('vision maxTokens is 4096 (raised from 2048 after Sprint 5 token-overflow fix)', () {
+      expect(SessionConfig.vision.maxTokens, 4096);
     });
 
-    test('audio maxTokens is 2048', () {
-      expect(SessionConfig.audio.maxTokens, 2048);
+    test('audio maxTokens is 4096', () {
+      expect(SessionConfig.audio.maxTokens, 4096);
     });
 
     test('synthesis maxTokens is 4096', () {
       expect(SessionConfig.synthesis.maxTokens, 4096);
     });
 
-    test('standard maxTokens is 2048', () {
-      expect(SessionConfig.standard.maxTokens, 2048);
+    test('standard maxTokens is 4096', () {
+      expect(SessionConfig.standard.maxTokens, 4096);
     });
 
     test('all production profiles are in the safe token range', () {
@@ -305,7 +305,7 @@ void main() {
 
   group('toLogString and toString', () {
     test('toLogString includes maxTokens', () {
-      expect(SessionConfig.vision.toLogString(), contains('maxTokens=2048'));
+      expect(SessionConfig.vision.toLogString(), contains('maxTokens=4096'));
     });
 
     test('toLogString includes temperature', () {
@@ -339,7 +339,7 @@ void main() {
       final s = SessionConfig.vision.toString();
       expect(s, startsWith('SessionConfig('));
       expect(s, endsWith(')'));
-      expect(s, contains('maxTokens=2048'));
+      expect(s, contains('maxTokens=4096'));
     });
 
     test('benchmark variant toLogString differs from production baseline', () {
