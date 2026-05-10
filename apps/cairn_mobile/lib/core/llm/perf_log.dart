@@ -44,6 +44,7 @@ class PerfEvent {
     this.outputCharCount,
     this.thinkingChars = 0,
     this.imageSizeBytes,
+    this.extra = const {},
   });
 
   /// Lifecycle phase: `'install'` | `'engine_create'` | `'generate'`.
@@ -70,6 +71,10 @@ class PerfEvent {
   /// Byte size of the image passed to inference. `null` when no image.
   final int? imageSizeBytes;
 
+  /// Additional benchmark fields. Values should be small scalar strings,
+  /// numbers, or booleans so logcat remains grep-friendly.
+  final Map<String, Object?> extra;
+
   /// Formats the event as a single `[Cairn/perf]` log line.
   ///
   /// Fields are ordered: phase, task?, wall, ttft?, out_chars?, thinking_chars?,
@@ -82,6 +87,11 @@ class PerfEvent {
     if (outputCharCount != null) buf.write(' out_chars=$outputCharCount');
     if (thinkingChars > 0) buf.write(' thinking_chars=$thinkingChars');
     if (imageSizeBytes != null) buf.write(' img_bytes=$imageSizeBytes');
+    for (final entry in extra.entries) {
+      final value = entry.value;
+      if (value == null) continue;
+      buf.write(' ${entry.key}=$value');
+    }
     return buf.toString();
   }
 }

@@ -6,11 +6,11 @@
 ///
 /// ## Production defaults
 ///
-/// Vision, audio, and standard profiles use `maxTokens: 2048` and
+/// Vision, audio, and standard profiles use `maxTokens: 4096` and
 /// `temperature: 0.1`. The system prompt Rule 11 constrains output to max
-/// 3 sentences / 60 words, making 2048 tokens safe for all non-synthesis
-/// profiles. Synthesis stays at `maxTokens: 4096` / `temperature: 0.2`
-/// because reasoning-mode output benefits from a larger budget and moderate
+/// 3 sentences / 60 words, but 4096 tokens prevents truncation edge cases
+/// in longer vision responses. Synthesis stays at `maxTokens: 4096` /
+/// `temperature: 0.2` because reasoning-mode output benefits from moderate
 /// stochasticity.
 ///
 /// ## Benchmark variants
@@ -25,12 +25,12 @@
 /// ### Sprint 2 — token budget + temperature
 /// | Variant constant        | maxTokens | temperature | clearHistory | Notes                      |
 /// |-------------------------|-----------|-------------|:------------:|----------------------------|
-/// | `SessionConfig.vision`  | 4096      | 0.2         | true         | Production baseline         |
-/// | `visionMaxTokens3072`   | 3072      | 0.2         | true         | Candidate — must not trunc |
-/// | `visionMaxTokens2048`   | 2048      | 0.2         | true         | Candidate — must not trunc |
-/// | `visionTemp01`          | 4096      | 0.1         | true         | Candidate — determinism ↑  |
-/// | `SessionConfig.standard`| 4096      | 0.2         | true         | Baseline protocol/followup |
-/// | `standardTemp01`        | 4096      | 0.1         | true         | Candidate — JSON mapping   |
+/// | `SessionConfig.vision`  | 4096      | 0.1         | true         | Production baseline         |
+/// | `visionMaxTokens3072`   | 3072      | 0.1         | true         | Candidate — must not trunc |
+/// | `visionMaxTokens2048`   | 2048      | 0.1         | true         | Candidate — must not trunc |
+/// | `visionTemp01`          | 4096      | 0.05        | true         | Candidate — near-greedy    |
+/// | `SessionConfig.standard`| 4096      | 0.1         | true         | Baseline protocol/followup |
+/// | `standardTemp01`        | 4096      | 0.05        | true         | Candidate — JSON mapping   |
 ///
 /// ### Sprint 4 OPT-5 — history retention A/B
 /// | Variant constant          | clearHistory | Notes                              |
@@ -196,8 +196,8 @@ class SessionConfig {
 
   /// Vision — legacy maxTokens 2048 benchmark entry.
   ///
-  /// Now identical to production [vision]. Kept for backward compatibility
-  /// with benchmark scripts.
+  /// Downward benchmark candidate (production [vision] uses maxTokens 4096).
+  /// Kept for backward compatibility with benchmark scripts.
   static const visionMaxTokens2048 = SessionConfig(
     maxTokens: 2048,
     temperature: 0.1,

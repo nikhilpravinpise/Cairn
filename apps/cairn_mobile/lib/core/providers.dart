@@ -302,11 +302,12 @@ final orchestratorProvider = Provider<GemmaOrchestrator?>((ref) {
   //   -1  → PassthroughImagePreprocessor (raw baseline, Sprint 3 gate)
   //    0  → BoundedImagePreprocessor at spec.inferenceMaxLongEdgePx (default)
   //   >0  → BoundedImagePreprocessor at the explicit pixel bound
-  final ImagePreprocessor preprocessor = switch (_kBenchImagePx) {
+  final ImagePreprocessor basePreprocessor = switch (_kBenchImagePx) {
     -1 => const PassthroughImagePreprocessor(),
     0 => BoundedImagePreprocessor(maxLongEdgePx: spec.inferenceMaxLongEdgePx),
     _ => BoundedImagePreprocessor(maxLongEdgePx: _kBenchImagePx),
   };
+  final preprocessor = CachingImagePreprocessor(basePreprocessor);
 
   final runtime = ref.watch(selectedInferenceRuntimeProvider);
   return GemmaOrchestrator(

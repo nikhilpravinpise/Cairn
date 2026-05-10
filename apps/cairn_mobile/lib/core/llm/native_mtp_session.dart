@@ -28,6 +28,38 @@ class NativeMtpGemmaSession
   static const runtimeName = 'native_mtp';
   static const _channel = MethodChannel('app.cairn/native_mtp_gemma');
 
+  @visibleForTesting
+  static Map<String, Object?> buildCreatePayload({
+    required String modelPath,
+    required String systemPrompt,
+    required SessionConfig config,
+    required bool enableVision,
+    required bool enableThinking,
+    bool enableMtp = true,
+  }) =>
+      {
+        'modelPath': modelPath,
+        'systemPrompt': systemPrompt,
+        'maxTokens': config.maxTokens,
+        'maxNumImages': config.maxNumImages,
+        'temperature': config.temperature,
+        'topK': config.topK,
+        'topP': config.topP,
+        'backend': _backendName(config.preferredBackend),
+        'visionBackend':
+            enableVision ? _backendName(config.preferredBackend) : 'cpu',
+        'audioBackend': 'cpu',
+        'enableMtp': enableMtp,
+        'enableVision': enableVision,
+        'enableThinking': enableThinking,
+      };
+
+  static String _backendName(PreferredBackend backend) => switch (backend) {
+        PreferredBackend.cpu => 'cpu',
+        PreferredBackend.gpu => 'gpu',
+        PreferredBackend.npu => 'npu',
+      };
+
   static Future<NativeMtpGemmaSession> openForVision(
     ModelSpec spec, {
     required String systemPrompt,
@@ -106,23 +138,32 @@ class NativeMtpGemmaSession
     }
     debugPrint('[Cairn/native_mtp] ${_config.toLogString()}');
     final createSw = Stopwatch()..start();
-    await _channel.invokeMethod<void>('create', {
-      'modelPath': await _modelPath(),
-      'systemPrompt': systemPrompt,
-      'maxTokens': _config.maxTokens,
-      'temperature': _config.temperature,
-      'topK': _config.topK,
-      'topP': _config.topP,
-      'enableMtp': true,
-      'enableVision': !isThinking,
-      'enableThinking': isThinking,
-    });
+    final modelPath = await _modelPath();
+    final payload = buildCreatePayload(
+      modelPath: modelPath,
+      systemPrompt: systemPrompt,
+      config: _config,
+      enableVision: !isThinking,
+      enableThinking: isThinking,
+    );
+    final result =
+        await _channel.invokeMapMethod<String, Object?>('create', payload);
     createSw.stop();
     _loadedAt = DateTime.now();
     PerfLogger.emit(
       PerfEvent(
         phase: 'engine_create',
         wallclockMs: createSw.elapsedMilliseconds,
+        extra: {
+          'runtime': runtimeName,
+          'backend': result?['backendUsed'] ?? payload['backend'],
+          'model': _spec.key,
+          'max_tokens': _config.maxTokens,
+          'max_images': _config.maxNumImages,
+          'mtp_requested': payload['enableMtp'],
+          'mtp_available': result?['speculativeDecodingAvailable'],
+          'gpu_fallback': result?['gpuFallback'],
+        },
       ),
     );
   }
@@ -186,7 +227,10 @@ class NativeMtpGemmaSession
       'text': userText,
       'images': images,
       'timeoutMs': timeout.inMilliseconds,
-    }).timeout(timeout);
+    // Dart timeout is a safety net only. Kotlin's withTimeout(timeoutMs) is the
+    // primary handler. The Dart timer is 10 s longer so Kotlin always fires first,
+    // keeping the error type (PlatformException) deterministic.
+    }).timeout(timeout + const Duration(seconds: 10));
     sw.stop();
 
     final text = result?['text'] as String? ?? '';
@@ -200,6 +244,17 @@ class NativeMtpGemmaSession
       ttftMs: ttftMs,
       outputCharCount: text.length,
       imageSizeBytes: images.fold<int>(0, (sum, b) => sum + b.length),
+      extra: {
+        'runtime': runtimeName,
+        'backend': result?['backendUsed'],
+        'out_tokens': result?['outputTokenEstimate'],
+        'tok_s': result?['tokensPerSecond'],
+        'prefill_tokens': result?['prefillTokenCount'],
+        'prefill_tok_s': result?['prefillTokS'],
+        'mtp_requested': result?['speculativeDecodingRequested'],
+        'mtp_available': result?['speculativeDecodingAvailable'],
+        'image_count': images.length,
+      },
     ));
     return GemmaInferenceResult(
       text: text,

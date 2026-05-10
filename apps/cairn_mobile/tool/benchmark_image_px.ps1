@@ -114,7 +114,7 @@ function Run-Variant {
 
     # Launch flutter run --profile with the bench dart-define.
     $flutterArgs = @(
-        'run', '--profile',
+        'run', '--profile', '--no-pub',
         '-d', $DeviceId,
         "--dart-define=BENCH_IMAGE_PX=$px"
     )

@@ -11,6 +11,7 @@ import com.google.ai.edge.litertlm.ExperimentalApi
 import com.google.ai.edge.litertlm.ExperimentalFlags
 import com.google.ai.edge.litertlm.SamplerConfig
 import android.os.StatFs
+import android.util.Log
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.plugin.common.MethodChannel
@@ -21,11 +22,15 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 
 class MainActivity : FlutterActivity() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var engine: Engine? = null
     private var conversation: Conversation? = null
+    private var backendUsed: String = "none"
+    private var speculativeDecodingRequested: Boolean = false
+    private var speculativeDecodingAvailable: Boolean = false
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -42,11 +47,18 @@ class MainActivity : FlutterActivity() {
                             topK = call.argument<Int>("topK") ?: 40,
                             topP = call.argument<Double>("topP") ?: 0.95,
                             temperature = call.argument<Double>("temperature") ?: 0.1,
+                            maxTokens = call.argument<Int>("maxTokens") ?: 4096,
+                            maxNumImages = call.argument<Int>("maxNumImages") ?: 1,
+                            backend = call.argument<String>("backend") ?: "gpu",
+                            visionBackend = call.argument<String>("visionBackend") ?: "gpu",
+                            audioBackend = call.argument<String>("audioBackend") ?: "cpu",
                             enableMtp = call.argument<Boolean>("enableMtp") ?: true,
                             enableVision = call.argument<Boolean>("enableVision") ?: true,
                         )
                     }.fold(
-                        onSuccess = { withContext(Dispatchers.Main) { result.success(null) } },
+                        onSuccess = { payload ->
+                            withContext(Dispatchers.Main) { result.success(payload) }
+                        },
                         onFailure = { error ->
                             withContext(Dispatchers.Main) {
                                 result.error("native_mtp_create", error.message, error.stackTraceToString())
@@ -59,6 +71,7 @@ class MainActivity : FlutterActivity() {
                         generateNative(
                             text = call.argument<String>("text") ?: "",
                             images = call.argument<List<ByteArray>>("images") ?: emptyList(),
+                            timeoutMs = call.argument<Int>("timeoutMs") ?: 180_000,
                         )
                     }.fold(
                         onSuccess = { payload ->
@@ -99,20 +112,55 @@ class MainActivity : FlutterActivity() {
         topK: Int,
         topP: Double,
         temperature: Double,
+        maxTokens: Int,
+        maxNumImages: Int,
+        backend: String,
+        visionBackend: String,
+        audioBackend: String,
         enableMtp: Boolean,
         enableVision: Boolean,
-    ) {
+    ): Map<String, Any> {
         closeNativeSession()
+        speculativeDecodingRequested = enableMtp
         ExperimentalFlags.enableSpeculativeDecoding = enableMtp
-        val newEngine = Engine(
-            EngineConfig(
-                modelPath = modelPath,
-                backend = Backend.GPU(),
-                visionBackend = if (enableVision) Backend.GPU() else Backend.CPU(),
-                cacheDir = cacheDir.path,
+        ExperimentalFlags.enableBenchmark = true
+        // NOTE: speculativeDecodingAvailable reflects the flag we SET, not a confirmed
+        // runtime state. LiteRT-LM 0.11.0 exposes no draft-acceptance counters.
+        // Use lastDecodeTokensPerSecond A/B (MTP on vs off) to confirm MTP is active.
+        speculativeDecodingAvailable = ExperimentalFlags.enableSpeculativeDecoding == true
+
+        fun buildEngine(primaryBackend: String): Engine {
+            return Engine(
+                EngineConfig(
+                    modelPath = modelPath,
+                    backend = backendFromName(primaryBackend),
+                    visionBackend = if (enableVision) {
+                        backendFromName(visionBackend)
+                    } else {
+                        Backend.CPU()
+                    },
+                    audioBackend = backendFromName(audioBackend),
+                    maxNumTokens = maxTokens,
+                    maxNumImages = maxNumImages,
+                    cacheDir = cacheDir.path,
+                )
             )
-        )
-        newEngine.initialize()
+        }
+
+        val preferredBackend = normalizeBackendName(backend)
+        val newEngine = try {
+            buildEngine(preferredBackend).also {
+                it.initialize()
+                backendUsed = preferredBackend
+            }
+        } catch (error: Throwable) {
+            if (preferredBackend != "gpu") throw error
+            Log.w("Cairn/native_mtp", "GPU engine create failed; retrying CPU", error)
+            buildEngine("cpu").also {
+                it.initialize()
+                backendUsed = "cpu"
+            }
+        }
         val config = ConversationConfig(
             systemInstruction = Contents.of(systemPrompt),
             samplerConfig = SamplerConfig(
@@ -123,12 +171,21 @@ class MainActivity : FlutterActivity() {
         )
         engine = newEngine
         conversation = newEngine.createConversation(config)
+        return mapOf(
+            "backendUsed" to backendUsed,
+            "speculativeDecodingRequested" to speculativeDecodingRequested,
+            "speculativeDecodingAvailable" to speculativeDecodingAvailable,
+            "gpuFallback" to (preferredBackend == "gpu" && backendUsed == "cpu"),
+            "maxTokens" to maxTokens,
+            "maxNumImages" to maxNumImages,
+        )
     }
 
     @OptIn(ExperimentalApi::class)
     private suspend fun generateNative(
         text: String,
         images: List<ByteArray>,
+        timeoutMs: Int,
     ): Map<String, Any> {
         val activeConversation =
             conversation ?: throw IllegalStateException("native_mtp session is not loaded")
@@ -141,19 +198,55 @@ class MainActivity : FlutterActivity() {
             val parts = images.map { Content.ImageBytes(it) } + Content.Text(text)
             Contents.of(*parts.toTypedArray())
         }
-        activeConversation.sendMessageAsync(contents).collect { message ->
-            if (ttftMs == null) {
-                ttftMs = (System.nanoTime() - startedAt) / 1_000_000
+        withTimeout(timeoutMs.toLong()) {
+            activeConversation.sendMessageAsync(contents).collect { message ->
+                if (ttftMs == null) {
+                    ttftMs = (System.nanoTime() - startedAt) / 1_000_000
+                }
+                output.append(activeConversation.renderMessageIntoString(message))
             }
-            output.append(activeConversation.renderMessageIntoString(message))
         }
         val wallclockMs = (System.nanoTime() - startedAt) / 1_000_000
+        // ExperimentalFlags.enableBenchmark = true so BenchmarkInfo is populated.
+        // Use hardware counters rather than output.length / 4 estimates.
+        val bench = activeConversation.getBenchmarkInfo()
+        val decodeTokenCount = bench.lastDecodeTokenCount.coerceAtLeast(1)
+        val prefillTokenCount = bench.lastPrefillTokenCount
+        val decodeTokS = bench.lastDecodeTokensPerSecond
+        val prefillTokS = bench.lastPrefillTokensPerSecond
+        // Use hardware TTFT when positive; fall back to wall-clock measurement.
+        val realTtftMs: Long = if (bench.timeToFirstTokenInSecond > 0.0) {
+            (bench.timeToFirstTokenInSecond * 1_000.0).toLong()
+        } else {
+            ttftMs ?: wallclockMs
+        }
         return mapOf(
             "text" to output.toString(),
             "thinking" to "",
-            "ttftMs" to (ttftMs ?: wallclockMs),
+            "ttftMs" to realTtftMs,
             "wallclockMs" to wallclockMs,
+            "backendUsed" to backendUsed,
+            "outputTokenEstimate" to decodeTokenCount,
+            "tokensPerSecond" to decodeTokS,
+            "prefillTokenCount" to prefillTokenCount,
+            "prefillTokS" to prefillTokS,
+            "speculativeDecodingRequested" to speculativeDecodingRequested,
+            "speculativeDecodingAvailable" to speculativeDecodingAvailable,
         )
+    }
+
+    private fun normalizeBackendName(name: String): String {
+        return when (name.lowercase()) {
+            "cpu" -> "cpu"
+            else -> "gpu"
+        }
+    }
+
+    private fun backendFromName(name: String): Backend {
+        return when (normalizeBackendName(name)) {
+            "cpu" -> Backend.CPU()
+            else -> Backend.GPU()
+        }
     }
 
     private fun closeNativeSession() {
@@ -161,6 +254,7 @@ class MainActivity : FlutterActivity() {
         conversation = null
         engine?.close()
         engine = null
+        backendUsed = "none"
     }
 
     override fun onDestroy() {

@@ -22,6 +22,7 @@ import '../images/image_preprocessor.dart';
 import '../models/evidence_packet_validator.dart';
 import 'gemma_session.dart';
 import 'json_extract.dart';
+import 'perf_log.dart';
 import 'turn_record.dart';
 
 export 'turn_record.dart' show TurnRecord;
@@ -351,13 +352,33 @@ class GemmaOrchestrator {
       'audio_refs': <String>[],
       'user_text': userText,
     });
+    final preprocessSw = Stopwatch()..start();
     final inferenceBytes = await _preprocessor.prepareForInference(imageBytes);
+    preprocessSw.stop();
+    PerfLogger.emit(PerfEvent(
+      phase: 'image_preprocess',
+      task: 'describe_photo',
+      wallclockMs: preprocessSw.elapsedMilliseconds,
+      imageSizeBytes: inferenceBytes.length,
+      extra: {
+        'src_img_bytes': imageBytes.length,
+        'cache_key': identityHashCode(imageBytes),
+      },
+    ));
     final out = await _session.generate(userText: user, image: inferenceBytes);
+    final parseSw = Stopwatch()..start();
     final parsed = _parseTaskObject(
       out,
       task: 'describe_photo',
       expectedToolName: 'describe_photo',
     );
+    parseSw.stop();
+    PerfLogger.emit(PerfEvent(
+      phase: 'parse_contract',
+      task: 'describe_photo',
+      wallclockMs: parseSw.elapsedMilliseconds,
+      outputCharCount: out.outputCharCount,
+    ));
     return _describePhotoResultFromParsed(
       parsed,
       rawText: out.text,
@@ -571,6 +592,9 @@ class GemmaOrchestrator {
   /// ```
   Stream<DescribePhotoEvent> describeAll(
       List<DescribePhotoRequest> photos) async* {
+    if (photos.isEmpty) return;
+    final batchSw = Stopwatch()..start();
+
     if (_enableBatchVision && photos.length > 1) {
       for (var i = 0; i < photos.length; i++) {
         yield DescribePhotoStarted(
@@ -587,6 +611,15 @@ class GemmaOrchestrator {
             turn: batch.turns[i],
           );
         }
+        batchSw.stop();
+        PerfLogger.emit(PerfEvent(
+          phase: 'describe_all',
+          wallclockMs: batchSw.elapsedMilliseconds,
+          extra: {
+            'photo_count': photos.length,
+            'total_wallclock_ms': batchSw.elapsedMilliseconds,
+          },
+        ));
         return;
       }
     }
@@ -617,6 +650,16 @@ class GemmaOrchestrator {
         yield DescribePhotoFailed(request: req, error: e);
       }
     }
+
+    batchSw.stop();
+    PerfLogger.emit(PerfEvent(
+      phase: 'describe_all',
+      wallclockMs: batchSw.elapsedMilliseconds,
+      extra: {
+        'photo_count': photos.length,
+        'total_wallclock_ms': batchSw.elapsedMilliseconds,
+      },
+    ));
   }
 
   Future<DescribePhotosBatchResult> describePhotosBatch(
@@ -635,10 +678,23 @@ class GemmaOrchestrator {
 
     try {
       final inferenceBytes = <Uint8List>[];
+      final preprocessSw = Stopwatch()..start();
       for (final req in photos) {
         inferenceBytes
             .add(await _preprocessor.prepareForInference(req.imageBytes));
       }
+      preprocessSw.stop();
+      PerfLogger.emit(PerfEvent(
+        phase: 'image_preprocess',
+        task: 'describe_photos_batch',
+        wallclockMs: preprocessSw.elapsedMilliseconds,
+        imageSizeBytes: inferenceBytes.fold<int>(0, (sum, b) => sum + b.length),
+        extra: {
+          'src_img_bytes':
+              photos.fold<int>(0, (sum, p) => sum + p.imageBytes.length),
+          'image_count': photos.length,
+        },
+      ));
       final user = jsonEncode({
         'task': 'describe_photos_batch',
         'photos': [
@@ -658,8 +714,16 @@ class GemmaOrchestrator {
         userText: user,
         images: inferenceBytes,
       );
+      final parseSw = Stopwatch()..start();
       final parsed = _parseTaskObject(out, task: 'describe_photos_batch');
       final rawObservations = parsed['observations'] as List?;
+      parseSw.stop();
+      PerfLogger.emit(PerfEvent(
+        phase: 'parse_contract',
+        task: 'describe_photos_batch',
+        wallclockMs: parseSw.elapsedMilliseconds,
+        outputCharCount: out.outputCharCount,
+      ));
       if (rawObservations == null || rawObservations.length != photos.length) {
         return DescribePhotosBatchResult.fallback(
           'batch returned ${rawObservations?.length ?? 0} observations for '

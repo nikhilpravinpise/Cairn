@@ -90,7 +90,7 @@ function Run-Variant {
     Read-Host | Out-Null
 
     & $adbExe -s $DeviceId logcat -c 2>$null
-    $flutterArgs = @('run', '--profile', '-d', $DeviceId)
+    $flutterArgs = @('run', '--profile', '--no-pub', '-d', $DeviceId)
     $flutterArgs += $defineArgs
     $flutterProc = Start-Process -FilePath $flutterExe `
         -ArgumentList $flutterArgs `

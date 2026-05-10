@@ -165,7 +165,7 @@ function Run-Variant {
 
     & $adbExe -s $DeviceId logcat -c 2>$null
 
-    $flutterArgs = @('run', '--profile', '-d', $DeviceId)
+    $flutterArgs = @('run', '--profile', '--no-pub', '-d', $DeviceId)
     foreach ($d in $defines) { $flutterArgs += "--dart-define=$d" }
 
     Write-Host "[benchmark_backend] Launching: flutter $($flutterArgs -join ' ')"

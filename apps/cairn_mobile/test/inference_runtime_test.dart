@@ -2,7 +2,9 @@ import 'dart:typed_data';
 
 import 'package:cairn_mobile/core/llm/gemma_session.dart';
 import 'package:cairn_mobile/core/llm/inference_runtime.dart';
+import 'package:cairn_mobile/core/llm/native_mtp_session.dart';
 import 'package:cairn_mobile/core/llm/orchestrator.dart';
+import 'package:cairn_mobile/core/llm/session_config.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _ToolSession implements GemmaSessionInterface {
@@ -84,8 +86,21 @@ void main() {
 
     test('selects native_mtp from INFERENCE_RUNTIME', () {
       expect(
-        inferenceRuntimeFromDefines(inferenceRuntime: 'native_mtp'),
+        inferenceRuntimeFromDefines(
+          inferenceRuntime: 'native_mtp',
+          isAndroid: true,
+        ),
         InferenceRuntime.nativeMtp,
+      );
+    });
+
+    test('native_mtp falls back to flutter_gemma off Android', () {
+      expect(
+        inferenceRuntimeFromDefines(
+          inferenceRuntime: 'native_mtp',
+          isAndroid: false,
+        ),
+        InferenceRuntime.flutterGemma,
       );
     });
 
@@ -97,6 +112,27 @@ void main() {
         ),
         InferenceRuntime.flutterGemma,
       );
+    });
+  });
+
+  group('NativeMtpGemmaSession create payload', () {
+    test('includes token budget, backend, image count, and MTP request', () {
+      final payload = NativeMtpGemmaSession.buildCreatePayload(
+        modelPath: '/tmp/model.litertlm',
+        systemPrompt: 'system',
+        config: SessionConfig.vision,
+        enableVision: true,
+        enableThinking: false,
+      );
+
+      expect(payload['modelPath'], '/tmp/model.litertlm');
+      expect(payload['maxTokens'], SessionConfig.vision.maxTokens);
+      expect(payload['maxNumImages'], SessionConfig.vision.maxNumImages);
+      expect(payload['backend'], 'gpu');
+      expect(payload['visionBackend'], 'gpu');
+      expect(payload['enableMtp'], isTrue);
+      expect(payload['enableVision'], isTrue);
+      expect(payload['enableThinking'], isFalse);
     });
   });
 
@@ -168,8 +204,7 @@ void main() {
       expect(result.ttftMs, 1);
     });
 
-    test(
-        'flutter_gemma contract fails when both tool call and JSON are absent',
+    test('flutter_gemma contract fails when both tool call and JSON are absent',
         () async {
       final session = _ToolSession(
         const GemmaInferenceResult(

@@ -50,6 +50,117 @@ abstract interface class ImagePreprocessor {
   Future<Uint8List> prepareForInference(Uint8List rawBytes);
 }
 
+/// In-memory wrapper that avoids repeated decode/re-encode work for identical
+/// photo byte objects during one screening session.
+final class CachingImagePreprocessor implements ImagePreprocessor {
+  CachingImagePreprocessor(this._inner, {int maxEntries = 16})
+      : assert(maxEntries > 0, 'maxEntries must be > 0'),
+        _maxEntries = maxEntries;
+
+  final ImagePreprocessor _inner;
+  final int _maxEntries;
+  final _cache = <int, Future<Uint8List>>{};
+
+  int get entryCount => _cache.length;
+
+  @override
+  Future<Uint8List> prepareForInference(Uint8List rawBytes) {
+    final key = identityHashCode(rawBytes);
+    final existing = _cache[key];
+    if (existing != null) return existing;
+
+    if (_cache.length >= _maxEntries) {
+      _cache.remove(_cache.keys.first);
+    }
+    final prepared = _inner.prepareForInference(rawBytes);
+    _cache[key] = prepared;
+    return prepared;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Header-only dimension reader
+// ---------------------------------------------------------------------------
+
+/// Reads image dimensions from JPEG or PNG header bytes without a full decode.
+///
+/// Returns `(width, height)` when the format is recognized; `null` otherwise.
+/// Callers that receive `null` fall back to the codec-probe path.
+///
+/// **PNG**: IHDR chunk always starts at byte offset 8. Width/height are
+/// big-endian uint32 at offsets 16-19 / 20-23 respectively.
+///
+/// **JPEG**: Scans for SOF0 (0xC0), SOF1 (0xC1), or SOF2 (0xC2) markers.
+/// Fill bytes (extra 0xFF bytes before a marker type) are skipped per the
+/// JPEG spec. 0xFF 0x00 byte-stuffed sequences in compressed data are skipped.
+/// SOF layout from the marker-type byte: `[segLen 2B][precision 1B][H 2B][W 2B]`,
+/// so height is at `marker+4..5` and width at `marker+6..7` (big-endian uint16).
+(int, int)? _dimensionsFromHeader(Uint8List bytes) {
+  if (bytes.length < 24) return null;
+
+  // PNG signature: 0x89 'P' 'N' 'G'
+  if (bytes[0] == 0x89 &&
+      bytes[1] == 0x50 &&
+      bytes[2] == 0x4E &&
+      bytes[3] == 0x47) {
+    final w = (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
+    final h = (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
+    return (w > 0 && h > 0) ? (w, h) : null;
+  }
+
+  // JPEG signature: FF D8 (SOI)
+  if (bytes[0] == 0xFF && bytes[1] == 0xD8) {
+    int i = 2;
+    while (i < bytes.length) {
+      // Each JPEG marker begins with one or more 0xFF bytes followed by the
+      // actual marker-type byte (non-0xFF, non-0x00).
+      if (bytes[i] != 0xFF) {
+        i++;
+        continue;
+      }
+      // Skip fill bytes — the spec allows any number of 0xFF bytes before
+      // the marker type (e.g. 0xFF 0xFF 0xFF 0xC0 is a valid SOF0 marker).
+      int k = i + 1;
+      while (k < bytes.length && bytes[k] == 0xFF) {
+        k++;
+      }
+      if (k >= bytes.length) break;
+
+      final marker = bytes[k]; // Real marker-type byte (never 0xFF here).
+      if (marker == 0x00) {
+        // 0xFF 0x00 is byte-stuffing inside compressed scan data, not a marker.
+        i = k + 1;
+        continue;
+      }
+
+      // SOF0 (baseline), SOF1 (extended seq.), SOF2 (progressive JPEG).
+      // Layout from marker byte: [segLen 2B][precision 1B][height 2B][width 2B]
+      if (marker == 0xC0 || marker == 0xC1 || marker == 0xC2) {
+        if (k + 7 >= bytes.length) break; // need k+4..k+7
+        final h = (bytes[k + 4] << 8) | bytes[k + 5];
+        final w = (bytes[k + 6] << 8) | bytes[k + 7];
+        return (w > 0 && h > 0) ? (w, h) : null;
+      }
+
+      // SOI (D8), EOI (D9), RST0..RST7 (D0..D7): no payload.
+      if (marker == 0xD8 ||
+          marker == 0xD9 ||
+          (marker >= 0xD0 && marker <= 0xD7)) {
+        i = k + 1;
+        continue;
+      }
+
+      // All other markers carry a 2-byte length (inclusive of those 2 bytes).
+      if (k + 2 >= bytes.length) break;
+      final segLen = (bytes[k + 1] << 8) | bytes[k + 2];
+      if (segLen < 2) break;
+      i = k + 1 + segLen; // Advance past this segment.
+    }
+  }
+
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // Production adapter
 // ---------------------------------------------------------------------------
@@ -73,7 +184,20 @@ final class BoundedImagePreprocessor implements ImagePreprocessor {
 
   @override
   Future<Uint8List> prepareForInference(Uint8List rawBytes) async {
-    // --- Step 1: probe dimensions without target scaling ---
+    // --- Fast path: read dimensions from JPEG/PNG header (no decode needed) ---
+    //
+    // Camera photos are almost always JPEG. Parsing the header avoids decoding
+    // the full native image (up to ~48 MB ARGB for a 12 MP shot) just to read
+    // two integers. Falls back to the codec probe path for other formats.
+    final headerDims = _dimensionsFromHeader(rawBytes);
+    if (headerDims != null) {
+      final (origW, origH) = headerDims;
+      final longEdge = origW > origH ? origW : origH;
+      if (longEdge <= maxLongEdgePx) return rawBytes;
+      return _decodeAndEncode(rawBytes, origW: origW, origH: origH);
+    }
+
+    // --- Fallback: probe decode for unrecognized formats ---
     final probeCodec = await ui.instantiateImageCodec(rawBytes);
     final probeFrame = await probeCodec.getNextFrame();
     final origW = probeFrame.image.width;
@@ -82,25 +206,23 @@ final class BoundedImagePreprocessor implements ImagePreprocessor {
     probeCodec.dispose();
 
     final longEdge = origW > origH ? origW : origH;
-    if (longEdge <= maxLongEdgePx) {
-      // Already within bounds — return raw bytes unchanged.
-      // No re-encode cost, no format change.
-      return rawBytes;
-    }
+    if (longEdge <= maxLongEdgePx) return rawBytes;
+    return _decodeAndEncode(rawBytes, origW: origW, origH: origH);
+  }
 
-    // --- Step 2: calculate target dimensions, preserving aspect ratio ---
+  Future<Uint8List> _decodeAndEncode(
+    Uint8List rawBytes, {
+    required int origW,
+    required int origH,
+  }) async {
     final int tw, th;
     if (origW >= origH) {
-      // Landscape or square — width is the long edge.
       tw = maxLongEdgePx;
       th = (origH * maxLongEdgePx / origW).round().clamp(1, maxLongEdgePx);
     } else {
-      // Portrait — height is the long edge.
       th = maxLongEdgePx;
       tw = (origW * maxLongEdgePx / origH).round().clamp(1, maxLongEdgePx);
     }
-
-    // --- Step 3: decode with target dimensions (bilinear by Flutter engine) ---
     final codec = await ui.instantiateImageCodec(
       rawBytes,
       targetWidth: tw,
@@ -108,17 +230,10 @@ final class BoundedImagePreprocessor implements ImagePreprocessor {
     );
     final frame = await codec.getNextFrame();
     final image = frame.image;
-
-    // --- Step 4: encode to PNG ---
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     image.dispose();
     codec.dispose();
-
-    if (byteData == null) {
-      // Encoding failure is unexpected but non-fatal — fall back to raw bytes
-      // so the inference call can still proceed.
-      return rawBytes;
-    }
+    if (byteData == null) return rawBytes;
     return byteData.buffer.asUint8List();
   }
 }

@@ -40,12 +40,14 @@ void main() {
   group('Rule 11 — output size constraints in asset', () {
     test('Rule 11 heading is present', () {
       expect(assetText, contains('OUTPUT SIZE LIMITS'),
-          reason: 'Rule 11 heading missing — add it to the prompt (docs/ first, then sync)');
+          reason:
+              'Rule 11 heading missing — add it to the prompt (docs/ first, then sync)');
     });
 
     test('model_description 3-sentence limit is present', () {
       expect(assetText, contains('maximum 3 sentences'),
-          reason: 'Rule 11: "maximum 3 sentences" constraint missing from prompt');
+          reason:
+              'Rule 11: "maximum 3 sentences" constraint missing from prompt');
     });
 
     test('model_description 60-word limit is present', () {
@@ -53,19 +55,32 @@ void main() {
           reason: 'Rule 11: "maximum 60 words" constraint missing from prompt');
     });
 
-    test('model_tags 1-to-5 constraint is present', () {
-      expect(assetText, contains('1 to 5 values'),
-          reason: 'Rule 11: "1 to 5 values" tags constraint missing from prompt');
+    test('model_tags 1-to-4 constraint is present', () {
+      expect(assetText, contains('1 to 4 values'),
+          reason:
+              'Rule 11: "1 to 4 values" tags constraint missing from prompt');
+    });
+
+    test('JSON-only constraint is present', () {
+      expect(assetText, contains('Return JSON only'),
+          reason: 'Rule 11 must forbid prose outside the JSON object');
+    });
+
+    test('35-word preferred limit is present', () {
+      expect(assetText, contains('maximum 35 words'),
+          reason: 'Rule 11 preferred hot-path decode limit missing');
     });
 
     test('bbox at-most-1-box constraint is present', () {
       expect(assetText, contains('1 box per high-severity'),
-          reason: 'Rule 11: "1 box per high-severity" bbox constraint missing from prompt');
+          reason:
+              'Rule 11: "1 box per high-severity" bbox constraint missing from prompt');
     });
 
     test('Rule 11 note on decode-time rationale is present', () {
       expect(assetText, contains('Shorter output reduces decode time'),
-          reason: 'Rule 11 rationale line missing — helps the model understand why terse output matters');
+          reason:
+              'Rule 11 rationale line missing — helps the model understand why terse output matters');
     });
   });
 
@@ -76,7 +91,8 @@ void main() {
   group('describe_photo TURN TYPES section', () {
     test('references Rule 11 inline', () {
       expect(assetText, contains('Rule 11'),
-          reason: 'TURN TYPES describe_photo must reference Rule 11 for inline visibility');
+          reason:
+              'TURN TYPES describe_photo must reference Rule 11 for inline visibility');
     });
 
     test('references maximum 3 sentences near task = "describe_photo"', () {
@@ -86,7 +102,8 @@ void main() {
       // chars immediately following the task label.
       final section = assetText.substring(idx, idx + 500);
       expect(section, contains('3 sentences'),
-          reason: 'describe_photo TURN TYPES section must mention "3 sentences" constraint inline');
+          reason:
+              'describe_photo TURN TYPES section must mention "3 sentences" constraint inline');
     });
   });
 
@@ -100,13 +117,13 @@ void main() {
       if (!docsFile.existsSync()) {
         // docs/ may not exist in CI environments that only have the app tree.
         // Skip rather than fail if the canonical source is absent.
-        markTestSkipped('docs copy not found at $_docsPath — skipping identity check');
+        markTestSkipped(
+            'docs copy not found at $_docsPath — skipping identity check');
         return;
       }
       final docsBytes = docsFile.readAsBytesSync();
       expect(assetBytes, equals(docsBytes),
-          reason:
-              'docs/ and assets/ prompt copies are out of sync.\n'
+          reason: 'docs/ and assets/ prompt copies are out of sync.\n'
               'Run tool/sync_assets.ps1 (Windows) or tool/sync_assets.sh to fix.');
     });
   });

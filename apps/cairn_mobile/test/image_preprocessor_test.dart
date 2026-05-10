@@ -56,6 +56,53 @@ Future<(int, int)> _getSize(Uint8List bytes) async {
   return (w, h);
 }
 
+class _CountingPreprocessor implements ImagePreprocessor {
+  int calls = 0;
+
+  @override
+  Future<Uint8List> prepareForInference(Uint8List rawBytes) async {
+    calls++;
+    return Uint8List.fromList([...rawBytes, calls]);
+  }
+}
+
+/// Builds minimal JPEG header bytes containing a SOF0 dimension marker.
+///
+/// The bytes are NOT a complete decodable JPEG image; they should only be
+/// used with [BoundedImagePreprocessor] when the encoded dimensions are
+/// ≤ [maxLongEdgePx], so [prepareForInference] returns the bytes unchanged
+/// via the header-parse fast path without invoking [dart:ui.instantiateImageCodec].
+///
+/// Structure:
+///   SOI + APP0(16 B) + [fillBytesBeforeSof × 0xFF] + SOF0(w, h) + EOI
+Uint8List _makeMinimalJpegHeader({
+  required int width,
+  required int height,
+  int fillBytesBeforeSof = 0,
+}) {
+  final bytes = <int>[
+    0xFF, 0xD8, // SOI
+    0xFF, 0xE0, 0x00, 0x10, // APP0 marker, segLen = 16
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 14 filler bytes of APP0 data
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00,
+    0xFF, // marker prefix
+  ];
+  for (var f = 0; f < fillBytesBeforeSof; f++) {
+    bytes.add(0xFF); // fill bytes
+  }
+  bytes.addAll([
+    0xC0, // SOF0 marker type
+    0x00, 0x0B, // segLen = 11
+    0x08, // precision = 8 bits
+    (height >> 8) & 0xFF, height & 0xFF,
+    (width >> 8) & 0xFF, width & 0xFF,
+    0x01, 0x01, 0x11, 0x00, // 1 component
+    0xFF, 0xD9, // EOI
+  ]);
+  return Uint8List.fromList(bytes);
+}
+
 // ---------------------------------------------------------------------------
 // PassthroughImagePreprocessor
 // ---------------------------------------------------------------------------
@@ -84,6 +131,37 @@ void main() {
     });
   });
 
+  group('CachingImagePreprocessor', () {
+    test('returns stable bytes for the same source object', () async {
+      final inner = _CountingPreprocessor();
+      final preprocessor = CachingImagePreprocessor(inner);
+      final bytes = Uint8List.fromList([1, 2, 3]);
+
+      final first = await preprocessor.prepareForInference(bytes);
+      final second = await preprocessor.prepareForInference(bytes);
+
+      expect(identical(first, second), isTrue);
+      expect(inner.calls, 1);
+      expect(preprocessor.entryCount, 1);
+    });
+
+    test('invalidates when a different byte object is used', () async {
+      final inner = _CountingPreprocessor();
+      final preprocessor = CachingImagePreprocessor(inner);
+
+      final first = await preprocessor.prepareForInference(
+        Uint8List.fromList([1, 2, 3]),
+      );
+      final second = await preprocessor.prepareForInference(
+        Uint8List.fromList([1, 2, 3]),
+      );
+
+      expect(identical(first, second), isFalse);
+      expect(inner.calls, 2);
+      expect(preprocessor.entryCount, 2);
+    });
+  });
+
   // -------------------------------------------------------------------------
   // BoundedImagePreprocessor — images already within bounds (no-op path)
   // -------------------------------------------------------------------------
@@ -93,8 +171,8 @@ void main() {
         (tester) async {
       final bytes = await tester.runAsync(() => _makePng(10, 5));
       const preprocessor = BoundedImagePreprocessor(maxLongEdgePx: 512);
-      final result = await tester.runAsync(
-          () => preprocessor.prepareForInference(bytes!));
+      final result =
+          await tester.runAsync(() => preprocessor.prepareForInference(bytes!));
       expect(identical(result, bytes), isTrue,
           reason: 'no resize needed — must return identical bytes object');
     });
@@ -103,8 +181,8 @@ void main() {
         (tester) async {
       final bytes = await tester.runAsync(() => _makePng(100, 50));
       const preprocessor = BoundedImagePreprocessor(maxLongEdgePx: 100);
-      final result = await tester.runAsync(
-          () => preprocessor.prepareForInference(bytes!));
+      final result =
+          await tester.runAsync(() => preprocessor.prepareForInference(bytes!));
       expect(identical(result, bytes), isTrue,
           reason: 'long edge == bound is within bounds; no re-encode');
     });
@@ -112,8 +190,8 @@ void main() {
     testWidgets('square image within bounds returns raw bytes', (tester) async {
       final bytes = await tester.runAsync(() => _makePng(32, 32));
       const preprocessor = BoundedImagePreprocessor(maxLongEdgePx: 64);
-      final result = await tester.runAsync(
-          () => preprocessor.prepareForInference(bytes!));
+      final result =
+          await tester.runAsync(() => preprocessor.prepareForInference(bytes!));
       expect(identical(result, bytes), isTrue);
     });
   });
@@ -127,30 +205,33 @@ void main() {
         (tester) async {
       final bytes = await tester.runAsync(() => _makePng(200, 100));
       const preprocessor = BoundedImagePreprocessor(maxLongEdgePx: 100);
-      final result = await tester.runAsync(
-          () => preprocessor.prepareForInference(bytes!));
+      final result =
+          await tester.runAsync(() => preprocessor.prepareForInference(bytes!));
       final size = await tester.runAsync(() => _getSize(result!));
       expect(size!.$1, 100, reason: 'width (long edge) must be clamped to 100');
-      expect(size.$2, 50, reason: 'height must be halved to preserve aspect ratio');
+      expect(size.$2, 50,
+          reason: 'height must be halved to preserve aspect ratio');
     });
 
     testWidgets('portrait image: long edge equals maxLongEdgePx after resize',
         (tester) async {
       final bytes = await tester.runAsync(() => _makePng(100, 200));
       const preprocessor = BoundedImagePreprocessor(maxLongEdgePx: 100);
-      final result = await tester.runAsync(
-          () => preprocessor.prepareForInference(bytes!));
+      final result =
+          await tester.runAsync(() => preprocessor.prepareForInference(bytes!));
       final size = await tester.runAsync(() => _getSize(result!));
-      expect(size!.$2, 100, reason: 'height (long edge) must be clamped to 100');
-      expect(size.$1, 50, reason: 'width must be halved to preserve aspect ratio');
+      expect(size!.$2, 100,
+          reason: 'height (long edge) must be clamped to 100');
+      expect(size.$1, 50,
+          reason: 'width must be halved to preserve aspect ratio');
     });
 
     testWidgets('square image: both dimensions equal maxLongEdgePx',
         (tester) async {
       final bytes = await tester.runAsync(() => _makePng(200, 200));
       const preprocessor = BoundedImagePreprocessor(maxLongEdgePx: 100);
-      final result = await tester.runAsync(
-          () => preprocessor.prepareForInference(bytes!));
+      final result =
+          await tester.runAsync(() => preprocessor.prepareForInference(bytes!));
       final size = await tester.runAsync(() => _getSize(result!));
       expect(size!.$1, 100);
       expect(size.$2, 100);
@@ -159,8 +240,8 @@ void main() {
     testWidgets('downscaled output is decodable PNG', (tester) async {
       final bytes = await tester.runAsync(() => _makePng(256, 128));
       const preprocessor = BoundedImagePreprocessor(maxLongEdgePx: 64);
-      final result = await tester.runAsync(
-          () => preprocessor.prepareForInference(bytes!));
+      final result =
+          await tester.runAsync(() => preprocessor.prepareForInference(bytes!));
       final size = await tester.runAsync(() => _getSize(result!));
       expect(size!.$1, greaterThan(0));
       expect(size.$2, greaterThan(0));
@@ -170,8 +251,8 @@ void main() {
         (tester) async {
       final bytes = await tester.runAsync(() => _makePng(512, 256));
       const preprocessor = BoundedImagePreprocessor(maxLongEdgePx: 64);
-      final result = await tester.runAsync(
-          () => preprocessor.prepareForInference(bytes!));
+      final result =
+          await tester.runAsync(() => preprocessor.prepareForInference(bytes!));
       expect(result!.length, lessThan(bytes!.length),
           reason: 'downscaled output should be smaller than the original');
     });
@@ -185,8 +266,8 @@ void main() {
     testWidgets('3:1 wide image preserves ratio after resize', (tester) async {
       final bytes = await tester.runAsync(() => _makePng(300, 100));
       const preprocessor = BoundedImagePreprocessor(maxLongEdgePx: 150);
-      final result = await tester.runAsync(
-          () => preprocessor.prepareForInference(bytes!));
+      final result =
+          await tester.runAsync(() => preprocessor.prepareForInference(bytes!));
       final size = await tester.runAsync(() => _getSize(result!));
       expect(size!.$1, 150);
       expect(size.$2, 50);
@@ -195,8 +276,8 @@ void main() {
     testWidgets('1:3 tall image preserves ratio after resize', (tester) async {
       final bytes = await tester.runAsync(() => _makePng(100, 300));
       const preprocessor = BoundedImagePreprocessor(maxLongEdgePx: 150);
-      final result = await tester.runAsync(
-          () => preprocessor.prepareForInference(bytes!));
+      final result =
+          await tester.runAsync(() => preprocessor.prepareForInference(bytes!));
       final size = await tester.runAsync(() => _getSize(result!));
       expect(size!.$1, 50);
       expect(size.$2, 150);
@@ -205,11 +286,47 @@ void main() {
     testWidgets('4:3 landscape common camera ratio preserved', (tester) async {
       final bytes = await tester.runAsync(() => _makePng(400, 300));
       const preprocessor = BoundedImagePreprocessor(maxLongEdgePx: 200);
-      final result = await tester.runAsync(
-          () => preprocessor.prepareForInference(bytes!));
+      final result =
+          await tester.runAsync(() => preprocessor.prepareForInference(bytes!));
       final size = await tester.runAsync(() => _getSize(result!));
       expect(size!.$1, 200);
       expect(size.$2, 150);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // BoundedImagePreprocessor — JPEG header fast path
+  // -------------------------------------------------------------------------
+
+  group('BoundedImagePreprocessor — JPEG header fast path', () {
+    test('reads dims from JPEG with no fill bytes; returns rawBytes unchanged',
+        () async {
+      // SOI + APP0 + SOF0(200×100) + EOI — no fill bytes.
+      final bytes =
+          _makeMinimalJpegHeader(width: 200, height: 100);
+      const preprocessor = BoundedImagePreprocessor(maxLongEdgePx: 768);
+      final result = await preprocessor.prepareForInference(bytes);
+      expect(identical(result, bytes), isTrue,
+          reason:
+              'dims 200×100 ≤ 768; header-parse fast path must return identical bytes');
+    });
+
+    test(
+        'reads dims from JPEG with 1 fill byte before SOF0; returns rawBytes unchanged',
+        () async {
+      // 1 extra 0xFF fill byte is inserted before the SOF0 marker type.
+      // Prior to the fix, the scanner misread the fill byte as a segment with
+      // type 0xFF, computed a garbage segLen (~49 KB), jumped past EOF, and
+      // returned null — falling back to the codec probe which throws on these
+      // non-decodable bytes.  The fixed scanner skips fill bytes and parses
+      // the SOF0 correctly.
+      final bytes =
+          _makeMinimalJpegHeader(width: 200, height: 100, fillBytesBeforeSof: 1);
+      const preprocessor = BoundedImagePreprocessor(maxLongEdgePx: 768);
+      final result = await preprocessor.prepareForInference(bytes);
+      expect(identical(result, bytes), isTrue,
+          reason:
+              'fill bytes before SOF0 must not corrupt header parsing');
     });
   });
 
@@ -218,23 +335,21 @@ void main() {
   // -------------------------------------------------------------------------
 
   group('BoundedImagePreprocessor — benchmark dimensions', () {
-    testWidgets('Sprint 3 768px benchmark: 1600×900 → 768×432',
-        (tester) async {
+    testWidgets('Sprint 3 768px benchmark: 1600×900 → 768×432', (tester) async {
       final bytes = await tester.runAsync(() => _makePng(1600, 900));
       const preprocessor = BoundedImagePreprocessor(maxLongEdgePx: 768);
-      final result = await tester.runAsync(
-          () => preprocessor.prepareForInference(bytes!));
+      final result =
+          await tester.runAsync(() => preprocessor.prepareForInference(bytes!));
       final size = await tester.runAsync(() => _getSize(result!));
       expect(size!.$1, 768);
       expect(size.$2, 432);
     });
 
-    testWidgets('Sprint 3 512px benchmark: 1600×900 → 512×288',
-        (tester) async {
+    testWidgets('Sprint 3 512px benchmark: 1600×900 → 512×288', (tester) async {
       final bytes = await tester.runAsync(() => _makePng(1600, 900));
       const preprocessor = BoundedImagePreprocessor(maxLongEdgePx: 512);
-      final result = await tester.runAsync(
-          () => preprocessor.prepareForInference(bytes!));
+      final result =
+          await tester.runAsync(() => preprocessor.prepareForInference(bytes!));
       final size = await tester.runAsync(() => _getSize(result!));
       expect(size!.$1, 512);
       expect(size.$2, 288);
@@ -243,8 +358,8 @@ void main() {
     testWidgets('portrait: 900×1600 → 432×768 at 768px', (tester) async {
       final bytes = await tester.runAsync(() => _makePng(900, 1600));
       const preprocessor = BoundedImagePreprocessor(maxLongEdgePx: 768);
-      final result = await tester.runAsync(
-          () => preprocessor.prepareForInference(bytes!));
+      final result =
+          await tester.runAsync(() => preprocessor.prepareForInference(bytes!));
       final size = await tester.runAsync(() => _getSize(result!));
       expect(size!.$2, 768);
       expect(size.$1, 432);
