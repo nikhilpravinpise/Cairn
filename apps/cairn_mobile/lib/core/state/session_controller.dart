@@ -42,6 +42,8 @@ class CapturedPhoto {
     required this.heightPx,
     required this.takenAtUtc,
     required this.slot,
+    this.inferenceBytes,
+    this.inferenceMaxLongEdgePx,
   });
 
   final String ref; // e.g. 'img-1'
@@ -52,6 +54,14 @@ class CapturedPhoto {
 
   /// 'front' | 'ground_floor' | 'cracks' | 'foundation' | 'extra'
   final String slot;
+
+  /// Optional preprocessed bytes used only for model inference.
+  ///
+  /// The original [bytes] remain the packet/evidence source of truth.
+  final Uint8List? inferenceBytes;
+
+  /// Long-edge bound used to create [inferenceBytes], if available.
+  final int? inferenceMaxLongEdgePx;
 }
 
 class CapturedAudio {
@@ -187,6 +197,8 @@ class SessionDraft {
               'height_px': p.heightPx,
               'taken_at_utc': p.takenAtUtc.toUtc().toIso8601String(),
               'slot': p.slot,
+              if (p.inferenceBytes != null)
+                'inference_max_long_edge_px': p.inferenceMaxLongEdgePx,
             }
         ],
         'audios': [
@@ -218,6 +230,7 @@ class SessionDraft {
     Map<String, Object?> j, {
     required Map<String, Uint8List> photoBytes,
     required Map<String, Uint8List> audioBytes,
+    Map<String, Uint8List> photoInferenceBytes = const {},
   }) {
     final photosMeta =
         (j['photos'] as List? ?? []).cast<Map<String, Object?>>();
@@ -244,9 +257,11 @@ class SessionDraft {
               bytes: photoBytes[pm['ref'] as String]!,
               widthPx: (pm['width_px'] as num).toInt(),
               heightPx: (pm['height_px'] as num).toInt(),
-              takenAtUtc:
-                  DateTime.parse(pm['taken_at_utc'] as String).toUtc(),
+              takenAtUtc: DateTime.parse(pm['taken_at_utc'] as String).toUtc(),
               slot: pm['slot'] as String,
+              inferenceBytes: photoInferenceBytes[pm['ref'] as String],
+              inferenceMaxLongEdgePx:
+                  (pm['inference_max_long_edge_px'] as num?)?.toInt(),
             )
       ],
       audios: [
@@ -324,8 +339,7 @@ class SessionDraft {
         'cannot seal SessionDraft: location=${loc != null}, triage=${tri != null}',
       );
     }
-    final sigHex =
-        sha256.convert(volunteerSignatureSeed.codeUnits).toString();
+    final sigHex = sha256.convert(volunteerSignatureSeed.codeUnits).toString();
     return EvidencePacket(
       packetId: packetId,
       createdAtUtc: createdAtUtc,
@@ -445,6 +459,8 @@ class SessionController extends Notifier<SessionDraft?> {
     required int widthPx,
     required int heightPx,
     required String slot,
+    Uint8List? inferenceBytes,
+    int? inferenceMaxLongEdgePx,
   }) {
     final s = _require();
     s.photos.add(CapturedPhoto(
@@ -454,6 +470,8 @@ class SessionController extends Notifier<SessionDraft?> {
       heightPx: heightPx,
       takenAtUtc: DateTime.now().toUtc(),
       slot: slot,
+      inferenceBytes: inferenceBytes,
+      inferenceMaxLongEdgePx: inferenceMaxLongEdgePx,
     ));
     state = s.cloneShallow();
     return ref;
@@ -473,8 +491,8 @@ class SessionController extends Notifier<SessionDraft?> {
       throw ArgumentError.value(durationS, 'durationS', 'must be <= 30 s');
     }
     if (sampleRateHz != 16000) {
-      throw ArgumentError.value(
-          sampleRateHz, 'sampleRateHz', 'must be 16000 Hz (Gemma audio contract)');
+      throw ArgumentError.value(sampleRateHz, 'sampleRateHz',
+          'must be 16000 Hz (Gemma audio contract)');
     }
     if (channels != 1) {
       throw ArgumentError.value(channels, 'channels', 'must be 1 (mono)');
@@ -508,8 +526,8 @@ class SessionController extends Notifier<SessionDraft?> {
       'building_off_foundation' =>
         pa.copyWith(buildingOffFoundation: _requireBool(delta)),
       'leaning' => pa.copyWith(leaning: _requireLeaning(delta)),
-      'ground_failure_adjacent' => pa.copyWith(
-          groundFailureAdjacent: _requireBool(delta)),
+      'ground_failure_adjacent' =>
+        pa.copyWith(groundFailureAdjacent: _requireBool(delta)),
       'falling_hazards' => pa.copyWith(fallingHazards: _requireBool(delta)),
       'adjacent_leaning' => pa.copyWith(adjacentLeaning: _requireBool(delta)),
       _ => throw StateError('unknown protocol_answers key: ${delta.key}'),
@@ -615,7 +633,8 @@ class SessionController extends Notifier<SessionDraft?> {
   /// `abandon()` after this method returns.
   Future<EvidencePacket> sealAndSave(EvidenceVault vault) async {
     final s = _require();
-    final packet = s.seal(volunteerSignatureSeed: '${s.packetId}|$_kAppVersion');
+    final packet =
+        s.seal(volunteerSignatureSeed: '${s.packetId}|$_kAppVersion');
     EvidencePacketValidator.validateOrThrow(packet);
     await vault.savePacket(packet);
     for (final p in s.photos) {

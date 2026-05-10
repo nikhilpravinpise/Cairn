@@ -46,8 +46,7 @@ DraftPersistence createDraftPersistenceForTest(Directory testBaseDir) =>
 /// Returns null if bytes for any expected asset cannot be read (e.g., OS
 /// cleared the tmp cache). Photos/audio with missing bytes are silently
 /// omitted — the draft is still usable with reduced media.
-Future<SessionDraft?> restoreDraftWithBytes(
-    Map<String, Object?> meta) async {
+Future<SessionDraft?> restoreDraftWithBytes(Map<String, Object?> meta) async {
   try {
     final packetId = meta['packet_id'] as String;
     final tmp = await getTemporaryDirectory();
@@ -57,10 +56,15 @@ Future<SessionDraft?> restoreDraftWithBytes(
     final photosMeta =
         (meta['photos'] as List? ?? []).cast<Map<String, Object?>>();
     final photoBytes = <String, Uint8List>{};
+    final photoInferenceBytes = <String, Uint8List>{};
     for (final pm in photosMeta) {
       final ref = pm['ref'] as String;
       final f = File('${cacheDir.path}/$ref.jpg');
       if (f.existsSync()) photoBytes[ref] = await f.readAsBytes();
+      final inference = File('${cacheDir.path}/$ref.inference');
+      if (inference.existsSync()) {
+        photoInferenceBytes[ref] = await inference.readAsBytes();
+      }
     }
 
     // Audio
@@ -74,7 +78,9 @@ Future<SessionDraft?> restoreDraftWithBytes(
     }
 
     return SessionDraft.fromMetaMap(meta,
-        photoBytes: photoBytes, audioBytes: audioBytes);
+        photoBytes: photoBytes,
+        audioBytes: audioBytes,
+        photoInferenceBytes: photoInferenceBytes);
   } catch (_) {
     return null;
   }

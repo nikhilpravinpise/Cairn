@@ -15,10 +15,10 @@
 /// and encode images. The tests are stateless — no widgets are built.
 library;
 
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:cairn_mobile/core/images/image_preprocessor.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 // ---------------------------------------------------------------------------
@@ -66,6 +66,16 @@ class _CountingPreprocessor implements ImagePreprocessor {
   }
 }
 
+class _EchoFallbackPreprocessor implements ImagePreprocessor {
+  int calls = 0;
+
+  @override
+  Future<Uint8List> prepareForInference(Uint8List rawBytes) async {
+    calls++;
+    return Uint8List.fromList([...rawBytes, 9]);
+  }
+}
+
 /// Builds minimal JPEG header bytes containing a SOF0 dimension marker.
 ///
 /// The bytes are NOT a complete decodable JPEG image; they should only be
@@ -108,6 +118,8 @@ Uint8List _makeMinimalJpegHeader({
 // ---------------------------------------------------------------------------
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('PassthroughImagePreprocessor', () {
     const preprocessor = PassthroughImagePreprocessor();
 
@@ -159,6 +171,64 @@ void main() {
       expect(identical(first, second), isFalse);
       expect(inner.calls, 2);
       expect(preprocessor.entryCount, 2);
+    });
+  });
+
+  group('AndroidJpegImagePreprocessor', () {
+    const channel = MethodChannel('test.cairn/image_preprocess');
+
+    tearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    testWidgets('uses native JPEG channel on Android', (tester) async {
+      final input = Uint8List.fromList([1, 2, 3]);
+      final output = Uint8List.fromList([0xFF, 0xD8, 4, 5]);
+      Object? args;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+        expect(call.method, 'resizeJpeg');
+        args = call.arguments;
+        return output;
+      });
+
+      final preprocessor = AndroidJpegImagePreprocessor(
+        maxLongEdgePx: 640,
+        quality: 80,
+        channel: channel,
+        targetPlatformForTesting: TargetPlatform.android,
+      );
+
+      final result = await preprocessor.prepareForInference(input);
+
+      expect(result, output);
+      expect(args, {
+        'bytes': input,
+        'maxLongEdgePx': 640,
+        'quality': 80,
+      });
+    });
+
+    testWidgets('falls back when native channel fails', (tester) async {
+      final input = Uint8List.fromList([1, 2, 3]);
+      final fallback = _EchoFallbackPreprocessor();
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+        throw PlatformException(code: 'boom');
+      });
+
+      final preprocessor = AndroidJpegImagePreprocessor(
+        maxLongEdgePx: 640,
+        fallback: fallback,
+        channel: channel,
+        targetPlatformForTesting: TargetPlatform.android,
+      );
+
+      final result = await preprocessor.prepareForInference(input);
+
+      expect(result, [1, 2, 3, 9]);
+      expect(fallback.calls, 1);
     });
   });
 

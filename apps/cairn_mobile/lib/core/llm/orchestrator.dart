@@ -216,6 +216,7 @@ class DescribePhotoRequest {
     required this.askedIn,
     required this.imageBytes,
     required this.imageRef,
+    this.inferenceImageBytes,
     this.userText,
   });
 
@@ -226,6 +227,11 @@ class DescribePhotoRequest {
   /// Original capture bytes — the preprocessor receives these and may
   /// downscale before passing to the model.
   final Uint8List imageBytes;
+
+  /// Optional preprocessed inference bytes. When present, the orchestrator
+  /// bypasses [_preprocessor] so capture-time preprocessing is reused.
+  final Uint8List? inferenceImageBytes;
+
   final String imageRef;
   final String? userText;
 }
@@ -340,6 +346,7 @@ class GemmaOrchestrator {
     required String promptId,
     required String askedIn,
     required Uint8List imageBytes,
+    Uint8List? inferenceImageBytes,
     required String imageRef,
     String? userText,
   }) async {
@@ -352,17 +359,20 @@ class GemmaOrchestrator {
       'audio_refs': <String>[],
       'user_text': userText,
     });
-    final preprocessSw = Stopwatch()..start();
-    final inferenceBytes = await _preprocessor.prepareForInference(imageBytes);
-    preprocessSw.stop();
+    final prepared = await _prepareInferenceBytes(
+      rawBytes: imageBytes,
+      inferenceBytes: inferenceImageBytes,
+    );
+    final inferenceBytes = prepared.bytes;
     PerfLogger.emit(PerfEvent(
       phase: 'image_preprocess',
       task: 'describe_photo',
-      wallclockMs: preprocessSw.elapsedMilliseconds,
+      wallclockMs: prepared.wallclockMs,
       imageSizeBytes: inferenceBytes.length,
       extra: {
         'src_img_bytes': imageBytes.length,
         'cache_key': identityHashCode(imageBytes),
+        'preprocessed': inferenceImageBytes != null,
       },
     ));
     final out = await _session.generate(userText: user, image: inferenceBytes);
@@ -679,9 +689,16 @@ class GemmaOrchestrator {
     try {
       final inferenceBytes = <Uint8List>[];
       final preprocessSw = Stopwatch()..start();
+      var rawByteCount = 0;
+      var preprocessedCount = 0;
       for (final req in photos) {
-        inferenceBytes
-            .add(await _preprocessor.prepareForInference(req.imageBytes));
+        rawByteCount += req.imageBytes.length;
+        final prepared = await _prepareInferenceBytes(
+          rawBytes: req.imageBytes,
+          inferenceBytes: req.inferenceImageBytes,
+        );
+        if (req.inferenceImageBytes != null) preprocessedCount += 1;
+        inferenceBytes.add(prepared.bytes);
       }
       preprocessSw.stop();
       PerfLogger.emit(PerfEvent(
@@ -690,9 +707,9 @@ class GemmaOrchestrator {
         wallclockMs: preprocessSw.elapsedMilliseconds,
         imageSizeBytes: inferenceBytes.fold<int>(0, (sum, b) => sum + b.length),
         extra: {
-          'src_img_bytes':
-              photos.fold<int>(0, (sum, p) => sum + p.imageBytes.length),
+          'src_img_bytes': rawByteCount,
           'image_count': photos.length,
+          'preprocessed_count': preprocessedCount,
         },
       ));
       final user = jsonEncode({
@@ -775,6 +792,22 @@ class GemmaOrchestrator {
     } catch (e) {
       return DescribePhotosBatchResult.fallback(e.toString());
     }
+  }
+
+  Future<_PreparedInferenceBytes> _prepareInferenceBytes({
+    required Uint8List rawBytes,
+    required Uint8List? inferenceBytes,
+  }) async {
+    if (inferenceBytes != null && inferenceBytes.isNotEmpty) {
+      return _PreparedInferenceBytes(bytes: inferenceBytes, wallclockMs: 0);
+    }
+    final sw = Stopwatch()..start();
+    final prepared = await _preprocessor.prepareForInference(rawBytes);
+    sw.stop();
+    return _PreparedInferenceBytes(
+      bytes: prepared,
+      wallclockMs: sw.elapsedMilliseconds,
+    );
   }
 
   /// Final synthesis (thinking mode). The orchestrator only collects the
@@ -1031,4 +1064,14 @@ class GemmaOrchestrator {
     }
     return confidence;
   }
+}
+
+class _PreparedInferenceBytes {
+  const _PreparedInferenceBytes({
+    required this.bytes,
+    required this.wallclockMs,
+  });
+
+  final Uint8List bytes;
+  final int wallclockMs;
 }

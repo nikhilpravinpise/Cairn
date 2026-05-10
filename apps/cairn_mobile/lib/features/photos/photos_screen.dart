@@ -274,6 +274,16 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
   Future<void> _processPickedFile(_SlotSpec spec, XFile file) async {
     final bytes = await file.readAsBytes();
     final size = await _decodeSize(bytes);
+    Uint8List? inferenceBytes;
+    final inferenceMaxLongEdgePx =
+        ref.read(inferenceImageMaxLongEdgePxProvider);
+    try {
+      inferenceBytes = await ref
+          .read(uncachedInferenceImagePreprocessorProvider)
+          .prepareForInference(bytes);
+    } catch (e) {
+      debugPrint('capture-time image preprocessing failed: $e');
+    }
     if (!mounted) return;
 
     setState(() {
@@ -293,6 +303,9 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
       widthPx: size.$1,
       heightPx: size.$2,
       slot: spec.slot,
+      inferenceBytes: inferenceBytes,
+      inferenceMaxLongEdgePx:
+          inferenceBytes == null ? null : inferenceMaxLongEdgePx,
     );
     _state[spec.slot]!.ref = imgRef;
 
@@ -301,6 +314,9 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
     final draft = ref.read(sessionControllerProvider);
     if (draft != null) {
       await persistCapturedBytes(draft.packetId, imgRef, bytes);
+      if (inferenceBytes != null) {
+        await persistInferenceBytes(draft.packetId, imgRef, inferenceBytes);
+      }
     }
   }
 
@@ -366,6 +382,8 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
           promptId: spec.promptId,
           askedIn: draft.askedIn,
           imageBytes: _state[spec.slot]!.thumb!,
+          inferenceImageBytes:
+              _photoForRef(draft, _state[spec.slot]!.ref!)?.inferenceBytes,
           imageRef: _state[spec.slot]!.ref!,
         ),
     ];
@@ -447,6 +465,7 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
         promptId: spec.promptId,
         askedIn: draft.askedIn,
         imageBytes: bytes,
+        inferenceImageBytes: _photoForRef(draft, imgRef)?.inferenceBytes,
         imageRef: imgRef,
       );
       ref.read(sessionControllerProvider.notifier).recordObservation(
@@ -610,6 +629,13 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
     if (ref == null) return null;
     for (final o in draft.observations.reversed) {
       if (o.imageRefs.contains(ref)) return o;
+    }
+    return null;
+  }
+
+  CapturedPhoto? _photoForRef(SessionDraft draft, String ref) {
+    for (final photo in draft.photos.reversed) {
+      if (photo.ref == ref) return photo;
     }
     return null;
   }

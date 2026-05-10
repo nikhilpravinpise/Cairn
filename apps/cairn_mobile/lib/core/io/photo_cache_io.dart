@@ -27,13 +27,33 @@ Future<void> persistCapturedBytes(
   String ref,
   Uint8List bytes,
 ) async {
+  await _persistBytes(packetId, '$ref.jpg', bytes);
+}
+
+/// Write preprocessed inference bytes for [ref].
+///
+/// These bytes are a performance sidecar only. If this write fails or the temp
+/// cache is later evicted, the app falls back to preprocessing original bytes.
+Future<void> persistInferenceBytes(
+  String packetId,
+  String ref,
+  Uint8List bytes,
+) async {
+  await _persistBytes(packetId, '$ref.inference', bytes);
+}
+
+Future<void> _persistBytes(
+  String packetId,
+  String filename,
+  Uint8List bytes,
+) async {
   try {
     final base = await getTemporaryDirectory();
     final folder = Directory('${base.path}/cairn_capture/$packetId');
     if (!folder.existsSync()) {
       await folder.create(recursive: true);
     }
-    final file = File('${folder.path}/$ref.jpg');
+    final file = File('${folder.path}/$filename');
     await file.writeAsBytes(bytes, flush: true);
   } catch (_) {
     // Best-effort; in-memory copy in SessionDraft is authoritative.

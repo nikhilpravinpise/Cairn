@@ -34,10 +34,37 @@ void main() {
         ref: r1, bytes: Uint8List(4), widthPx: 10, heightPx: 10, slot: 'front');
     final r2 = controller.generateImageId();
     controller.addPhoto(
-        ref: r2, bytes: Uint8List(4), widthPx: 10, heightPx: 10, slot: 'cracks');
+        ref: r2,
+        bytes: Uint8List(4),
+        widthPx: 10,
+        heightPx: 10,
+        slot: 'cracks');
     expect(r1, 'img-1');
     expect(r2, 'img-2');
     expect(controller.state!.photos.length, 2);
+  });
+
+  test(
+      'addPhoto preserves optional inference sidecar without replacing evidence bytes',
+      () {
+    final original = Uint8List.fromList([1, 2, 3, 4]);
+    final inference = Uint8List.fromList([9, 8]);
+    final ref = controller.generateImageId();
+
+    controller.addPhoto(
+      ref: ref,
+      bytes: original,
+      widthPx: 1600,
+      heightPx: 900,
+      slot: 'front',
+      inferenceBytes: inference,
+      inferenceMaxLongEdgePx: 640,
+    );
+
+    final photo = controller.state!.photos.single;
+    expect(identical(photo.bytes, original), isTrue);
+    expect(identical(photo.inferenceBytes, inference), isTrue);
+    expect(photo.inferenceMaxLongEdgePx, 640);
   });
 
   test('generateImageId yields img-1 to img-100', () {
@@ -71,7 +98,8 @@ void main() {
       throwsStateError,
     );
     expect(
-      () => controller.applyProtocolDelta(const MapEntry('leaning', 'sideways')),
+      () =>
+          controller.applyProtocolDelta(const MapEntry('leaning', 'sideways')),
       throwsStateError,
     );
   });
@@ -149,9 +177,10 @@ void main() {
   });
 
   test('computeAndStoreTriage uses Dart scorer (not LLM)', () {
-    controller.setLocation(const GeoLocation(lat: 0, lng: 0, accuracyMeters: 0));
-    controller.setBuilding(const BuildingInfo(
-        type: 'unreinforced_masonry', storiesAboveGrade: 3));
+    controller
+        .setLocation(const GeoLocation(lat: 0, lng: 0, accuracyMeters: 0));
+    controller.setBuilding(
+        const BuildingInfo(type: 'unreinforced_masonry', storiesAboveGrade: 3));
     controller.applyProtocolDelta(const MapEntry('visible_collapse', true));
     controller.computeAndStoreTriage(
       rationaleBullets: ['a', 'b', 'c'],
@@ -161,21 +190,26 @@ void main() {
     expect(controller.state!.triage!.priorityBand, 'CRITICAL');
   });
 
-  test('mutators emit a new state instance so Riverpod fires listeners '
+  test(
+      'mutators emit a new state instance so Riverpod fires listeners '
       '(regression for same-identity bug)', () {
     // Before the fix, mutators assigned `state = s` where `s` was the same
     // object the state already pointed at, so Notifier.state's equality check
     // suppressed the change event and screens watching the provider never
     // rebuilt after addPhoto/setLocation/etc.
     final before = controller.state;
-    controller.setLocation(
-        const GeoLocation(lat: 0, lng: 0, accuracyMeters: 0));
+    controller
+        .setLocation(const GeoLocation(lat: 0, lng: 0, accuracyMeters: 0));
     expect(identical(controller.state, before), isFalse,
         reason: 'setLocation must produce a new SessionDraft instance');
 
     final after1 = controller.state;
     controller.addPhoto(
-        ref: controller.generateImageId(), bytes: Uint8List(4), widthPx: 8, heightPx: 8, slot: 'front');
+        ref: controller.generateImageId(),
+        bytes: Uint8List(4),
+        widthPx: 8,
+        heightPx: 8,
+        slot: 'front');
     expect(identical(controller.state, after1), isFalse,
         reason: 'addPhoto must produce a new SessionDraft instance');
   });
@@ -311,12 +345,14 @@ void main() {
     expect(mod['model_description'], 'diagonal crack');
   });
 
-  test('seal + save into vault — packet is persisted and signature hashed', () async {
-    controller.setLocation(const GeoLocation(lat: 1.0, lng: 2.0, accuracyMeters: 5));
-    controller.setBuilding(const BuildingInfo(
-        type: 'wood_light_frame', storiesAboveGrade: 1));
-    controller.computeAndStoreTriage(
-        rationaleBullets: ['x'], uncertaintyNotes: []);
+  test('seal + save into vault — packet is persisted and signature hashed',
+      () async {
+    controller
+        .setLocation(const GeoLocation(lat: 1.0, lng: 2.0, accuracyMeters: 5));
+    controller.setBuilding(
+        const BuildingInfo(type: 'wood_light_frame', storiesAboveGrade: 1));
+    controller
+        .computeAndStoreTriage(rationaleBullets: ['x'], uncertaintyNotes: []);
     final packetId = controller.state!.packetId;
     final vault = InMemoryEvidenceVault();
     final p = await controller.sealAndSave(vault);
@@ -435,12 +471,12 @@ void main() {
   // ---------------------------------------------------------------------------
 
   test('sealAndSave writes turns to vault.saveTurnsJsonl', () async {
-    controller.setLocation(
-        const GeoLocation(lat: 1.0, lng: 2.0, accuracyMeters: 5));
+    controller
+        .setLocation(const GeoLocation(lat: 1.0, lng: 2.0, accuracyMeters: 5));
     controller.setBuilding(
         const BuildingInfo(type: 'wood_light_frame', storiesAboveGrade: 1));
-    controller.computeAndStoreTriage(
-        rationaleBullets: ['x'], uncertaintyNotes: []);
+    controller
+        .computeAndStoreTriage(rationaleBullets: ['x'], uncertaintyNotes: []);
     controller.recordTurn(TurnRecord(
       ts: DateTime.utc(2025),
       task: 'synthesize',

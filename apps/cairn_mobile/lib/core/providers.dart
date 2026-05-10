@@ -37,6 +37,11 @@
 /// - `-1`: passthrough — raw capture bytes, no downscaling.
 /// - Any positive integer: bound longest edge to that many pixels.
 ///
+/// ### BENCH_NATIVE_IMAGE_PREPROCESS — Android native JPEG sidecar
+///
+/// Defaults to `true` on Android. Set to `false` to benchmark the legacy Dart
+/// PNG resize path.
+///
 /// ### BENCH_BACKEND — hardware backend override (Sprint 4 OPT-6)
 ///
 /// Overrides [PreferredBackend] for every session loaded during the run.
@@ -108,6 +113,9 @@ const _kBenchBatch = bool.fromEnvironment('BENCH_BATCH', defaultValue: false);
 
 const _kBenchMtp = bool.fromEnvironment('BENCH_MTP', defaultValue: false);
 
+const _kNativeImagePreprocess =
+    bool.fromEnvironment('BENCH_NATIVE_IMAGE_PREPROCESS', defaultValue: true);
+
 final selectedInferenceRuntimeProvider = Provider<InferenceRuntime>((_) {
   return inferenceRuntimeFromDefines(
     inferenceRuntime: _kInferenceRuntime,
@@ -162,6 +170,40 @@ final selectedModelSpecProvider = Provider<ModelSpec>((ref) {
   }
   return spec;
 });
+
+final inferenceImageMaxLongEdgePxProvider = Provider<int?>((ref) {
+  final spec = ref.watch(selectedModelSpecProvider);
+  return switch (_kBenchImagePx) {
+    -1 => null,
+    0 => spec.inferenceMaxLongEdgePx,
+    _ => _kBenchImagePx,
+  };
+});
+
+final inferenceImagePreprocessorProvider = Provider<ImagePreprocessor>((ref) {
+  final maxLongEdgePx = ref.watch(inferenceImageMaxLongEdgePxProvider);
+  final ImagePreprocessor basePreprocessor = switch (maxLongEdgePx) {
+    null => const PassthroughImagePreprocessor(),
+    final px => _boundedPreprocessor(px),
+  };
+  return CachingImagePreprocessor(basePreprocessor);
+});
+
+final uncachedInferenceImagePreprocessorProvider =
+    Provider<ImagePreprocessor>((ref) {
+  final maxLongEdgePx = ref.watch(inferenceImageMaxLongEdgePxProvider);
+  return switch (maxLongEdgePx) {
+    null => const PassthroughImagePreprocessor(),
+    final px => _boundedPreprocessor(px),
+  };
+});
+
+ImagePreprocessor _boundedPreprocessor(int maxLongEdgePx) {
+  if (!_kNativeImagePreprocess) {
+    return BoundedImagePreprocessor(maxLongEdgePx: maxLongEdgePx);
+  }
+  return AndroidJpegImagePreprocessor(maxLongEdgePx: maxLongEdgePx);
+}
 
 /// Capability profile to pass when loading a [GemmaSession].
 ///
@@ -296,18 +338,7 @@ final gemmaSessionProvider =
 final orchestratorProvider = Provider<GemmaOrchestrator?>((ref) {
   final session = ref.watch(gemmaSessionProvider);
   if (session == null) return null;
-  final spec = ref.watch(selectedModelSpecProvider);
-
-  // BENCH_IMAGE_PX selects the image preprocessor:
-  //   -1  → PassthroughImagePreprocessor (raw baseline, Sprint 3 gate)
-  //    0  → BoundedImagePreprocessor at spec.inferenceMaxLongEdgePx (default)
-  //   >0  → BoundedImagePreprocessor at the explicit pixel bound
-  final ImagePreprocessor basePreprocessor = switch (_kBenchImagePx) {
-    -1 => const PassthroughImagePreprocessor(),
-    0 => BoundedImagePreprocessor(maxLongEdgePx: spec.inferenceMaxLongEdgePx),
-    _ => BoundedImagePreprocessor(maxLongEdgePx: _kBenchImagePx),
-  };
-  final preprocessor = CachingImagePreprocessor(basePreprocessor);
+  final preprocessor = ref.watch(inferenceImagePreprocessorProvider);
 
   final runtime = ref.watch(selectedInferenceRuntimeProvider);
   return GemmaOrchestrator(

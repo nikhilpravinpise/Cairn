@@ -16,3 +16,11 @@ Future<void> persistCapturedBytes(
 ) async {
   // No-op on web: in-memory [SessionDraft] is the only store.
 }
+
+Future<void> persistInferenceBytes(
+  String packetId,
+  String ref,
+  Uint8List bytes,
+) async {
+  // No-op on web: in-memory [SessionDraft] is the only store.
+}

@@ -12,7 +12,7 @@ param(
     [string] $DeviceId = 'RZCX920ARVA',
     [int] $CaptureDurationSeconds = 600,
     [string] $OutDir = '.',
-    [ValidateSet('matrix', 'flutter', 'native_mtp_gpu', 'native_mtp_cpu', 'native_mtp_batch')]
+    [ValidateSet('matrix', 'flutter', 'native_mtp_gpu', 'native_mtp_cpu', 'native_mtp_batch', 'image_preprocess_ab')]
     [string] $Variant = 'matrix'
 )
 
@@ -37,6 +37,10 @@ $matrix = @{
     )
     native_mtp_batch = @(
         @('INFERENCE_RUNTIME=native_mtp', 'BENCH_MTP=true', 'BENCH_BACKEND=gpu', 'BENCH_BATCH=true', 'BENCH_IMAGE_PX=640')
+    )
+    image_preprocess_ab = @(
+        @('INFERENCE_RUNTIME=native_mtp', 'BENCH_MTP=true', 'BENCH_BACKEND=gpu', 'BENCH_IMAGE_PX=640', 'BENCH_NATIVE_IMAGE_PREPROCESS=false'),
+        @('INFERENCE_RUNTIME=native_mtp', 'BENCH_MTP=true', 'BENCH_BACKEND=gpu', 'BENCH_IMAGE_PX=640', 'BENCH_NATIVE_IMAGE_PREPROCESS=true')
     )
 }
 
@@ -113,7 +117,7 @@ function Run-One {
 }
 
 $groups = if ($Variant -eq 'matrix') {
-    @('flutter', 'native_mtp_gpu', 'native_mtp_cpu', 'native_mtp_batch')
+    @('flutter', 'native_mtp_gpu', 'native_mtp_cpu', 'native_mtp_batch', 'image_preprocess_ab')
 } else {
     @($Variant)
 }

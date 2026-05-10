@@ -34,8 +34,11 @@
 /// for the benchmark runner.
 library;
 
-import 'dart:typed_data';
 import 'dart:ui' as ui;
+
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
+import 'package:flutter/services.dart';
 
 /// Preprocessing contract for the inference image path.
 ///
@@ -59,21 +62,20 @@ final class CachingImagePreprocessor implements ImagePreprocessor {
 
   final ImagePreprocessor _inner;
   final int _maxEntries;
-  final _cache = <int, Future<Uint8List>>{};
+  final _cache = <Uint8List, Future<Uint8List>>{};
 
   int get entryCount => _cache.length;
 
   @override
   Future<Uint8List> prepareForInference(Uint8List rawBytes) {
-    final key = identityHashCode(rawBytes);
-    final existing = _cache[key];
+    final existing = _cache[rawBytes];
     if (existing != null) return existing;
 
     if (_cache.length >= _maxEntries) {
       _cache.remove(_cache.keys.first);
     }
     final prepared = _inner.prepareForInference(rawBytes);
-    _cache[key] = prepared;
+    _cache[rawBytes] = prepared;
     return prepared;
   }
 }
@@ -103,8 +105,10 @@ final class CachingImagePreprocessor implements ImagePreprocessor {
       bytes[1] == 0x50 &&
       bytes[2] == 0x4E &&
       bytes[3] == 0x47) {
-    final w = (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
-    final h = (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
+    final w =
+        (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
+    final h =
+        (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
     return (w > 0 && h > 0) ? (w, h) : null;
   }
 
@@ -235,6 +239,58 @@ final class BoundedImagePreprocessor implements ImagePreprocessor {
     codec.dispose();
     if (byteData == null) return rawBytes;
     return byteData.buffer.asUint8List();
+  }
+}
+
+/// Android-native bounded preprocessor.
+///
+/// Uses `BitmapFactory` + platform JPEG encoding through a MethodChannel. This
+/// avoids the Dart fallback's PNG re-encode for resized camera photos, which is
+/// usually much larger than a quality-bounded JPEG and increases image-transfer
+/// and model-side decode/prefill overhead.
+final class AndroidJpegImagePreprocessor implements ImagePreprocessor {
+  AndroidJpegImagePreprocessor({
+    required this.maxLongEdgePx,
+    this.quality = 82,
+    ImagePreprocessor? fallback,
+    MethodChannel? channel,
+    TargetPlatform? targetPlatformForTesting,
+  })  : assert(maxLongEdgePx > 0, 'maxLongEdgePx must be > 0'),
+        assert(quality >= 1 && quality <= 100, 'quality must be 1..100'),
+        _fallback =
+            fallback ?? BoundedImagePreprocessor(maxLongEdgePx: maxLongEdgePx),
+        _channel =
+            channel ?? const MethodChannel('app.cairn/image_preprocess'),
+        _targetPlatformForTesting = targetPlatformForTesting;
+
+  final int maxLongEdgePx;
+  final int quality;
+  final ImagePreprocessor _fallback;
+  final MethodChannel _channel;
+  final TargetPlatform? _targetPlatformForTesting;
+
+  @override
+  Future<Uint8List> prepareForInference(Uint8List rawBytes) async {
+    final platform = _targetPlatformForTesting ?? defaultTargetPlatform;
+    if (kIsWeb || platform != TargetPlatform.android) {
+      return _fallback.prepareForInference(rawBytes);
+    }
+    try {
+      final prepared = await _channel.invokeMethod<Uint8List>(
+        'resizeJpeg',
+        {
+          'bytes': rawBytes,
+          'maxLongEdgePx': maxLongEdgePx,
+          'quality': quality,
+        },
+      );
+      if (prepared != null && prepared.isNotEmpty) return prepared;
+    } on MissingPluginException {
+      // Unit tests and non-Android shells do not register the native channel.
+    } on PlatformException {
+      // Keep capture/inference robust; the Dart path preserves behavior.
+    }
+    return _fallback.prepareForInference(rawBytes);
   }
 }
 

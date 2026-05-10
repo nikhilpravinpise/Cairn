@@ -11,6 +11,7 @@ class _ToolSession implements GemmaSessionInterface {
   _ToolSession(this.result);
 
   final GemmaInferenceResult result;
+  Uint8List? lastImage;
 
   @override
   bool get isThinking => false;
@@ -21,8 +22,10 @@ class _ToolSession implements GemmaSessionInterface {
     Uint8List? image,
     Uint8List? audioBytes,
     Duration timeout = const Duration(seconds: 180),
-  }) async =>
-      result;
+  }) async {
+    lastImage = image;
+    return result;
+  }
 }
 
 class _BatchSession
@@ -231,6 +234,35 @@ void main() {
           contains('required tool call "describe_photo" missing'),
         )),
       );
+    });
+
+    test('describePhoto uses inference bytes when provided', () async {
+      final session = _ToolSession(
+        const GemmaInferenceResult(
+          text: '{"observation_id":"obs-1","prompt_id":"p1","asked_in":"en",'
+              '"image_refs":["img-1"],"model_description":"No visible damage.",'
+              '"model_tags":["no_visible_damage"],"model_confidence":0.9,'
+              '"bbox_annotations":[]}',
+          thinking: '',
+          ttftMs: 1,
+          wallclockMs: 2,
+          outputCharCount: 50,
+          runtimeName: GemmaSession.runtimeName,
+        ),
+      );
+      final raw = Uint8List.fromList([1, 2, 3, 4]);
+      final inference = Uint8List.fromList([9, 8]);
+
+      await GemmaOrchestrator(session).describePhoto(
+        observationId: 'obs-1',
+        promptId: 'p1',
+        askedIn: 'en',
+        imageBytes: raw,
+        inferenceImageBytes: inference,
+        imageRef: 'img-1',
+      );
+
+      expect(identical(session.lastImage, inference), isTrue);
     });
   });
 

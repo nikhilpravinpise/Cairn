@@ -1,5 +1,9 @@
 package app.cairn.cairn_mobile
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Content
 import com.google.ai.edge.litertlm.Contents
@@ -15,6 +19,8 @@ import android.util.Log
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.plugin.common.MethodChannel
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -99,6 +105,37 @@ class MainActivity : FlutterActivity() {
                 "availableBytes" -> {
                     val stat = StatFs(filesDir.absolutePath)
                     result.success(stat.availableBytes)
+                }
+                else -> result.notImplemented()
+            }
+        }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "app.cairn/image_preprocess"
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "resizeJpeg" -> scope.launch {
+                    runCatching {
+                        resizeJpegForInference(
+                            bytes = call.argument<ByteArray>("bytes")
+                                ?: throw IllegalArgumentException("bytes is required"),
+                            maxLongEdgePx = call.argument<Int>("maxLongEdgePx") ?: 640,
+                            quality = call.argument<Int>("quality") ?: 82,
+                        )
+                    }.fold(
+                        onSuccess = { payload ->
+                            withContext(Dispatchers.Main) { result.success(payload) }
+                        },
+                        onFailure = { error ->
+                            withContext(Dispatchers.Main) {
+                                result.error(
+                                    "image_preprocess_resize_jpeg",
+                                    error.message,
+                                    error.stackTraceToString(),
+                                )
+                            }
+                        },
+                    )
                 }
                 else -> result.notImplemented()
             }
@@ -255,6 +292,102 @@ class MainActivity : FlutterActivity() {
         engine?.close()
         engine = null
         backendUsed = "none"
+    }
+
+    private fun resizeJpegForInference(
+        bytes: ByteArray,
+        maxLongEdgePx: Int,
+        quality: Int,
+    ): ByteArray {
+        require(maxLongEdgePx > 0) { "maxLongEdgePx must be > 0" }
+        require(quality in 1..100) { "quality must be 1..100" }
+
+        val bounds = BitmapFactory.Options().apply {
+            inJustDecodeBounds = true
+        }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+            throw IllegalArgumentException("unsupported image bytes")
+        }
+
+        val longEdge = maxOf(bounds.outWidth, bounds.outHeight)
+        val sourceLooksJpeg = bytes.size >= 2 &&
+            bytes[0] == 0xFF.toByte() &&
+            bytes[1] == 0xD8.toByte()
+        if (longEdge <= maxLongEdgePx && sourceLooksJpeg) {
+            return bytes
+        }
+
+        val sampleSize = calculateInSampleSize(bounds.outWidth, bounds.outHeight, maxLongEdgePx)
+        val decodeOptions = BitmapFactory.Options().apply {
+            inSampleSize = sampleSize
+            inPreferredConfig = Bitmap.Config.ARGB_8888
+        }
+        val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOptions)
+            ?: throw IllegalArgumentException("failed to decode image")
+
+        val oriented = applyExifOrientation(decoded, bytes)
+        if (oriented !== decoded) {
+            decoded.recycle()
+        }
+
+        val orientedLongEdge = maxOf(oriented.width, oriented.height)
+        val scaled = if (orientedLongEdge > maxLongEdgePx) {
+            val scale = maxLongEdgePx.toFloat() / orientedLongEdge.toFloat()
+            val targetWidth = maxOf(1, (oriented.width * scale).toInt())
+            val targetHeight = maxOf(1, (oriented.height * scale).toInt())
+            Bitmap.createScaledBitmap(oriented, targetWidth, targetHeight, true)
+        } else {
+            oriented
+        }
+        if (scaled !== oriented) {
+            oriented.recycle()
+        }
+
+        return ByteArrayOutputStream().use { out ->
+            val ok = scaled.compress(Bitmap.CompressFormat.JPEG, quality, out)
+            scaled.recycle()
+            if (!ok) throw IllegalStateException("failed to encode JPEG")
+            out.toByteArray()
+        }
+    }
+
+    private fun calculateInSampleSize(width: Int, height: Int, maxLongEdgePx: Int): Int {
+        var sample = 1
+        var sampledLongEdge = maxOf(width, height)
+        while (sampledLongEdge / 2 >= maxLongEdgePx) {
+            sample *= 2
+            sampledLongEdge /= 2
+        }
+        return sample
+    }
+
+    private fun applyExifOrientation(bitmap: Bitmap, bytes: ByteArray): Bitmap {
+        val orientation = runCatching {
+            ExifInterface(ByteArrayInputStream(bytes)).getAttributeInt(
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL,
+            )
+        }.getOrDefault(ExifInterface.ORIENTATION_NORMAL)
+
+        val matrix = Matrix()
+        when (orientation) {
+            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.setScale(-1f, 1f)
+            ExifInterface.ORIENTATION_ROTATE_180 -> matrix.setRotate(180f)
+            ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.setScale(1f, -1f)
+            ExifInterface.ORIENTATION_TRANSPOSE -> {
+                matrix.setRotate(90f)
+                matrix.postScale(-1f, 1f)
+            }
+            ExifInterface.ORIENTATION_ROTATE_90 -> matrix.setRotate(90f)
+            ExifInterface.ORIENTATION_TRANSVERSE -> {
+                matrix.setRotate(-90f)
+                matrix.postScale(-1f, 1f)
+            }
+            ExifInterface.ORIENTATION_ROTATE_270 -> matrix.setRotate(-90f)
+            else -> return bitmap
+        }
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
 
     override fun onDestroy() {
