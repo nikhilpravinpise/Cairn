@@ -54,5 +54,8 @@ flutter:
   assets:
     - assets/images/
     - assets/images/dev_scenarios/
+    - assets/images/dev_scenarios/low_no_visible_damage/
+    - assets/images/dev_scenarios/medium_cracks_spalling/
+    - assets/images/dev_scenarios/high_column_soft_story/
     - assets/prompts/
     - assets/schema/

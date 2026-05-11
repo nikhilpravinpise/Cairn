@@ -65,6 +65,12 @@ scripts/eval/reports/*
 scripts/spikes/out/*
 !scripts/spikes/out/.gitkeep
 
+# --- benchmark raw outputs (logcats, build logs) ------------------------------
+apps/cairn_mobile/bench_out/*_logcat.txt
+apps/cairn_mobile/bench_out/*_build.txt
+bench_apk_build.txt
+bench_test_out.txt
+
 .agents/
 .windsurf/
 skills-lock.json
