@@ -67,7 +67,8 @@ scripts/spikes/out/*
 
 # --- benchmark raw outputs (logcats, build logs) ------------------------------
 apps/cairn_mobile/bench_out/*_logcat.txt
-apps/cairn_mobile/bench_out/*_build.txt
+apps/cairn_mobile/bench_out/*_build*.txt
+apps/cairn_mobile/bench_out/capture_mtp.ps1
 bench_apk_build.txt
 bench_test_out.txt
 

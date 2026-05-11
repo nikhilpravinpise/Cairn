@@ -1,0 +1,258 @@
+﻿# S23 §5 512px accuracy — 20260511_184433
+05-11 18:45:08.100 I/flutter (24305): [Cairn/perf] phase=install wall=0ms
+05-11 18:45:08.141 I/flutter (24305): [FlutterGemmaMobile/perf] getApplicationSupportDirectory: 0ms
+05-11 18:45:08.157 I/flutter (24305): [LiteRtLmFfi/perf] _ensureBindings total: 16ms
+05-11 18:45:08.157 I/flutter (24305): [LiteRtLmFfi/perf] _ensureBindings: 16ms
+05-11 18:45:08.157 I/flutter (24305): [LiteRtLmFfi/perf] settings_create: 0ms
+05-11 18:45:08.157 I/flutter (24305): [LiteRtLmFfi/perf] === START litert_lm_engine_create (native — model load + accelerator init + KV cache prefill) ===
+05-11 18:45:08.160 I/flutter (24305): [LiteRtLmFfi/perf]   isolate: DynamicLibrary.open: 1ms
+05-11 18:45:08.160 I/flutter (24305): [LiteRtLmFfi/perf]   isolate: lookupFunction: 0ms
+05-11 18:45:15.801 I/BCL@Common(24525): /PERF/BixbyApplication onCreate() start
+05-11 18:45:15.804 I/BCL@Common(24525): /PERF/BixbyApplication onCreate() after super
+05-11 18:45:15.995 I/BCL@Common(24525): /PERF/BixbyApplication onCreate() end
+05-11 18:45:21.359 I/flutter (24305): [LiteRtLmFfi/perf]   isolate: native litert_lm_engine_create: 13198ms
+05-11 18:45:21.370 I/flutter (24305): [LiteRtLmFfi/perf] === END litert_lm_engine_create: 13209ms (includes isolate spawn ~50-200ms) ===
+05-11 18:45:21.377 I/flutter (24305): [LiteRtLmFfi/perf] initialize() total: 13236ms
+05-11 18:45:21.378 I/flutter (24305): [FlutterGemmaMobile/perf] ffiClient.initialize total: 13237ms
+05-11 18:45:21.378 I/flutter (24305): [FlutterGemmaMobile/perf] FFI model creation total: 13237ms
+05-11 18:45:25.503 I/flutter (24305): [FfiInferenceModel/perf] createConversation (FFI): 4115ms
+05-11 18:45:25.508 I/flutter (24305): [FfiInferenceModel/perf] createSession total: 4128ms
+05-11 18:45:25.514 I/flutter (24305): [Cairn/perf] phase=engine_create wall=17410ms
+05-11 18:45:25.808 I/flutter (24305): [Cairn/perf] phase=image_preprocess task=describe_photo wall=183ms img_bytes=27230 src_img_bytes=193983 cache_key=678258182 preprocessed=false
+05-11 18:45:35.027 I/BCL@Common(25451): /PERF/BixbyApplication onCreate() start
+05-11 18:45:35.046 I/BCL@Common(25451): /PERF/BixbyApplication onCreate() after super
+05-11 18:45:35.580 I/BCL@Common(25451): /PERF/BixbyApplication onCreate() end
+05-11 18:45:49.211 W/PerformanceInfo(26597): start time : 1778505349211
+05-11 18:45:49.231 W/PerformanceInfo(26597): device totalMem=7649599488, availMem=803078144, advertisedMem=8589934592, threshold=408944640, lowMemory=false
+05-11 18:45:49.231 W/PerformanceInfo(26597): low memory device false
+05-11 18:45:49.231 W/PerformanceInfo(26597): success getMemoryInfo, took time : 20
+05-11 18:46:09.958 I/BCL@Common(27905): /PERF/BixbyApplication onCreate() start
+05-11 18:46:10.075 I/BCL@Common(27905): /PERF/BixbyApplication onCreate() after super
+05-11 18:46:10.910 I/BCL@Common(27905): /PERF/BixbyApplication onCreate() end
+05-11 18:46:13.945 E/perfmond( 1380): [PERFMOND][BOTTLENECK_HINT]  HINT ON  WIN=33 AVG=6 JANK=0
+05-11 18:46:13.945 E/PerfHint( 1380): PerfHint acquire
+05-11 18:46:13.966 W/perfmond( 1380): Thread Pool max thread count is 0. Cannot cache binder as linkToDeath cannot be implemented. serviceName: activity
+05-11 18:46:13.966 E/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: name = perfmond
+05-11 18:46:13.966 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = 1000
+05-11 18:46:13.966 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = 20
+05-11 18:46:13.966 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = 0
+05-11 18:46:13.966 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = MAINLOOPER
+05-11 18:46:13.966 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = android.os.Handler c=com.android.server.BatteryService$$ExternalSyntheticLambda10@acada1f m=0
+05-11 18:46:16.018 E/PerfHint( 1380): PerfHint release
+05-11 18:46:16.029 E/perfmond( 1380): [PERFMOND][BOTTLENECK_HINT]  HINT OFF  WIN=0 AVG=12
+05-11 18:46:33.458 E/perfmond( 1380): [PERFMOND][BOTTLENECK_HINT]  HINT ON  WIN=26 AVG=0 JANK=0
+05-11 18:46:33.459 E/PerfHint( 1380): PerfHint acquire
+05-11 18:46:33.877 W/perfmond( 1380): Thread Pool max thread count is 0. Cannot cache binder as linkToDeath cannot be implemented. serviceName: activity
+05-11 18:46:33.877 E/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: name = perfmond
+05-11 18:46:33.878 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = 1000
+05-11 18:46:33.882 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = 6
+05-11 18:46:33.882 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = 0
+05-11 18:46:33.882 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = MAINLOOPER
+05-11 18:46:33.884 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = com.android.server.alarm.AlarmManagerService$AlarmHandler c=null m=7
+05-11 18:46:35.171 E/PerfHint( 1380): PerfHint release
+05-11 18:46:35.175 E/perfmond( 1380): [PERFMOND][BOTTLENECK_HINT]  HINT OFF  WIN=0 AVG=8
+05-11 18:46:36.071 W/PerformanceInfo(29316): start time : 1778505396069
+05-11 18:46:36.095 W/PerformanceInfo(29316): device totalMem=7649599488, availMem=754167808, advertisedMem=8589934592, threshold=408944640, lowMemory=false
+05-11 18:46:36.095 W/PerformanceInfo(29316): low memory device false
+05-11 18:46:36.095 W/PerformanceInfo(29316): success getMemoryInfo, took time : 26
+05-11 18:46:38.115 I/flutter (24305): [FfiInferenceModelSession/perf] (async) time-to-first-chunk (prefill): 72300ms
+05-11 18:46:39.692 E/perfmond( 1380): [PERFMOND][BOTTLENECK_HINT]  HINT ON  WIN=23 AVG=0 JANK=0
+05-11 18:46:39.692 E/PerfHint( 1380): PerfHint acquire
+05-11 18:46:39.711 W/perfmond( 1380): Thread Pool max thread count is 0. Cannot cache binder as linkToDeath cannot be implemented. serviceName: activity
+05-11 18:46:39.719 E/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: name = perfmond
+05-11 18:46:39.719 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = 1000
+05-11 18:46:39.719 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = 12
+05-11 18:46:39.719 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = 0
+05-11 18:46:39.719 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = MAINLOOPER
+05-11 18:46:39.719 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = android.os.Handler c=com.android.server.wm.OneHandOpPolicy$$ExternalSyntheticLambda3@4447643 m=0
+05-11 18:46:42.197 E/PerfHint( 1380): PerfHint release
+05-11 18:46:42.199 E/perfmond( 1380): [PERFMOND][BOTTLENECK_HINT]  HINT OFF  WIN=9 AVG=11
+05-11 18:46:43.496 I/BCL@Common(29638): /PERF/BixbyApplication onCreate() start
+05-11 18:46:43.541 I/BCL@Common(29638): /PERF/BixbyApplication onCreate() after super
+05-11 18:46:44.146 I/BCL@Common(29638): /PERF/BixbyApplication onCreate() end
+05-11 18:47:04.197 I/flutter (24305): [FfiInferenceModelSession/perf] generation total: 98379ms (prefill 72300ms + decode 26079ms over 104 chunks, ~3.9 chunks/sec)
+05-11 18:47:10.745 I/flutter (24305): [FfiInferenceModel/perf] createConversation (FFI): 5639ms
+05-11 18:47:10.748 I/flutter (24305): [FfiInferenceModel/perf] createSession total: 5654ms
+05-11 18:47:10.759 I/flutter (24305): [Cairn/perf] phase=generate wall=104944ms ttft=72323ms out_chars=364 img_bytes=27230
+05-11 18:47:10.773 I/flutter (24305): [Cairn/perf] phase=parse_contract task=describe_photo wall=6ms out_chars=364
+05-11 18:47:11.035 I/flutter (24305): [Cairn/perf] phase=image_preprocess task=describe_photo wall=256ms img_bytes=38765 src_img_bytes=80840 cache_key=384820367 preprocessed=false
+05-11 18:47:36.433 I/BCL@Common(32597): /PERF/BixbyApplication onCreate() start
+05-11 18:47:36.463 I/BCL@Common(32597): /PERF/BixbyApplication onCreate() after super
+05-11 18:47:37.181 I/BCL@Common(32597): /PERF/BixbyApplication onCreate() end
+05-11 18:48:05.326 I/BCL@Common( 3407): /PERF/BixbyApplication onCreate() start
+05-11 18:48:05.379 I/BCL@Common( 3407): /PERF/BixbyApplication onCreate() after super
+05-11 18:48:05.709 I/flutter (24305): [FfiInferenceModelSession/perf] (async) time-to-first-chunk (prefill): 54670ms
+05-11 18:48:06.288 I/BCL@Common( 3407): /PERF/BixbyApplication onCreate() end
+05-11 18:48:32.707 I/flutter (24305): [FfiInferenceModelSession/perf] generation total: 81667ms (prefill 54670ms + decode 26997ms over 134 chunks, ~4.9 chunks/sec)
+05-11 18:48:36.261 I/BCL@Common( 5333): /PERF/BixbyApplication onCreate() start
+05-11 18:48:36.267 I/BCL@Common( 5333): /PERF/BixbyApplication onCreate() after super
+05-11 18:48:36.597 I/BCL@Common( 5333): /PERF/BixbyApplication onCreate() end
+05-11 18:48:37.921 I/flutter (24305): [FfiInferenceModel/perf] createConversation (FFI): 4494ms
+05-11 18:48:37.923 I/flutter (24305): [FfiInferenceModel/perf] createSession total: 4508ms
+05-11 18:48:37.937 I/flutter (24305): [Cairn/perf] phase=generate wall=86892ms ttft=54678ms out_chars=421 img_bytes=38765
+05-11 18:48:37.942 I/flutter (24305): [Cairn/perf] phase=parse_contract task=describe_photo wall=4ms out_chars=421
+05-11 18:48:38.228 I/flutter (24305): [Cairn/perf] phase=image_preprocess task=describe_photo wall=281ms img_bytes=58766 src_img_bytes=130085 cache_key=1030073716 preprocessed=false
+05-11 18:48:53.532 I/BCL@Common( 6808): /PERF/BixbyApplication onCreate() start
+05-11 18:48:53.560 I/BCL@Common( 6808): /PERF/BixbyApplication onCreate() after super
+05-11 18:48:53.900 I/BCL@Common( 6808): /PERF/BixbyApplication onCreate() end
+05-11 18:49:17.109 I/flutter (24305): [FfiInferenceModelSession/perf] (async) time-to-first-chunk (prefill): 38875ms
+05-11 18:49:32.243 I/flutter (24305): [FfiInferenceModelSession/perf] generation total: 54002ms (prefill 38875ms + decode 15127ms over 130 chunks, ~8.5 chunks/sec)
+05-11 18:49:33.805 I/BCL@Common( 8417): /PERF/BixbyApplication onCreate() start
+05-11 18:49:33.808 I/BCL@Common( 8417): /PERF/BixbyApplication onCreate() after super
+05-11 18:49:33.913 I/BCL@Common( 8417): /PERF/BixbyApplication onCreate() end
+05-11 18:49:36.036 I/flutter (24305): [FfiInferenceModel/perf] createConversation (FFI): 3450ms
+05-11 18:49:36.037 I/flutter (24305): [FfiInferenceModel/perf] createSession total: 3451ms
+05-11 18:49:36.042 I/flutter (24305): [Cairn/perf] phase=generate wall=57809ms ttft=38890ms out_chars=417 img_bytes=58766
+05-11 18:49:36.044 I/flutter (24305): [Cairn/perf] phase=parse_contract task=describe_photo wall=1ms out_chars=417
+05-11 18:49:36.192 I/flutter (24305): [Cairn/perf] phase=image_preprocess task=describe_photo wall=144ms img_bytes=43391 src_img_bytes=86477 cache_key=45567829 preprocessed=false
+05-11 18:49:59.660 I/BCL@Common( 9713): /PERF/BixbyApplication onCreate() start
+05-11 18:49:59.677 I/BCL@Common( 9713): /PERF/BixbyApplication onCreate() after super
+05-11 18:49:59.888 I/BCL@Common( 9713): /PERF/BixbyApplication onCreate() end
+05-11 18:50:00.815 I/flutter (24305): [FfiInferenceModelSession/perf] (async) time-to-first-chunk (prefill): 24615ms
+05-11 18:50:15.381 I/flutter (24305): [FfiInferenceModelSession/perf] generation total: 39181ms (prefill 24615ms + decode 14566ms over 125 chunks, ~8.5 chunks/sec)
+05-11 18:50:18.856 I/flutter (24305): [FfiInferenceModel/perf] createConversation (FFI): 3076ms
+05-11 18:50:18.856 I/flutter (24305): [FfiInferenceModel/perf] createSession total: 3077ms
+05-11 18:50:18.858 I/flutter (24305): [Cairn/perf] phase=generate wall=42664ms ttft=24638ms out_chars=370 img_bytes=43391
+05-11 18:50:18.859 I/flutter (24305): [Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=370
+05-11 18:50:18.860 I/flutter (24305): [Cairn/perf] phase=describe_all wall=293236ms photo_count=4 total_wallclock_ms=293236
+05-11 18:50:19.009 I/flutter (24305): [Cairn/perf] phase=image_preprocess task=describe_photo wall=83ms img_bytes=36950 src_img_bytes=68436 cache_key=756111987 preprocessed=false
+05-11 18:50:19.450 I/BCL@Common(10317): /PERF/BixbyApplication onCreate() start
+05-11 18:50:19.487 I/BCL@Common(10317): /PERF/BixbyApplication onCreate() after super
+05-11 18:50:19.760 I/BCL@Common(10317): /PERF/BixbyApplication onCreate() end
+05-11 18:50:33.111 I/BCL@Common(11099): /PERF/BixbyApplication onCreate() start
+05-11 18:50:33.120 I/BCL@Common(11099): /PERF/BixbyApplication onCreate() after super
+05-11 18:50:33.292 I/BCL@Common(11099): /PERF/BixbyApplication onCreate() end
+05-11 18:50:40.125 I/flutter (24305): [FfiInferenceModelSession/perf] (async) time-to-first-chunk (prefill): 21113ms
+05-11 18:50:51.551 I/flutter (24305): [FfiInferenceModelSession/perf] generation total: 32538ms (prefill 21113ms + decode 11425ms over 104 chunks, ~9.0 chunks/sec)
+05-11 18:50:54.960 I/flutter (24305): [FfiInferenceModel/perf] createConversation (FFI): 3005ms
+05-11 18:50:54.960 I/flutter (24305): [FfiInferenceModel/perf] createSession total: 3005ms
+05-11 18:50:54.960 I/flutter (24305): [Cairn/perf] phase=generate wall=35950ms ttft=21123ms out_chars=387 img_bytes=36950
+05-11 18:50:54.961 I/flutter (24305): [Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=387
+05-11 18:50:55.111 I/flutter (24305): [Cairn/perf] phase=image_preprocess task=describe_photo wall=147ms img_bytes=28118 src_img_bytes=111370 cache_key=869723902 preprocessed=false
+05-11 18:50:59.884 I/BCL@Common(11800): /PERF/BixbyApplication onCreate() start
+05-11 18:50:59.895 I/BCL@Common(11800): /PERF/BixbyApplication onCreate() after super
+05-11 18:51:00.048 I/BCL@Common(11800): /PERF/BixbyApplication onCreate() end
+05-11 18:51:15.038 I/flutter (24305): [FfiInferenceModelSession/perf] (async) time-to-first-chunk (prefill): 19923ms
+05-11 18:51:34.175 I/flutter (24305): [FfiInferenceModelSession/perf] generation total: 39057ms (prefill 19923ms + decode 19134ms over 180 chunks, ~9.4 chunks/sec)
+05-11 18:51:37.530 I/flutter (24305): [FfiInferenceModel/perf] createConversation (FFI): 2951ms
+05-11 18:51:37.530 I/flutter (24305): [FfiInferenceModel/perf] createSession total: 2951ms
+05-11 18:51:37.531 I/flutter (24305): [Cairn/perf] phase=generate wall=42419ms ttft=19929ms out_chars=483 img_bytes=28118
+05-11 18:51:37.532 I/flutter (24305): [Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=483
+05-11 18:51:37.626 I/flutter (24305): [Cairn/perf] phase=image_preprocess task=describe_photo wall=91ms img_bytes=29036 src_img_bytes=115792 cache_key=705176746 preprocessed=false
+05-11 18:51:38.120 I/BCL@Common(12970): /PERF/BixbyApplication onCreate() start
+05-11 18:51:38.127 I/BCL@Common(12970): /PERF/BixbyApplication onCreate() after super
+05-11 18:51:38.267 I/BCL@Common(12970): /PERF/BixbyApplication onCreate() end
+05-11 18:51:59.658 I/flutter (24305): [FfiInferenceModelSession/perf] (async) time-to-first-chunk (prefill): 22027ms
+05-11 18:52:26.240 I/flutter (24305): [FfiInferenceModelSession/perf] generation total: 48608ms (prefill 22027ms + decode 26581ms over 261 chunks, ~9.8 chunks/sec)
+05-11 18:52:29.853 I/flutter (24305): [FfiInferenceModel/perf] createConversation (FFI): 3219ms
+05-11 18:52:29.853 I/flutter (24305): [FfiInferenceModel/perf] createSession total: 3219ms
+05-11 18:52:29.855 I/flutter (24305): [Cairn/perf] phase=generate wall=52227ms ttft=22040ms out_chars=944 img_bytes=29036
+05-11 18:52:29.856 I/flutter (24305): [Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=944
+05-11 18:52:29.994 I/flutter (24305): [Cairn/perf] phase=image_preprocess task=describe_photo wall=135ms img_bytes=47449 src_img_bytes=140527 cache_key=729518026 preprocessed=false
+05-11 18:52:48.189 I/flutter (24305): [FfiInferenceModelSession/perf] (async) time-to-first-chunk (prefill): 18190ms
+05-11 18:53:09.191 I/flutter (24305): [FfiInferenceModelSession/perf] generation total: 39193ms (prefill 18190ms + decode 21003ms over 210 chunks, ~10.0 chunks/sec)
+05-11 18:53:12.894 I/flutter (24305): [FfiInferenceModel/perf] createConversation (FFI): 3298ms
+05-11 18:53:12.894 I/flutter (24305): [FfiInferenceModel/perf] createSession total: 3299ms
+05-11 18:53:12.895 I/flutter (24305): [Cairn/perf] phase=generate wall=42900ms ttft=18201ms out_chars=726 img_bytes=47449
+05-11 18:53:12.895 I/flutter (24305): [Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=726
+05-11 18:53:12.897 I/flutter (24305): [Cairn/perf] phase=describe_all wall=173971ms photo_count=4 total_wallclock_ms=173971
+05-11 18:53:13.104 I/flutter (24305): [Cairn/perf] phase=image_preprocess task=describe_photo wall=125ms img_bytes=41860 src_img_bytes=144645 cache_key=577396506 preprocessed=false
+05-11 18:53:21.030 I/BCL@Common(14932): /PERF/BixbyApplication onCreate() start
+05-11 18:53:21.034 I/BCL@Common(14932): /PERF/BixbyApplication onCreate() after super
+05-11 18:53:21.226 I/BCL@Common(14932): /PERF/BixbyApplication onCreate() end
+05-11 18:53:34.005 I/flutter (24305): [FfiInferenceModelSession/perf] (async) time-to-first-chunk (prefill): 20896ms
+05-11 18:54:02.114 I/BCL@Common(16693): /PERF/BixbyApplication onCreate() start
+05-11 18:54:02.119 I/BCL@Common(16693): /PERF/BixbyApplication onCreate() after super
+05-11 18:54:02.299 I/BCL@Common(16693): /PERF/BixbyApplication onCreate() end
+05-11 18:54:16.348 I/flutter (24305): [FfiInferenceModelSession/perf] generation total: 63238ms (prefill 20896ms + decode 42342ms over 335 chunks, ~7.9 chunks/sec)
+05-11 18:54:18.797 I/BCL@Common(17939): /PERF/BixbyApplication onCreate() start
+05-11 18:54:18.801 I/BCL@Common(17939): /PERF/BixbyApplication onCreate() after super
+05-11 18:54:19.200 I/BCL@Common(17939): /PERF/BixbyApplication onCreate() end
+05-11 18:54:21.136 I/flutter (24305): [FfiInferenceModel/perf] createConversation (FFI): 4190ms
+05-11 18:54:21.138 I/flutter (24305): [FfiInferenceModel/perf] createSession total: 4192ms
+05-11 18:54:21.144 I/flutter (24305): [Cairn/perf] phase=generate wall=68035ms ttft=20907ms out_chars=1316 img_bytes=41860
+05-11 18:54:21.151 I/flutter (24305): [Cairn/perf] phase=parse_contract task=describe_photo wall=6ms out_chars=1316
+05-11 18:54:21.428 I/flutter (24305): [Cairn/perf] phase=image_preprocess task=describe_photo wall=267ms img_bytes=38732 src_img_bytes=73484 cache_key=529998334 preprocessed=false
+05-11 18:54:41.987 I/BCL@Common(19642): /PERF/BixbyApplication onCreate() start
+05-11 18:54:41.995 I/BCL@Common(19642): /PERF/BixbyApplication onCreate() after super
+05-11 18:54:42.250 I/BCL@Common(19642): /PERF/BixbyApplication onCreate() end
+05-11 18:54:49.397 I/flutter (24305): [FfiInferenceModelSession/perf] (async) time-to-first-chunk (prefill): 27952ms
+05-11 18:55:06.527 I/BCL@Common(20239): /PERF/BixbyApplication onCreate() start
+05-11 18:55:06.610 I/BCL@Common(20239): /PERF/BixbyApplication onCreate() after super
+05-11 18:55:06.971 I/BCL@Common(20239): /PERF/BixbyApplication onCreate() end
+05-11 18:55:16.000 E/perfmond( 1380): [PERFMOND][BOTTLENECK_HINT]  HINT ON  WIN=25 AVG=1 JANK=0
+05-11 18:55:16.001 E/PerfHint( 1380): PerfHint acquire
+05-11 18:55:16.010 W/perfmond( 1380): Thread Pool max thread count is 0. Cannot cache binder as linkToDeath cannot be implemented. serviceName: activity
+05-11 18:55:16.010 E/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: name = perfmond
+05-11 18:55:16.010 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = 1000
+05-11 18:55:16.010 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = 13
+05-11 18:55:16.010 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = 0
+05-11 18:55:16.010 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = MAINLOOPER
+05-11 18:55:16.010 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = com.android.server.power.Notifier$NotifierHandler c=com.android.server.power.Notifier$2@5a61e69 m=0
+05-11 18:55:17.826 E/PerfHint( 1380): PerfHint release
+05-11 18:55:17.828 E/perfmond( 1380): [PERFMOND][BOTTLENECK_HINT]  HINT OFF  WIN=0 AVG=6
+05-11 18:55:31.770 I/flutter (24305): [FfiInferenceModelSession/perf] generation total: 70327ms (prefill 27952ms + decode 42375ms over 330 chunks, ~7.8 chunks/sec)
+05-11 18:55:35.595 I/flutter (24305): [FfiInferenceModel/perf] createConversation (FFI): 3415ms
+05-11 18:55:35.595 I/flutter (24305): [FfiInferenceModel/perf] createSession total: 3418ms
+05-11 18:55:35.598 I/flutter (24305): [Cairn/perf] phase=generate wall=74166ms ttft=27976ms out_chars=1222 img_bytes=38732
+05-11 18:55:35.600 I/flutter (24305): [Cairn/perf] phase=parse_contract task=describe_photo wall=1ms out_chars=1222
+05-11 18:55:35.701 I/flutter (24305): [Cairn/perf] phase=image_preprocess task=describe_photo wall=99ms img_bytes=44731 src_img_bytes=83393 cache_key=565319478 preprocessed=false
+05-11 18:55:45.513 W/PerformanceInfo(22733): start time : 1778505945513
+05-11 18:55:45.517 W/PerformanceInfo(22733): device totalMem=7649599488, availMem=1006481408, advertisedMem=8589934592, threshold=408944640, lowMemory=false
+05-11 18:55:45.517 W/PerformanceInfo(22733): low memory device false
+05-11 18:55:45.517 W/PerformanceInfo(22733): success getMemoryInfo, took time : 4
+05-11 18:56:05.005 I/flutter (24305): [FfiInferenceModelSession/perf] (async) time-to-first-chunk (prefill): 29297ms
+05-11 18:56:18.305 I/BCL@Common(24913): /PERF/BixbyApplication onCreate() start
+05-11 18:56:18.387 I/BCL@Common(24913): /PERF/BixbyApplication onCreate() after super
+05-11 18:56:20.437 I/BCL@Common(24913): /PERF/BixbyApplication onCreate() end
+05-11 18:56:26.434 E/perfmond( 1380): [PERFMOND][BOTTLENECK_HINT]  HINT ON  WIN=34 AVG=2 JANK=0
+05-11 18:56:26.434 E/PerfHint( 1380): PerfHint acquire
+05-11 18:56:26.450 W/perfmond( 1380): Thread Pool max thread count is 0. Cannot cache binder as linkToDeath cannot be implemented. serviceName: activity
+05-11 18:56:26.450 E/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: name = perfmond
+05-11 18:56:26.450 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = 1000
+05-11 18:56:26.450 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = 18
+05-11 18:56:26.450 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = 0
+05-11 18:56:26.450 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = MAINLOOPER
+05-11 18:56:26.450 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = com.android.server.notification.NotificationManagerService$WorkerHandler c=com.android.server.notification.NotificationManagerService$18$$ExternalSyntheticLambda0@8f8d0d6 m=0
+05-11 18:56:27.657 E/PerfHint( 1380): PerfHint release
+05-11 18:56:27.659 E/perfmond( 1380): [PERFMOND][BOTTLENECK_HINT]  HINT OFF  WIN=8 AVG=18
+05-11 18:56:43.759 E/perfmond( 1380): [PERFMOND][BOTTLENECK_HINT]  HINT ON  WIN=20 AVG=0 JANK=0
+05-11 18:56:43.760 E/PerfHint( 1380): PerfHint acquire
+05-11 18:56:43.768 W/perfmond( 1380): Thread Pool max thread count is 0. Cannot cache binder as linkToDeath cannot be implemented. serviceName: activity
+05-11 18:56:43.768 E/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: name = perfmond
+05-11 18:56:43.768 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = 1000
+05-11 18:56:43.768 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = 10
+05-11 18:56:43.768 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = 0
+05-11 18:56:43.768 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = MAINLOOPER
+05-11 18:56:43.768 I/PerfHint( 1380): REPORT_BOTTLENECK_HINT_TRANSACTION :: param = android.os.Handler c=android.app.LoadedApk$ServiceDispatcher$RunConnection@f3be981 m=0
+05-11 18:56:44.892 E/PerfHint( 1380): PerfHint release
+05-11 18:56:44.898 E/perfmond( 1380): [PERFMOND][BOTTLENECK_HINT]  HINT OFF  WIN=0 AVG=10
+05-11 18:56:53.705 I/BCL@Common(26812): /PERF/BixbyApplication onCreate() start
+05-11 18:56:53.722 I/BCL@Common(26812): /PERF/BixbyApplication onCreate() after super
+05-11 18:56:54.217 I/BCL@Common(26812): /PERF/BixbyApplication onCreate() end
+05-11 18:56:55.525 I/flutter (24305): [FfiInferenceModelSession/perf] generation total: 79820ms (prefill 29297ms + decode 50523ms over 311 chunks, ~6.1 chunks/sec)
+05-11 18:57:00.444 I/flutter (24305): [FfiInferenceModel/perf] createConversation (FFI): 4229ms
+05-11 18:57:00.446 I/flutter (24305): [FfiInferenceModel/perf] createSession total: 4236ms
+05-11 18:57:00.459 I/flutter (24305): [Cairn/perf] phase=generate wall=84747ms ttft=29308ms out_chars=1178 img_bytes=44731
+05-11 18:57:00.464 I/flutter (24305): [Cairn/perf] phase=parse_contract task=describe_photo wall=4ms out_chars=1178
+05-11 18:57:00.741 I/flutter (24305): [Cairn/perf] phase=image_preprocess task=describe_photo wall=263ms img_bytes=44733 src_img_bytes=152906 cache_key=392628224 preprocessed=false
+05-11 18:57:38.855 I/flutter (24305): [FfiInferenceModelSession/perf] (async) time-to-first-chunk (prefill): 38110ms
+05-11 18:57:46.341 I/BCL@Common(30510): /PERF/BixbyApplication onCreate() start
+05-11 18:57:46.351 I/BCL@Common(30510): /PERF/BixbyApplication onCreate() after super
+05-11 18:57:46.760 I/BCL@Common(30510): /PERF/BixbyApplication onCreate() end
+05-11 18:57:55.655 I/flutter (24305): [FfiInferenceModelSession/perf] generation total: 54904ms (prefill 38110ms + decode 16794ms over 130 chunks, ~7.7 chunks/sec)
+05-11 18:57:59.592 I/flutter (24305): [FfiInferenceModel/perf] createConversation (FFI): 3310ms
+05-11 18:57:59.593 I/flutter (24305): [FfiInferenceModel/perf] createSession total: 3310ms
+05-11 18:57:59.594 I/flutter (24305): [Cairn/perf] phase=generate wall=58851ms ttft=38117ms out_chars=385 img_bytes=44733
+05-11 18:57:59.595 I/flutter (24305): [Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=385
+05-11 18:57:59.596 I/flutter (24305): [Cairn/perf] phase=describe_all wall=286617ms photo_count=4 total_wallclock_ms=286617
+05-11 18:58:09.864 I/BCL@Common(31714): /PERF/BixbyApplication onCreate() start
+05-11 18:58:09.893 I/BCL@Common(31714): /PERF/BixbyApplication onCreate() after super
+05-11 18:58:10.035 I/BCL@Common(31714): /PERF/BixbyApplication onCreate() end
+05-11 18:58:23.969 I/BCL@Common(32728): /PERF/BixbyApplication onCreate() start
+05-11 18:58:23.982 I/BCL@Common(32728): /PERF/BixbyApplication onCreate() after super
+05-11 18:58:24.231 I/BCL@Common(32728): /PERF/BixbyApplication onCreate() end
+05-11 18:58:25.512 W/PerformanceInfo(  688): start time : 1778506105512
+05-11 18:58:25.515 W/PerformanceInfo(  688): device totalMem=7649599488, availMem=3859439616, advertisedMem=8589934592, threshold=408944640, lowMemory=false
+05-11 18:58:25.515 W/PerformanceInfo(  688): low memory device false
+05-11 18:58:25.515 W/PerformanceInfo(  688): success getMemoryInfo, took time : 3
