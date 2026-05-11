@@ -198,6 +198,13 @@ The script pauses between variants and waits for ENTER. For each variant:
 
 If native MTP is not faster, keep `flutter_gemma` as the production runtime.
 
+> **Session 2 S23 FE finding:** `native_mtp` runtime loads the model
+> (`engine_create` 31,071 ms, `mtp_available=true`) but produces **zero vision inference
+> output** — `phase=generate` is absent from all runs, `vision_score=0.00`, schema
+> failures on every photo, total_wallclock ≈600 ms (preprocessing only). Root cause:
+> `NativeMtpGemmaSession.describeAll()` is a no-op for vision in the current
+> flutter_gemma build. **Skip native_mtp variants on this device — use flutter_gemma.**
+
 ---
 
 ## 5. Image preprocessing A/B
@@ -216,7 +223,7 @@ This runs two builds back-to-back:
 | A | `… BENCH_NATIVE_IMAGE_PREPROCESS=false BENCH_IMAGE_PX=640` | Dart `BoundedImagePreprocessor` → PNG |
 | B | `… BENCH_NATIVE_IMAGE_PREPROCESS=true BENCH_IMAGE_PX=640` | `AndroidJpegImagePreprocessor` → JPEG sidecar |
 
-Also run the standalone image-size benchmark to compare raw vs 768px vs 512px:
+Also run the standalone image-size benchmark to compare raw vs 768px vs 512px vs 640px:
 
 ```powershell
 .\tool\benchmark_image_px.ps1 -DeviceId RZCX920ARVA -Variant all -OutDir .\bench_out\image_px
@@ -226,7 +233,12 @@ Also run the standalone image-size benchmark to compare raw vs 768px vs 512px:
 |---------|-----------------|--------------|
 | `raw` | `-1` | `PassthroughImagePreprocessor` (no resize) |
 | `768px` | `0` → spec default 768 | `BoundedImagePreprocessor(768)` |
+| `640px` | `640` | `BoundedImagePreprocessor(640)` |
 | `512px` | `512` | `BoundedImagePreprocessor(512)` |
+
+> **Session 2 result (S23 FE):** 512px rejected — S3 (`high_column_soft_story`) vision_score 0.36
+> (foundation sees `no_visible_damage`, severityDelta=3). 640px passes: S3 vision_score 0.54,
+> `column_base_damage` correctly identified. **640px is the promoted image size for this device.**
 
 ### Key fields to compare
 
@@ -247,6 +259,8 @@ Promote `BENCH_IMAGE_PX=512` only if:
 - All 4 photo descriptions pass schema validation.
 - No visible small-crack accuracy loss on real building photos.
 - If `512` loses crack accuracy, use `640`. If `640` loses severity/tag accuracy, use `768`.
+
+**S23 FE (Session 2) measured:** 512px rejected; **640px promoted** — see `bench_out/RESULTS.md §5`.
 
 ---
 
@@ -515,6 +529,10 @@ Promote `native_mtp` if, vs `flutter_gemma` baseline:
 
 Keep `flutter_gemma` if native MTP is not faster or is less reliable.
 
+> **S23 FE Session 2:** `native_mtp` **REJECTED** — vision inference non-functional
+> (`phase=generate` absent, all schema failures, 0.00 score all scenarios).
+> **Current production runtime: `flutter_gemma`.**
+
 ### Image size promotion (`BENCH_IMAGE_PX`)
 
 | Result | Action |
@@ -522,6 +540,10 @@ Keep `flutter_gemma` if native MTP is not faster or is less reliable.
 | 512px TTFT ≥15% better vs raw, no accuracy loss | Set `inferenceMaxLongEdgePx: 512` in `model_registry.dart` |
 | 512px loses small-crack accuracy | Use 640px |
 | 640px loses severity/tag accuracy | Stay at 768px |
+
+> **S23 FE Session 2:** 512px loses S3 structural accuracy (0.54→0.36). **640px promoted**
+> (S3 recovers to 0.54, `column_base_damage` detected, all checks pass).
+> Set `BENCH_IMAGE_PX=640` for this device.
 
 ### Native preprocessing promotion (`BENCH_NATIVE_IMAGE_PREPROCESS`)
 
@@ -557,6 +579,12 @@ only after the §8 gate passes with zero contamination.
   prefill or session overhead, not decode speed.
 - Keep native MTP only if schema reliability is equal **and** total wall time
   improves.
+
+**If native_mtp returns vision_score=0.00 with schema failures on ALL scenarios
+and total_wallclock ≈600 ms** (preprocessing only, no `phase=generate` lines):
+the `NativeMtpGemmaSession.describeAll()` generate step is a no-op in this
+build. This is a flutter_gemma MTP API limitation, not a configuration error.
+Do not investigate further — retain `flutter_gemma` runtime.
 
 ### Image preprocessing is still slow
 
@@ -645,25 +673,34 @@ Verify no crash, no OOM, priority band present.
 
 ## 15. Production candidate config
 
-The config to promote if all gates pass:
+**Current best config (S23 FE, Session 2 measured):**
 
 ```powershell
 flutter run --profile -d RZCX920ARVA \
-  --dart-define=INFERENCE_RUNTIME=native_mtp \
-  --dart-define=BENCH_MTP=true \
-  --dart-define=BENCH_BACKEND=gpu \
+  --dart-define=INFERENCE_RUNTIME=flutter_gemma \
   --dart-define=BENCH_IMAGE_PX=640 \
   --dart-define=BENCH_NATIVE_IMAGE_PREPROCESS=true
 ```
 
-**Promotion checklist — all four must be true to ship this config:**
+Rationale:
+- `flutter_gemma`: native_mtp produces no vision output on this device (Session 2).
+- `BENCH_IMAGE_PX=640`: 512px rejected (S3 regression 0.54→0.36); 640px restores S3
+  to 0.54 with all structural checks passing.
+- `BENCH_NATIVE_IMAGE_PREPROCESS=true`: default, not yet A/B tested (pending §5).
 
-- [ ] `schema_failure_count == 0` on all 3 dev scenarios.
-- [ ] Correct priority bands on all 3 dev scenarios.
-- [ ] No image orientation problems in saved packets.
-- [ ] 4-photo total wall time faster than `flutter_gemma` baseline at 768px.
+**Promotion checklist (Session 2 status):**
 
-If any fail, fall back to:
+- [x] `schema_failure_count == 0` on all 3 dev scenarios — confirmed flutter_gemma.
+- [x] Correct priority bands on all 3 dev scenarios — LOW/MEDIUM/CRITICAL all match.
+- [x] S3 structural gate: vision_score 0.54 ≥ 0.50 at 640px ✅
+- [ ] §6b CPU vs GPU backend decision — pending.
+- [ ] §7 Session config variants (token budget gate) — pending.
+- [ ] §8 History contamination hard gate — pending.
+- [ ] §9 Manual UX flow 21-step pass — pending.
+- [ ] §10 Regression checks (original images, sidecar safety) — pending.
+- [ ] No image orientation problems in saved packets — pending §9/§10.
+
+If any remaining gate fails, the confirmed fallback is:
 
 ```powershell
 flutter run --profile -d RZCX920ARVA \
@@ -671,5 +708,5 @@ flutter run --profile -d RZCX920ARVA \
   --dart-define=BENCH_IMAGE_PX=768
 ```
 
-The `flutter_gemma` baseline at 768px is the last known-good production config.
-Do not ship `native_mtp` until all four promotion gates pass on this device.
+The `flutter_gemma` + 768px config is the last known-good production baseline.
+Do not ship `native_mtp` until `phase=generate` is confirmed present on this device.
