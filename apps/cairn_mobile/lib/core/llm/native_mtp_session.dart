@@ -1,8 +1,10 @@
-/// Android LiteRT-LM MTP bridge.
+/// Android LiteRT-LM bridge with opt-in MTP benchmarking.
 ///
 /// This runtime is opt-in through `--dart-define=INFERENCE_RUNTIME=native_mtp`.
 /// It reuses flutter_gemma's downloaded `.litertlm` file, then calls a small
-/// Kotlin MethodChannel wrapper that enables LiteRT-LM speculative decoding.
+/// Kotlin MethodChannel wrapper. LiteRT-LM speculative decoding is requested
+/// only when the caller passes `enableMtp: true`; the vision path stays off by
+/// default because S23 FE testing showed MTP+vision returning no output.
 library;
 
 import 'dart:async';
@@ -35,7 +37,7 @@ class NativeMtpGemmaSession
     required SessionConfig config,
     required bool enableVision,
     required bool enableThinking,
-    bool enableMtp = true,
+    bool enableMtp = false,
   }) =>
       {
         'modelPath': modelPath,
@@ -64,6 +66,7 @@ class NativeMtpGemmaSession
     ModelSpec spec, {
     required String systemPrompt,
     SessionConfig config = SessionConfig.vision,
+    bool enableMtp = false,
     String? loraPath,
     void Function(GemmaLoadProgress)? onProgress,
   }) async {
@@ -73,7 +76,7 @@ class NativeMtpGemmaSession
       config: config,
     );
     await s._install(onProgress: onProgress);
-    await s._create(systemPrompt: systemPrompt);
+    await s._create(systemPrompt: systemPrompt, enableMtp: enableMtp);
     return s;
   }
 
@@ -81,6 +84,7 @@ class NativeMtpGemmaSession
     ModelSpec spec, {
     required String systemPrompt,
     SessionConfig config = SessionConfig.synthesis,
+    bool enableMtp = false,
     String? loraPath,
     void Function(GemmaLoadProgress)? onProgress,
   }) async {
@@ -90,7 +94,7 @@ class NativeMtpGemmaSession
       config: config,
     );
     await s._install(onProgress: onProgress);
-    await s._create(systemPrompt: systemPrompt);
+    await s._create(systemPrompt: systemPrompt, enableMtp: enableMtp);
     return s;
   }
 
@@ -132,7 +136,10 @@ class NativeMtpGemmaSession
     );
   }
 
-  Future<void> _create({required String systemPrompt}) async {
+  Future<void> _create({
+    required String systemPrompt,
+    required bool enableMtp,
+  }) async {
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
       throw UnsupportedError('native_mtp is available only on Android.');
     }
@@ -145,6 +152,7 @@ class NativeMtpGemmaSession
       config: _config,
       enableVision: !isThinking,
       enableThinking: isThinking,
+      enableMtp: enableMtp,
     );
     final result =
         await _channel.invokeMapMethod<String, Object?>('create', payload);
@@ -223,17 +231,49 @@ class NativeMtpGemmaSession
     required Duration timeout,
   }) async {
     final sw = Stopwatch()..start();
-    final result = await _channel.invokeMapMethod<String, Object?>('generate', {
-      'text': userText,
-      'images': images,
-      'timeoutMs': timeout.inMilliseconds,
-    // Dart timeout is a safety net only. Kotlin's withTimeout(timeoutMs) is the
-    // primary handler. The Dart timer is 10 s longer so Kotlin always fires first,
-    // keeping the error type (PlatformException) deterministic.
-    }).timeout(timeout + const Duration(seconds: 10));
+    final Map<String, Object?>? result;
+    try {
+      result = await _channel.invokeMapMethod<String, Object?>('generate', {
+        'text': userText,
+        'images': images,
+        'timeoutMs': timeout.inMilliseconds,
+        // Dart timeout is a safety net only. Kotlin's withTimeout(timeoutMs) is
+        // the primary handler. The Dart timer is 10 s longer so Kotlin always
+        // fires first, keeping the error type (PlatformException) deterministic.
+      }).timeout(timeout + const Duration(seconds: 10));
+    } catch (error) {
+      sw.stop();
+      PerfLogger.emit(PerfEvent(
+        phase: 'generate_error',
+        wallclockMs: sw.elapsedMilliseconds,
+        imageSizeBytes: images.fold<int>(0, (sum, b) => sum + b.length),
+        extra: {
+          'runtime': runtimeName,
+          'backend': _backendName(_config.preferredBackend),
+          'image_count': images.length,
+          'error': error.toString(),
+        },
+      ));
+      rethrow;
+    }
     sw.stop();
 
     final text = result?['text'] as String? ?? '';
+    if (text.trim().isEmpty) {
+      PerfLogger.emit(PerfEvent(
+        phase: 'generate_error',
+        wallclockMs: sw.elapsedMilliseconds,
+        imageSizeBytes: images.fold<int>(0, (sum, b) => sum + b.length),
+        extra: {
+          'runtime': runtimeName,
+          'backend': result?['backendUsed'],
+          'image_count': images.length,
+          'error': 'empty_native_output',
+          'mtp_requested': result?['speculativeDecodingRequested'],
+          'mtp_available': result?['speculativeDecodingAvailable'],
+        },
+      ));
+    }
     final ttftMs =
         (result?['ttftMs'] as num?)?.toInt() ?? sw.elapsedMilliseconds;
     final wallclockMs =

@@ -173,7 +173,12 @@ class _HumilityScreenState extends ConsumerState<HumilityScreen> {
     final target = _target;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('One more question')),
+      appBar: AppBar(
+        leading: context.canPop()
+            ? BackButton(onPressed: () => context.pop())
+            : null,
+        title: const Text('One more question'),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),

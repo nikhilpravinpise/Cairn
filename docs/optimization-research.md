@@ -102,7 +102,7 @@ Currently `chat.clearHistory()` is called after EVERY describe_photo turn. This 
 
 #### 2D. Stay on the current flutter_gemma Gemma 4-compatible line
 
-The codebase uses `flutter_gemma: ^0.14.5`. The active model path must remain
+The codebase uses `flutter_gemma: ^0.15.0`. The active model path must remain
 Gemma 4-compatible and use `ModelType.gemma4`.
 
 The current registry defines `.task` files for web and `.litertlm` files for
@@ -191,9 +191,10 @@ A Reddit post (r/FlutterDev, 25 upvotes) documented severe issues with flutter_g
 - Significant engineering effort (3-4 days per the Reddit post)
 - Lose cross-platform compatibility
 - Must maintain native Android code
-- flutter_gemma 0.14.2 already uses Dart FFI for .litertlm, partially addressing this
+- flutter_gemma 0.15.x already uses the Dart FFI `.litertlm` path and exposes
+  official speculative decoding, partially addressing this
 
-**Estimated speedup: 10-20%** (marginal over flutter_gemma 0.14.2 FFI path)
+**Estimated speedup: 10-20%** (marginal over the current flutter_gemma FFI path)
 
 #### 2I. Speculative Decoding
 
@@ -259,7 +260,8 @@ Meta's production runtime. 50KB base footprint, supports 12+ hardware backends. 
 
 ### Phase 2: Medium Effort (half day)
 
-4. **Upgrade flutter_gemma** (2D): 0.14.0 → 0.14.2, use .litertlm path → **15-30% speedup**
+4. **Upgrade flutter_gemma** (2D): completed — current line is `^0.15.0` with
+   `.litertlm` FFI and official MTP surface.
 5. **Test history retention** (2C): Don't clear between same-profile turns → **15-25% if safe**
 6. **CPU vs GPU benchmark** (2J): Profile both on S23 FE, pick the consistent one
 
@@ -377,7 +379,115 @@ until the Gemma 4 runtime path is measured.
 
 ---
 
-## 5. Key External References
+---
+
+## 5. LiteRT-LM Roadmap (as of May 2026)
+
+### What exists in 0.11.0 (current pinned version)
+
+| Feature | Status |
+|---|---|
+| `ExperimentalFlags.enableSpeculativeDecoding` | Present in the native bridge — sets MTP draft flag. No runtime confirmation in our current wrapper. |
+| `BenchmarkInfo` counters | `lastDecodeTokenCount`, `lastDecodeTokensPerSecond`, `lastPrefillTokenCount`, `lastPrefillTokensPerSecond`, `timeToFirstTokenInSecond`, `initTimeInSecond` — all confirmed via `javap`. |
+| MTP draft/accepted/rejected counters | **Not present in 0.11.0.** Only indirect A/B benchmark can confirm MTP gain. |
+| Vision via `EngineConfig.visionBackend` | Present and working. |
+| Audio via `EngineConfig.audioBackend` | Present in API but `native_mtp` audio path untested. |
+| NPU / DSP delegate | Available via `PreferredBackend.npu`; Qualcomm-only in practice. |
+| Multi-image batch in single `generate()` | Present in API (`maxNumImages` > 1) but Gemma 4 vision encoder processes images sequentially in the Kotlin bridge — no parallel speedup. |
+
+### What is expected in upcoming releases
+
+- **MTP acceptance counters** — not exposed in the current Cairn runtime logs;
+  still use A/B wall time and decode tok/s to prove benefit.
+- **Streaming / token-by-token callback** in the Kotlin bridge — improves perceived latency for the synthesis step.
+- **Gemma 3n / MobileNet-V5 encoder** support — would reduce vision encoding from ~30 s to ~5 s per photo (same gain Sunny identified).
+- **GGUF / GGML format** support — not planned; LiteRT-LM is `.litertlm`/`.task` only.
+- **flutter_gemma 0.15.0 MTP surface** — released after the 0.14.5 baseline.
+  It upgrades to LiteRT-LM 0.11.0 and adds `enableSpeculativeDecoding` on
+  `getActiveModel()`. Test this official path before investing more in the
+  custom Kotlin bridge.
+
+### Blocking runtime bug: MTP + vision
+
+The S23 FE run with `INFERENCE_RUNTIME=native_mtp BENCH_MTP=true` created the
+engine but produced no `phase=generate` rows and all schema checks failed. Treat
+MTP as an A/B-only experiment for vision. The app now requests speculative
+decoding only when `BENCH_MTP=true`; normal native bridge runs keep MTP off.
+
+---
+
+## 6. Architectural Improvement Shortlist
+
+Priority ordered by estimated user-visible impact vs. implementation effort.
+
+### Tier 1 — High impact, low risk (do next sprint)
+
+1. **Image downscale to 640 px longest edge** (`BENCH_IMAGE_PX=640`)
+   - **Promoted to production default.** 512 px was faster but regressed
+     soft-story / column-base detail; 640 px preserved the 768 px S3 score.
+   - Speed gain comes mostly from JPEG byte reduction and model-side image I/O,
+     not lower patch count: the observed LiteRT preprocessor still filled a
+     similar visual-token budget.
+
+2. **Keep `maxTokens` at 4096 until the session-config gate is complete**
+   - Token budget has never been fully utilised (longest observed output ~380 tokens).
+   - KV cache allocation is proportional to `maxTokens`, so 3072/2048 remain
+     high-value benchmark candidates.
+   - Do not promote 2048 without device evidence; earlier notes record
+     `INVALID_ARGUMENT` risk when image+prompt tokens exceed the lower budget.
+
+3. **Keep `flutter_gemma` as the production runtime**
+   - `flutter_gemma` 0.15.0 uses the Android `.litertlm` FFI path and exposes
+     speculative decoding through `getActiveModel(enableSpeculativeDecoding:)`.
+   - Cairn wires that official MTP path behind `BENCH_MTP=true`; benchmark it
+     before spending more time on the custom Kotlin bridge.
+   - The native Kotlin bridge remains benchmark-only for LiteRT-LM experiments
+     and now logs `generate_error` rows when MethodChannel generation fails.
+
+### Tier 2 — Medium impact, medium risk
+
+4. **Re-use session across photos** (drop `clearHistoryBetweenTurns = true`)
+   - System prompt + vision encoder tokens are re-prefilled for every photo today.
+   - Retaining history saves ~N×prefill_time across N photos.
+   - Risk: context window exhaustion for 5 photos × 4096 maxTokens.  Requires careful context budget management.
+
+5. **Parallel model load + photo capture**
+   - `openForVision()` takes 10–20 s.  Start loading as soon as the user navigates to the capture screen, not when they tap "Describe photos".
+   - Requires a `loadingModelProvider` state and UI affordance.
+
+6. **Adopt richer flutter_gemma streaming/perf hooks when exposed**
+   - Streaming lets the UI show partial JSON as it arrives, giving perceived responsiveness even if total time is unchanged.
+
+### Tier 3 — High impact, high effort (future sprints)
+
+7. **Switch to Gemma 3n E2B with MobileNet-V5 encoder** (when available as `.litertlm`)
+   - Vision encoding is the single largest bottleneck.  MobileNet-V5 processes at ~5× the speed of SigLIP.
+   - Requires re-validation of all structural understanding accuracy benchmarks.
+
+8. **SFT / LoRA fine-tuning on FEMA P-154 data**
+   - Competitor Sunny achieved higher accuracy with ultra-short prompts after fine-tuning.
+   - EpiCast used LoRA r=16 α=32 at temperature 0.1 for extraction tasks.
+   - A Cairn-specific fine-tune could halve the required output token budget.
+
+9. **Background model warm-up**
+   - Keep a loaded (but idle) `GemmaSession` alive between screenings.
+   - Android Foreground Service to prevent process death during synthesis.
+
+### Known Technical Debt
+
+| Item | File | Notes |
+|---|---|---|
+| `speculativeDecodingAvailable` tautology | `native_mtp_session.dart` | Reflects flag state only, not runtime confirmation. Document in UI if ever exposed. |
+| Native MTP vision no-output | `native_mtp_session.dart` / `MainActivity.kt` | S23 FE run created the engine but produced no generation rows. MTP is now explicit opt-in via `BENCH_MTP=true`; keep `flutter_gemma` as production. |
+| Contradictory `no_visible_damage` tags | `orchestrator.dart` | Deterministically remove `no_visible_damage` when concrete damage tags are also present. This directly addresses the S2 benchmark failure mode. |
+| `_kAppVersion` hardcoded | `session_controller.dart` | Should read from `package_info_plus`. |
+| No widget-level dark-mode theming | `cairn_theme.dart` | Light theme forced as of this session. File per-widget tickets when dark mode is re-enabled. |
+| `sessionDraft` auto-save on every state change | `main.dart` | Fires on every photo/audio add. Debounce to max 1 write/s to reduce I/O. |
+| Audio `native_mtp` path untested | `native_mtp_session.dart` | `generate(audioBytes: ...)` throws `UnsupportedError` — correct, but no test covers it. |
+
+---
+
+## 7. Key External References
 
 | Resource | URL | Relevance |
 |---|---|---|

@@ -47,7 +47,7 @@ class CairnApp extends ConsumerWidget {
       title: 'Cairn',
       debugShowCheckedModeBanner: false,
       theme: CairnTheme.light(),
-      darkTheme: CairnTheme.dark(),
+      themeMode: ThemeMode.light,
       routerConfig: appRouter,
     );
   }

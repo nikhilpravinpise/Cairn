@@ -74,6 +74,10 @@ final _lightColorScheme = ColorScheme.fromSeed(
   brightness: Brightness.light,
   surface: _surfaceLight,
   error: _errorColor,
+  // M3 ChoiceChip / FilterChip resolve unselected label text to
+  // onSurfaceVariant. The auto-generated value can be too light when the
+  // surface is near-white, so we pin it to a dark, high-contrast grey.
+  onSurfaceVariant: const Color(0xFF3B3B3B),
 );
 
 final _darkColorScheme = ColorScheme.fromSeed(
@@ -225,9 +229,16 @@ AppBarTheme _appBarTheme(ColorScheme cs) => AppBarTheme(
 ChipThemeData _chipTheme(ColorScheme cs) => ChipThemeData(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: cs.outline.withValues(alpha: 0.3)),
+        side: BorderSide(color: cs.outline.withValues(alpha: 0.45)),
       ),
-      labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+      labelStyle: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+        color: cs.onSurface,
+      ),
+      // Give unselected chips a light grey tint so they are visible
+      // against the near-white scaffold background.
+      backgroundColor: cs.surfaceContainerHighest,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     );
 

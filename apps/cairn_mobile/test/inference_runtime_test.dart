@@ -119,7 +119,7 @@ void main() {
   });
 
   group('NativeMtpGemmaSession create payload', () {
-    test('includes token budget, backend, image count, and MTP request', () {
+    test('includes token budget, backend, image count, and MTP state', () {
       final payload = NativeMtpGemmaSession.buildCreatePayload(
         modelPath: '/tmp/model.litertlm',
         systemPrompt: 'system',
@@ -133,9 +133,22 @@ void main() {
       expect(payload['maxNumImages'], SessionConfig.vision.maxNumImages);
       expect(payload['backend'], 'gpu');
       expect(payload['visionBackend'], 'gpu');
-      expect(payload['enableMtp'], isTrue);
+      expect(payload['enableMtp'], isFalse);
       expect(payload['enableVision'], isTrue);
       expect(payload['enableThinking'], isFalse);
+    });
+
+    test('MTP is explicit opt-in for benchmark runs', () {
+      final payload = NativeMtpGemmaSession.buildCreatePayload(
+        modelPath: '/tmp/model.litertlm',
+        systemPrompt: 'system',
+        config: SessionConfig.vision,
+        enableVision: true,
+        enableThinking: false,
+        enableMtp: true,
+      );
+
+      expect(payload['enableMtp'], isTrue);
     });
   });
 
@@ -263,6 +276,33 @@ void main() {
       );
 
       expect(identical(session.lastImage, inference), isTrue);
+    });
+
+    test('describePhoto removes contradictory no_visible_damage tag', () async {
+      final session = _ToolSession(
+        const GemmaInferenceResult(
+          text: '{"observation_id":"obs-1","prompt_id":"p1","asked_in":"en",'
+              '"image_refs":["img-1"],"model_description":"Cracking visible.",'
+              '"model_tags":["horizontal_crack","no_visible_damage",'
+              '"horizontal_crack","uncertain_structural"],'
+              '"model_confidence":0.6,"bbox_annotations":[]}',
+          thinking: '',
+          ttftMs: 1,
+          wallclockMs: 2,
+          outputCharCount: 50,
+          runtimeName: GemmaSession.runtimeName,
+        ),
+      );
+
+      final result = await GemmaOrchestrator(session).describePhoto(
+        observationId: 'obs-1',
+        promptId: 'p1',
+        askedIn: 'en',
+        imageBytes: Uint8List(4),
+        imageRef: 'img-1',
+      );
+
+      expect(result.modelTags, ['horizontal_crack', 'uncertain_structural']);
     });
   });
 

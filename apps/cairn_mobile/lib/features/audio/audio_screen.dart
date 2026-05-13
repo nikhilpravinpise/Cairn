@@ -282,6 +282,9 @@ class _AudioScreenState extends ConsumerState<AudioScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: context.canPop()
+            ? BackButton(onPressed: () => context.pop())
+            : null,
         title: const Text('Audio observations'),
       ),
       body: SafeArea(

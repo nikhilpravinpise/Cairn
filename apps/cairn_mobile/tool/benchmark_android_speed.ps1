@@ -25,7 +25,8 @@ $flutterExe = if (Get-Command flutter -ErrorAction SilentlyContinue) { 'flutter'
 
 $matrix = @{
     flutter = @(
-        @('INFERENCE_RUNTIME=flutter_gemma', 'BENCH_IMAGE_PX=768')
+        @('INFERENCE_RUNTIME=flutter_gemma', 'BENCH_IMAGE_PX=640'),
+        @('INFERENCE_RUNTIME=flutter_gemma', 'BENCH_MTP=true', 'BENCH_IMAGE_PX=640')
     )
     native_mtp_gpu = @(
         @('INFERENCE_RUNTIME=native_mtp', 'BENCH_MTP=true', 'BENCH_BACKEND=gpu', 'BENCH_IMAGE_PX=512'),

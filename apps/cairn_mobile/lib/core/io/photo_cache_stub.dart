@@ -24,3 +24,8 @@ Future<void> persistInferenceBytes(
 ) async {
   // No-op on web: in-memory [SessionDraft] is the only store.
 }
+
+/// No-op on web; native target deletes the durable capture cache for [packetId].
+Future<void> clearCapturedBytes(String packetId) async {
+  // No-op on web.
+}

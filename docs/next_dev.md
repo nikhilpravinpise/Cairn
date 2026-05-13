@@ -4,7 +4,10 @@
 
 Cairn now has Android-first inference speed work in place:
 
-- Native LiteRT-LM MTP runtime behind `INFERENCE_RUNTIME=native_mtp`.
+- `flutter_gemma` 0.15.0 official LiteRT-LM speculative decoding is wired
+  behind `BENCH_MTP=true`.
+- Legacy native LiteRT-LM bridge remains behind `INFERENCE_RUNTIME=native_mtp`
+  for diagnostics.
 - Pinned Android LiteRT-LM dependency instead of `latest.release`.
 - Android GPU create with CPU fallback and native perf payloads.
 - Capture-time inference sidecars so photo analysis can skip repeated app-side preprocessing.
@@ -67,6 +70,7 @@ Use the PowerShell benchmark helper from `apps/cairn_mobile`:
 If time is limited, run the highest-signal subset:
 
 ```powershell
+.\tool\benchmark_android_speed.ps1 -DeviceId <DEVICE_ID> -OutDir .\bench_out -Variant flutter
 .\tool\benchmark_android_speed.ps1 -DeviceId <DEVICE_ID> -OutDir .\bench_out -Variant image_preprocess_ab
 .\tool\benchmark_android_speed.ps1 -DeviceId <DEVICE_ID> -OutDir .\bench_out -Variant native_mtp_gpu
 .\tool\benchmark_android_speed.ps1 -DeviceId <DEVICE_ID> -OutDir .\bench_out -Variant native_mtp_batch
@@ -75,7 +79,9 @@ If time is limited, run the highest-signal subset:
 The important variants are:
 
 - Baseline Flutter runtime:
-  `INFERENCE_RUNTIME=flutter_gemma`, `BENCH_IMAGE_PX=768`
+  `INFERENCE_RUNTIME=flutter_gemma`, `BENCH_IMAGE_PX=640`
+- Official Flutter MTP:
+  `INFERENCE_RUNTIME=flutter_gemma`, `BENCH_MTP=true`, `BENCH_IMAGE_PX=640`
 - Native MTP GPU:
   `INFERENCE_RUNTIME=native_mtp`, `BENCH_BACKEND=gpu`, `BENCH_IMAGE_PX=512/640/768`
 - Native MTP CPU fallback comparison:
@@ -166,6 +172,10 @@ If native MTP is not faster:
 - Compare `tokensPerSecond`, not just wall time.
 - If decode tokens/sec improves but wall time does not, the bottleneck is prefill/image/session overhead.
 - Keep native MTP only if schema reliability is equal and total wall time improves.
+- If `BENCH_MTP=true` produces empty output or no `phase=generate` rows, rerun
+  with `INFERENCE_RUNTIME=flutter_gemma`; MTP is still experimental for vision.
+- Prefer the `flutter_gemma` official `BENCH_MTP=true` path over the Kotlin
+  bridge. The bridge is now diagnostic-only.
 
 If image preprocessing is still slow:
 

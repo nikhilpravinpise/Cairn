@@ -33,7 +33,7 @@
 /// ```
 ///
 /// Supported values:
-/// - `0` (default): use `spec.inferenceMaxLongEdgePx` (currently 768).
+/// - `0` (default): use `spec.inferenceMaxLongEdgePx` (currently 640).
 /// - `-1`: passthrough — raw capture bytes, no downscaling.
 /// - Any positive integer: bound longest edge to that many pixels.
 ///
@@ -53,23 +53,26 @@
 ///
 /// Supported values: `cpu`, `gpu` (default when not set).
 ///
-/// ### INFERENCE_RUNTIME / BENCH_RUNTIME — runtime selector (MTP bridge)
+/// ### INFERENCE_RUNTIME / BENCH_RUNTIME — runtime selector
 ///
-/// `flutter_gemma` is the production default. `native_mtp` enables the Android
-/// LiteRT-LM bridge that turns on Gemma 4 speculative decoding / MTP.
+/// `flutter_gemma` is the production default. With flutter_gemma >=0.15.0,
+/// `BENCH_MTP=true` requests official LiteRT-LM speculative decoding through
+/// `getActiveModel(enableSpeculativeDecoding: true)`.
 ///
 /// ### BENCH_BATCH / BENCH_MTP
 ///
+/// `native_mtp` enables the legacy Android LiteRT-LM bridge for diagnostics.
 /// `BENCH_BATCH=true` enables the native multi-image batch experiment when the
-/// selected runtime is `native_mtp`. `BENCH_MTP=true` is recorded for benchmark
-/// scripts; native_mtp always requests MTP because that is its purpose.
+/// selected runtime is `native_mtp`.
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gemma/flutter_gemma.dart' hide ModelSpec;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'images/image_preprocessor.dart';
+import 'llm/fake_gemma_session.dart';
 import 'llm/gemma_session.dart';
 import 'llm/inference_runtime.dart';
 import 'llm/model_registry.dart';
@@ -115,6 +118,22 @@ const _kBenchMtp = bool.fromEnvironment('BENCH_MTP', defaultValue: false);
 
 const _kNativeImagePreprocess =
     bool.fromEnvironment('BENCH_NATIVE_IMAGE_PREPROCESS', defaultValue: true);
+
+/// DEV_SKIP_MODEL=true replaces every Gemma session with [FakeGemmaSession].
+///
+/// Use this during UI / flow development to bypass the 4 GB model download
+/// and LiteRT engine creation entirely. The fake returns canned JSON that
+/// passes all contract validators so the full photo → protocol → synthesize
+/// → report flow runs end-to-end in seconds.
+///
+/// ```bash
+/// flutter run -d emulator-5554 --dart-define=DEV_SKIP_MODEL=true
+/// flutter run -d chrome        --dart-define=DEV_SKIP_MODEL=true
+/// ```
+///
+/// This constant is false in all production / release builds.
+const _kDevSkipModel =
+    bool.fromEnvironment('DEV_SKIP_MODEL', defaultValue: false);
 
 final selectedInferenceRuntimeProvider = Provider<InferenceRuntime>((_) {
   return inferenceRuntimeFromDefines(
@@ -259,6 +278,14 @@ class GemmaSessionNotifier extends Notifier<GemmaSessionInterface?> {
     final sys = await ref.read(systemPromptProvider.future);
     final runtime = ref.read(selectedInferenceRuntimeProvider);
 
+    // DEV_SKIP_MODEL: bypass all real model loading for UI development.
+    if (_kDevSkipModel) {
+      debugPrint(
+          '[Cairn/DEV_SKIP_MODEL] load() skipped — using FakeGemmaSession');
+      state = const FakeGemmaSession();
+      return;
+    }
+
     // Benchmark override chain (compile-time constants — zero cost in release):
     //   1. Explicit caller-supplied config takes highest priority.
     //   2. BENCH_CONFIG selects a named SessionConfig variant.
@@ -269,27 +296,57 @@ class GemmaSessionNotifier extends Notifier<GemmaSessionInterface?> {
         _applyBenchBackend(
             config ?? _benchConfigForKey(_kBenchConfig) ?? productionDefault);
 
+    // native_mtp is a dev-only runtime gated behind
+    //   --dart-define=INFERENCE_RUNTIME=native_mtp
+    // It is never reachable in production / release builds unless that define
+    // is explicitly set. Any PlatformException from the Kotlin bridge is caught
+    // here and re-thrown as a user-readable message so the caller can surface
+    // a SnackBar instead of silently hanging.
+    try {
+      if (runtime == InferenceRuntime.nativeMtp) {
+        state = switch (profile) {
+          SessionProfile.vision => await NativeMtpGemmaSession.openForVision(
+              spec,
+              systemPrompt: sys,
+              config: resolved(SessionConfig.vision),
+              enableMtp: _kBenchMtp,
+              loraPath: loraPath,
+              onProgress: onProgress,
+            ),
+          SessionProfile.synthesis =>
+            await NativeMtpGemmaSession.openForSynthesis(
+              spec,
+              systemPrompt: sys,
+              config: resolved(SessionConfig.synthesis),
+              enableMtp: _kBenchMtp,
+              loraPath: loraPath,
+              onProgress: onProgress,
+            ),
+          _ => throw UnsupportedError(
+              'native_mtp does not support the $profile profile.'),
+        };
+        return;
+      }
+    } on PlatformException catch (e) {
+      debugPrint(
+          '[Cairn/native_mtp] PlatformException — ${e.code}: ${e.message}');
+      throw Exception(
+        'native_mtp runtime error (${e.code}): ${e.message ?? "unknown"}. '
+        'Rebuild without --dart-define=INFERENCE_RUNTIME=native_mtp to use '
+        'the stable flutter_gemma runtime.',
+      );
+    }
+
     state = switch ((runtime, profile)) {
-      (InferenceRuntime.nativeMtp, SessionProfile.vision) =>
-        await NativeMtpGemmaSession.openForVision(
-          spec,
-          systemPrompt: sys,
-          config: resolved(SessionConfig.vision),
-          loraPath: loraPath,
-          onProgress: onProgress,
-        ),
-      (InferenceRuntime.nativeMtp, SessionProfile.synthesis) =>
-        await NativeMtpGemmaSession.openForSynthesis(
-          spec,
-          systemPrompt: sys,
-          config: resolved(SessionConfig.synthesis),
-          loraPath: loraPath,
-          onProgress: onProgress,
-        ),
+      (InferenceRuntime.nativeMtp, _) =>
+        // Should be unreachable after the try-block above, but keeps the
+        // switch exhaustive for the type-checker.
+        throw StateError('native_mtp load reached unreachable fallthrough'),
       (_, SessionProfile.vision) => await GemmaSession.openForVision(
           spec,
           systemPrompt: sys,
           config: resolved(SessionConfig.vision),
+          enableSpeculativeDecoding: _kBenchMtp,
           loraPath: loraPath,
           onProgress: onProgress,
         ),
@@ -297,6 +354,7 @@ class GemmaSessionNotifier extends Notifier<GemmaSessionInterface?> {
           spec,
           systemPrompt: sys,
           config: resolved(SessionConfig.audio),
+          enableSpeculativeDecoding: _kBenchMtp,
           loraPath: loraPath,
           onProgress: onProgress,
         ),
@@ -304,6 +362,7 @@ class GemmaSessionNotifier extends Notifier<GemmaSessionInterface?> {
           spec,
           systemPrompt: sys,
           config: resolved(SessionConfig.synthesis),
+          enableSpeculativeDecoding: _kBenchMtp,
           loraPath: loraPath,
           onProgress: onProgress,
         ),
@@ -311,6 +370,7 @@ class GemmaSessionNotifier extends Notifier<GemmaSessionInterface?> {
           spec,
           systemPrompt: sys,
           config: resolved(SessionConfig.standard),
+          enableSpeculativeDecoding: _kBenchMtp,
           loraPath: loraPath,
           onProgress: onProgress,
         ),
@@ -328,6 +388,7 @@ class GemmaSessionNotifier extends Notifier<GemmaSessionInterface?> {
     } else if (session is NativeMtpGemmaSession) {
       await session.close();
     }
+    // FakeGemmaSession and null: no teardown needed.
   }
 }
 

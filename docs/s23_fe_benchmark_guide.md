@@ -108,7 +108,17 @@ Three curated 4-photo packs live under
 .\tool\run_dev_model_scenarios.ps1 -DeviceId RZCX920ARVA -CaptureLogcat
 ```
 
-To run with native MTP runtime:
+To run the official `flutter_gemma` MTP path, launch the app with:
+
+```powershell
+flutter run --profile -d RZCX920ARVA `
+  --dart-define=DEV_MODEL_TEST=true `
+  --dart-define=INFERENCE_RUNTIME=flutter_gemma `
+  --dart-define=BENCH_MTP=true `
+  --dart-define=BENCH_IMAGE_PX=640
+```
+
+To run with the legacy native MTP bridge:
 
 ```powershell
 .\tool\run_dev_model_scenarios.ps1 -DeviceId RZCX920ARVA -NativeMtp -CaptureLogcat
@@ -149,8 +159,9 @@ This runs all five variant groups in sequence:
 
 | Group | Dart defines | Purpose |
 |-------|-------------|---------|
-| `flutter` | `INFERENCE_RUNTIME=flutter_gemma BENCH_IMAGE_PX=768` | Production baseline |
-| `native_mtp_gpu` | `INFERENCE_RUNTIME=native_mtp BENCH_MTP=true BENCH_BACKEND=gpu BENCH_IMAGE_PX=512/640/768` | Native MTP at 3 image sizes |
+| `flutter` | `INFERENCE_RUNTIME=flutter_gemma BENCH_IMAGE_PX=640` | Production baseline |
+| `flutter_mtp` | `INFERENCE_RUNTIME=flutter_gemma BENCH_MTP=true BENCH_IMAGE_PX=640` | Official flutter_gemma MTP A/B |
+| `native_mtp_gpu` | `INFERENCE_RUNTIME=native_mtp BENCH_MTP=true BENCH_BACKEND=gpu BENCH_IMAGE_PX=512/640/768` | Legacy native MTP at 3 image sizes |
 | `native_mtp_cpu` | `INFERENCE_RUNTIME=native_mtp BENCH_MTP=true BENCH_BACKEND=cpu BENCH_IMAGE_PX=640` | CPU fallback comparison |
 | `native_mtp_batch` | `INFERENCE_RUNTIME=native_mtp BENCH_MTP=true BENCH_BACKEND=gpu BENCH_BATCH=true BENCH_IMAGE_PX=640` | Batch experiment |
 | `image_preprocess_ab` | `… BENCH_NATIVE_IMAGE_PREPROCESS=false` vs `true` | JPEG sidecar A/B |
@@ -192,6 +203,7 @@ The script pauses between variants and waits for ENTER. For each variant:
 
 | Comparison | Gate |
 |-----------|------|
+| `flutter_mtp` vs `flutter` | Decode tokens/sec **+35%** OR 4-photo total wall time **+20%** faster |
 | `native_mtp_gpu` vs `flutter` | Decode tokens/sec **+35%** OR 4-photo total wall time **+20%** faster |
 | `native_mtp_batch` vs sequential | 4-photo total wall time **+30%** faster, zero cross-photo contamination |
 | Any variant vs baseline | `schema_failure_count == 0`, no priority band regression |
@@ -202,8 +214,9 @@ If native MTP is not faster, keep `flutter_gemma` as the production runtime.
 > (`engine_create` 31,071 ms, `mtp_available=true`) but produces **zero vision inference
 > output** — `phase=generate` is absent from all runs, `vision_score=0.00`, schema
 > failures on every photo, total_wallclock ≈600 ms (preprocessing only). Root cause:
-> `NativeMtpGemmaSession.describeAll()` is a no-op for vision in the current
-> flutter_gemma build. **Skip native_mtp variants on this device — use flutter_gemma.**
+> the legacy bridge likely failed before or during native generation. Use the
+> official `flutter_gemma` 0.15.x MTP path for the next MTP A/B, and keep
+> `flutter_gemma` without MTP as the production fallback.
 
 ---
 
@@ -232,8 +245,8 @@ Also run the standalone image-size benchmark to compare raw vs 768px vs 512px vs
 | Variant | `BENCH_IMAGE_PX` | Preprocessor |
 |---------|-----------------|--------------|
 | `raw` | `-1` | `PassthroughImagePreprocessor` (no resize) |
-| `768px` | `0` → spec default 768 | `BoundedImagePreprocessor(768)` |
-| `640px` | `640` | `BoundedImagePreprocessor(640)` |
+| `768px` | `768` | `BoundedImagePreprocessor(768)` |
+| `640px` | `0` → spec default 640 | `BoundedImagePreprocessor(640)` |
 | `512px` | `512` | `BoundedImagePreprocessor(512)` |
 
 > **Session 2 result (S23 FE):** 512px rejected — S3 (`high_column_soft_story`) vision_score 0.36
@@ -582,9 +595,10 @@ only after the §8 gate passes with zero contamination.
 
 **If native_mtp returns vision_score=0.00 with schema failures on ALL scenarios
 and total_wallclock ≈600 ms** (preprocessing only, no `phase=generate` lines):
-the `NativeMtpGemmaSession.describeAll()` generate step is a no-op in this
-build. This is a flutter_gemma MTP API limitation, not a configuration error.
-Do not investigate further — retain `flutter_gemma` runtime.
+the legacy `NativeMtpGemmaSession.describeAll()` generate step is failing before
+or during native generation. Keep the official `flutter_gemma` runtime as the
+baseline, then compare `flutter_mtp` separately before spending more time on
+the bridge.
 
 ### Image preprocessing is still slow
 
@@ -603,8 +617,8 @@ Do not investigate further — retain `flutter_gemma` runtime.
 ### Batch mode fails
 
 - Keep `BENCH_BATCH=true` disabled in production.
-- Note: `flutter_gemma 0.14.2` has no `Message.withImages()` constructor —
-  multi-image per-turn batch is architecturally not supported.
+- Note: Cairn's production path intentionally keeps per-photo vision turns
+  separate. Multi-image batch is a diagnostic experiment only.
   `describeAll()` sequential is the correct production path.
 
 ### Schema failures appear
@@ -705,8 +719,9 @@ If any remaining gate fails, the confirmed fallback is:
 ```powershell
 flutter run --profile -d RZCX920ARVA \
   --dart-define=INFERENCE_RUNTIME=flutter_gemma \
-  --dart-define=BENCH_IMAGE_PX=768
+  --dart-define=BENCH_IMAGE_PX=640
 ```
 
-The `flutter_gemma` + 768px config is the last known-good production baseline.
-Do not ship `native_mtp` until `phase=generate` is confirmed present on this device.
+The `flutter_gemma` + 640px config is the current production baseline.
+Do not ship `native_mtp` with `BENCH_MTP=true` until `phase=generate` is
+confirmed present on this device.

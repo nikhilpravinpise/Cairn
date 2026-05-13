@@ -49,13 +49,16 @@ class ModelSpec {
   /// before passing them to [Message.withImage]. Images already within the
   /// bound are passed through unchanged (no re-encode cost).
   ///
-  /// Sprint 3 production default: 768 px (conservative; benchmark 512 px
-  /// if the device gate passes). See `docs/optimization-plan.md §OPT-1`.
+  /// Sprint 5 production default: 640 px, promoted from the S23 FE benchmark
+  /// gate. 512 px was faster but lost soft-story / column-base detail; 640 px
+  /// preserved the 768 px structural score while cutting image bytes heavily.
+  /// See `apps/cairn_mobile/bench_out/RESULTS.md`.
   ///
   /// | Value | Meaning                                     |
   /// |-------|---------------------------------------------|
-  /// | 768   | Sprint 3 default — safe, measurable speedup |
-  /// | 512   | Aggressive candidate — benchmark first      |
+  /// | 768   | Conservative fallback                       |
+  /// | 640   | Production default after S23 FE gate        |
+  /// | 512   | Rejected for structural accuracy regression |
   final int inferenceMaxLongEdgePx;
 
   String getTaskFilename(bool isWeb) =>
@@ -96,7 +99,7 @@ const Map<String, ModelSpec> models = {
     quant: 'int4',
     modalities: {'text', 'image'},
     appContextBudgetTokens: 8192,
-    inferenceMaxLongEdgePx: 768,
+    inferenceMaxLongEdgePx: 640,
   ),
   'e4b': ModelSpec(
     key: 'e4b',
@@ -109,6 +112,6 @@ const Map<String, ModelSpec> models = {
     quant: 'int4',
     modalities: {'text', 'image'},
     appContextBudgetTokens: 8192,
-    inferenceMaxLongEdgePx: 768,
+    inferenceMaxLongEdgePx: 640,
   ),
 };

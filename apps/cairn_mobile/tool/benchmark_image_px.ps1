@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Sprint 3 image-size benchmark — compares raw, 768 px, and 512 px
+    Image-size benchmark — compares raw, 768 px, 640 px, and 512 px
     inference inputs on a connected Android device (RZCX920ARVA).
 
 .DESCRIPTION
@@ -8,9 +8,10 @@
     one of three values, then captures [*/perf] and [Cairn/perf] timing logs
     via adb logcat.
 
-    Three variants:
+    Variants:
       raw     — BENCH_IMAGE_PX=-1  PassthroughImagePreprocessor (no resize)
-      768px   — BENCH_IMAGE_PX=0   BoundedImagePreprocessor at spec default (768)
+      768px   — BENCH_IMAGE_PX=768 BoundedImagePreprocessor at 768 px
+      640px   — BENCH_IMAGE_PX=0   BoundedImagePreprocessor at spec default (640)
       512px   — BENCH_IMAGE_PX=512 BoundedImagePreprocessor at 512 px
 
     For each variant, launch the app, load the model, describe 5 photos
@@ -18,8 +19,8 @@
     Compare the [*/perf] prefill/decode lines across the three runs.
 
 .PARAMETER Variant
-    Which image-size variant to run. Defaults to '768px'.
-    Choices: raw, 768px, 512px, all (run all three in sequence).
+    Which image-size variant to run. Defaults to '640px'.
+    Choices: raw, 768px, 640px, 512px, all (run all variants in sequence).
 
 .PARAMETER DeviceId
     ADB device serial number. Default: RZCX920ARVA.
@@ -32,7 +33,7 @@
     Directory for the perf log files. Default: current directory.
 
 .EXAMPLE
-    .\tool\benchmark_image_px.ps1 -Variant 768px
+    .\tool\benchmark_image_px.ps1 -Variant 640px
     .\tool\benchmark_image_px.ps1 -Variant all -OutDir C:\tmp\sprint3
     .\tool\benchmark_image_px.ps1 -Variant raw -DeviceId RZCX920ARVA
 
@@ -40,17 +41,13 @@
     Requires: adb in PATH, flutter in PATH.
     Reference: docs/optimization-plan.md §Sprint-3 OPT-1
 
-    Gate criteria (Sprint 3):
-      768px  — TTFT and prefill materially lower than raw? Contract valid?
-      512px  — Further gain beyond 768px? Schema validity unchanged?
-    Promote 512px to production (inferenceMaxLongEdgePx: 512) only if:
-      - All 5 photo descriptions pass schema validation.
-      - No visible image quality regression on real building photos.
-      - TTFT / prefill improvement >= 15% vs raw baseline.
+    Current decision:
+      640px  — promoted after S23 FE accuracy gate.
+      512px  — rejected for soft-story / column-base accuracy regression.
 #>
 param(
-    [ValidateSet('raw', '768px', '512px', 'all')]
-    [string] $Variant = '768px',
+    [ValidateSet('raw', '768px', '640px', '512px', 'all')]
+    [string] $Variant = '640px',
 
     [string] $DeviceId = 'RZCX920ARVA',
 
@@ -67,7 +64,8 @@ $appDir = Split-Path -Parent $PSScriptRoot
 # Map variant name to BENCH_IMAGE_PX value.
 $variantMap = @{
     'raw'   = -1
-    '768px' = 0
+    '768px' = 768
+    '640px' = 0
     '512px' = 512
 }
 
@@ -180,7 +178,7 @@ if (-not (Test-Path $adbExe -ErrorAction SilentlyContinue) -and -not (Get-Comman
 if (-not (Test-Path $flutterExe -ErrorAction SilentlyContinue) -and -not (Get-Command $flutterExe -ErrorAction SilentlyContinue)) { throw "flutter not found." }
 
 if ($Variant -eq 'all') {
-    foreach ($v in @('raw', '768px', '512px')) {
+    foreach ($v in @('raw', '768px', '640px', '512px')) {
         Run-Variant -name $v
         if ($v -ne '512px') {
             Write-Host "[benchmark_image_px] Pausing 10 s before next variant..."
@@ -194,15 +192,13 @@ if ($Variant -eq 'all') {
 Write-Host "[benchmark_image_px] Sprint 3 image-px benchmark complete."
 Write-Host "Compare the captured files:"
 Write-Host "  bench_image_px_raw_*.txt    → raw baseline"
-Write-Host "  bench_image_px_768px_*.txt  → 768 px (current production default)"
-Write-Host "  bench_image_px_512px_*.txt  → 512 px (aggressive candidate)"
+Write-Host "  bench_image_px_768px_*.txt  → 768 px conservative fallback"
+Write-Host "  bench_image_px_640px_*.txt  → 640 px current production default"
+Write-Host "  bench_image_px_512px_*.txt  → 512 px rejected unless a new model recovers accuracy"
 Write-Host ""
 Write-Host "Key metrics to compare:"
 Write-Host "  [FfiInferenceModelSession/perf] time_to_first_chunk_ms"
 Write-Host "  [FfiInferenceModelSession/perf] generation_time_ms"
 Write-Host "  [Cairn/perf] phase=generate img_bytes=..."
 Write-Host ""
-Write-Host "Promote 512px (inferenceMaxLongEdgePx: 512 in model_registry.dart) only if:"
-Write-Host "  - TTFT / prefill improves >= 15% vs raw."
-Write-Host "  - All 5 descriptions pass schema validation (tools/validate_schema.py)."
-Write-Host "  - No visible quality regression on real building photos."
+Write-Host "Keep 640px unless a new device/model run proves 512px preserves structural tags."

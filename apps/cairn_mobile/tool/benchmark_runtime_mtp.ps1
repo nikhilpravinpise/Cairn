@@ -1,18 +1,19 @@
 <#
 .SYNOPSIS
-    Gemma 4 runtime benchmark: flutter_gemma baseline vs native LiteRT-LM MTP.
+    Gemma 4 runtime benchmark: flutter_gemma baseline vs MTP paths.
 
 .DESCRIPTION
     Launches Cairn in profile mode with one of the runtime dart-defines, then
     captures /perf logcat lines. Use the same held-out photo set for every run.
 
     Variants:
-      flutter       — default flutter_gemma path
-      native_mtp    — Android LiteRT-LM bridge with speculative decoding
+      flutter       — default flutter_gemma path, MTP off
+      flutter_mtp   — official flutter_gemma speculative decoding path
+      native_mtp    — legacy Android LiteRT-LM bridge with MTP enabled
       native_batch  — native_mtp plus BENCH_BATCH=true
 
 .PARAMETER Variant
-    flutter, native_mtp, native_batch, or all.
+    flutter, flutter_mtp, native_mtp, native_batch, or all.
 
 .PARAMETER DeviceId
     ADB serial. Default: RZCX920ARVA.
@@ -24,7 +25,7 @@
     Output directory. Default: current directory.
 #>
 param(
-    [ValidateSet('flutter', 'native_mtp', 'native_batch', 'all')]
+    [ValidateSet('flutter', 'flutter_mtp', 'native_mtp', 'native_batch', 'all')]
     [string] $Variant = 'flutter',
 
     [string] $DeviceId = 'RZCX920ARVA',
@@ -43,16 +44,20 @@ $flutterExe = if (Get-Command flutter -ErrorAction SilentlyContinue) { 'flutter'
 
 $variants = @{
     'flutter' = @{
-        Defines = @('INFERENCE_RUNTIME=flutter_gemma')
-        Notes   = 'Default flutter_gemma 0.14.5 path.'
+        Defines = @('INFERENCE_RUNTIME=flutter_gemma', 'BENCH_IMAGE_PX=640')
+        Notes   = 'Default flutter_gemma 0.15.x path, speculative decoding off.'
+    }
+    'flutter_mtp' = @{
+        Defines = @('INFERENCE_RUNTIME=flutter_gemma', 'BENCH_MTP=true', 'BENCH_IMAGE_PX=640')
+        Notes   = 'Official flutter_gemma 0.15.x LiteRT-LM speculative decoding path.'
     }
     'native_mtp' = @{
-        Defines = @('INFERENCE_RUNTIME=native_mtp', 'BENCH_MTP=true')
-        Notes   = 'Android LiteRT-LM bridge with speculative decoding enabled.'
+        Defines = @('INFERENCE_RUNTIME=native_mtp', 'BENCH_MTP=true', 'BENCH_IMAGE_PX=640')
+        Notes   = 'Legacy Android LiteRT-LM bridge with speculative decoding enabled.'
     }
     'native_batch' = @{
-        Defines = @('INFERENCE_RUNTIME=native_mtp', 'BENCH_MTP=true', 'BENCH_BATCH=true')
-        Notes   = 'Native MTP plus one-turn multi-image batch experiment.'
+        Defines = @('INFERENCE_RUNTIME=native_mtp', 'BENCH_MTP=true', 'BENCH_BATCH=true', 'BENCH_IMAGE_PX=640')
+        Notes   = 'Legacy native MTP plus one-turn multi-image batch experiment.'
     }
 }
 
@@ -74,7 +79,7 @@ function Run-Variant {
 # Device  : $DeviceId
 # Notes   : $($cfg.Notes)
 # Acceptance:
-#   native_mtp: decode tokens/sec +35% OR total wall time +20% vs flutter
+#   flutter_mtp/native_mtp: decode tokens/sec +35% OR total wall time +20% vs flutter
 #   native_batch: 4-photo total wall time +30% vs sequential, no contamination
 
 "@
@@ -130,7 +135,7 @@ function Run-Variant {
 }
 
 if ($Variant -eq 'all') {
-    foreach ($v in @('flutter', 'native_mtp', 'native_batch')) {
+    foreach ($v in @('flutter', 'flutter_mtp', 'native_mtp', 'native_batch')) {
         Run-Variant -Name $v
     }
 } else {

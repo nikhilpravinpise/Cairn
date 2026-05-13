@@ -105,6 +105,7 @@ class GemmaSession implements GemmaSessionInterface {
     required this.supportImage,
     required this.supportAudio,
     required this.isThinking,
+    required this.enableSpeculativeDecoding,
     required SessionConfig config,
   }) : _config = config;
 
@@ -122,6 +123,7 @@ class GemmaSession implements GemmaSessionInterface {
     bool supportImage = false,
     bool supportAudio = false,
     bool isThinking = false,
+    bool enableSpeculativeDecoding = false,
     String? loraPath,
     void Function(GemmaLoadProgress)? onProgress,
   }) async {
@@ -130,6 +132,7 @@ class GemmaSession implements GemmaSessionInterface {
       supportImage: supportImage,
       supportAudio: supportAudio,
       isThinking: isThinking,
+      enableSpeculativeDecoding: enableSpeculativeDecoding,
       config: config,
     );
     await s._install(onProgress: onProgress, loraPath: loraPath);
@@ -143,6 +146,7 @@ class GemmaSession implements GemmaSessionInterface {
     ModelSpec spec, {
     required String systemPrompt,
     SessionConfig config = SessionConfig.vision,
+    bool enableSpeculativeDecoding = false,
     String? loraPath,
     void Function(GemmaLoadProgress)? onProgress,
   }) =>
@@ -153,6 +157,7 @@ class GemmaSession implements GemmaSessionInterface {
         supportImage: true,
         supportAudio: false,
         isThinking: false,
+        enableSpeculativeDecoding: enableSpeculativeDecoding,
         loraPath: loraPath,
         onProgress: onProgress,
       );
@@ -163,6 +168,7 @@ class GemmaSession implements GemmaSessionInterface {
     ModelSpec spec, {
     required String systemPrompt,
     SessionConfig config = SessionConfig.audio,
+    bool enableSpeculativeDecoding = false,
     String? loraPath,
     void Function(GemmaLoadProgress)? onProgress,
   }) =>
@@ -173,6 +179,7 @@ class GemmaSession implements GemmaSessionInterface {
         supportImage: false,
         supportAudio: true,
         isThinking: false,
+        enableSpeculativeDecoding: enableSpeculativeDecoding,
         loraPath: loraPath,
         onProgress: onProgress,
       );
@@ -183,6 +190,7 @@ class GemmaSession implements GemmaSessionInterface {
     ModelSpec spec, {
     required String systemPrompt,
     SessionConfig config = SessionConfig.synthesis,
+    bool enableSpeculativeDecoding = false,
     String? loraPath,
     void Function(GemmaLoadProgress)? onProgress,
   }) =>
@@ -193,6 +201,7 @@ class GemmaSession implements GemmaSessionInterface {
         supportImage: false,
         supportAudio: false,
         isThinking: true,
+        enableSpeculativeDecoding: enableSpeculativeDecoding,
         loraPath: loraPath,
         onProgress: onProgress,
       );
@@ -203,6 +212,7 @@ class GemmaSession implements GemmaSessionInterface {
     ModelSpec spec, {
     required String systemPrompt,
     SessionConfig config = SessionConfig.standard,
+    bool enableSpeculativeDecoding = false,
     String? loraPath,
     void Function(GemmaLoadProgress)? onProgress,
   }) =>
@@ -213,6 +223,7 @@ class GemmaSession implements GemmaSessionInterface {
         supportImage: false,
         supportAudio: false,
         isThinking: false,
+        enableSpeculativeDecoding: enableSpeculativeDecoding,
         loraPath: loraPath,
         onProgress: onProgress,
       );
@@ -228,6 +239,12 @@ class GemmaSession implements GemmaSessionInterface {
 
   @override
   final bool isThinking;
+
+  /// Whether the flutter_gemma LiteRT-LM engine is asked to enable Gemma 4 MTP.
+  ///
+  /// Production default is false. Turn on with `BENCH_MTP=true` and compare
+  /// perf + schema results on the physical device before promoting.
+  final bool enableSpeculativeDecoding;
 
   /// The [SessionConfig] used to create this session.
   ///
@@ -278,7 +295,10 @@ class GemmaSession implements GemmaSessionInterface {
   }
 
   Future<void> _create({required String systemPrompt, String? loraPath}) async {
-    debugPrint('[Cairn/session] ${_config.toLogString()}');
+    debugPrint(
+      '[Cairn/session] ${_config.toLogString()} '
+      'speculativeDecoding=$enableSpeculativeDecoding',
+    );
     final createSw = Stopwatch()..start();
     _model = await FlutterGemma.getActiveModel(
       preferredBackend: _config.preferredBackend,
@@ -286,6 +306,7 @@ class GemmaSession implements GemmaSessionInterface {
       supportImage: supportImage,
       supportAudio: supportAudio,
       maxNumImages: _config.maxNumImages,
+      enableSpeculativeDecoding: enableSpeculativeDecoding,
     );
     final tools = toolsForSession(
       supportImage: supportImage,
@@ -310,7 +331,17 @@ class GemmaSession implements GemmaSessionInterface {
     _loraPath = loraPath;
     _loadedAt = DateTime.now();
     PerfLogger.emit(PerfEvent(
-        phase: 'engine_create', wallclockMs: createSw.elapsedMilliseconds));
+      phase: 'engine_create',
+      wallclockMs: createSw.elapsedMilliseconds,
+      extra: {
+        'runtime': runtimeName,
+        'model': _spec.key,
+        'backend': _config.preferredBackend.name,
+        'max_tokens': _config.maxTokens,
+        'max_images': _config.maxNumImages,
+        'mtp_requested': enableSpeculativeDecoding,
+      },
+    ));
   }
 
   @override

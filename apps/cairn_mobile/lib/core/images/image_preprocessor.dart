@@ -9,9 +9,9 @@
 /// ## Why this matters
 ///
 /// Gemma 4 uses variable-resolution vision tokens (70 / 140 / 280 / 560 /
-/// 1120). Feeding a 1600-wide JPEG allocates the maximum token budget and
-/// dominates prefill time. Down-scaling to 768 or 512 on the long edge can
-/// cut prefill time materially with no change to the JSON contract.
+/// 1120). Feeding a 1600-wide JPEG allocates heavy image decode/prefill work.
+/// S23 FE testing promoted 640 px: it preserved 768 px structural accuracy
+/// while 512 px lost soft-story / column-base detail.
 ///
 /// ## Adapters
 ///
@@ -26,8 +26,9 @@
 ///
 /// | Constant                        | maxLongEdgePx | Notes                          |
 /// |---------------------------------|---------------|--------------------------------|
-/// | `BoundedImagePreprocessor(768)` | 768           | Sprint 3 conservative default  |
-/// | `BoundedImagePreprocessor(512)` | 512           | Aggressive candidate           |
+/// | `BoundedImagePreprocessor(768)` | 768           | Conservative fallback          |
+/// | `BoundedImagePreprocessor(640)` | 640           | Production default             |
+/// | `BoundedImagePreprocessor(512)` | 512           | Rejected: accuracy regression  |
 /// | `PassthroughImagePreprocessor`  | —             | Baseline (raw capture bytes)   |
 ///
 /// See `docs/optimization-plan.md §OPT-1` and `tool/benchmark_session_config.ps1`
@@ -176,7 +177,7 @@ final class CachingImagePreprocessor implements ImagePreprocessor {
 /// Resized output is PNG (lossless, accepted by `Message.withImage`).
 ///
 /// ```dart
-/// const preprocessor = BoundedImagePreprocessor(maxLongEdgePx: 768);
+/// const preprocessor = BoundedImagePreprocessor(maxLongEdgePx: 640);
 /// final inferenceBytes = await preprocessor.prepareForInference(captureBytes);
 /// ```
 final class BoundedImagePreprocessor implements ImagePreprocessor {
@@ -259,8 +260,7 @@ final class AndroidJpegImagePreprocessor implements ImagePreprocessor {
         assert(quality >= 1 && quality <= 100, 'quality must be 1..100'),
         _fallback =
             fallback ?? BoundedImagePreprocessor(maxLongEdgePx: maxLongEdgePx),
-        _channel =
-            channel ?? const MethodChannel('app.cairn/image_preprocess'),
+        _channel = channel ?? const MethodChannel('app.cairn/image_preprocess'),
         _targetPlatformForTesting = targetPlatformForTesting;
 
   final int maxLongEdgePx;

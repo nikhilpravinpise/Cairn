@@ -78,7 +78,12 @@ class _DescribeScreenState extends ConsumerState<DescribeScreen> {
         .toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Describe what you saw')),
+      appBar: AppBar(
+        leading: context.canPop()
+            ? BackButton(onPressed: () => context.pop())
+            : null,
+        title: const Text('Describe what you saw'),
+      ),
       body: SafeArea(
         child: Column(
           children: [

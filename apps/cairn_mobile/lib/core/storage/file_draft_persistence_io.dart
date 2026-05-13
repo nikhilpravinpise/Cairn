@@ -3,16 +3,21 @@
 /// Saves draft metadata to:
 ///   `<appSupportDir>/cairn_draft/active.json`
 ///
-/// Binary assets (photos / audio) live in the existing photo+audio caches:
-///   `<tmpDir>/cairn_capture/<packetId>/<ref>.jpg`
-///   `<tmpDir>/cairn_capture/<packetId>/<ref>.wav`
+/// Binary assets:
+///   `<appSupportDir>/cairn_capture/<packetId>/<ref>.jpg` (durable original)
+///   `<appSupportDir>/cairn_capture/<packetId>/<ref>.wav` (durable original)
+///   `<tmpDir>/cairn_capture/<packetId>/<ref>.inference`  (regenerable sidecar)
+///
+/// Originals are durable so a kill/restart can fully restore the draft
+/// (resume-session bug fix). Inference sidecars live in tmp because they are
+/// cheap to regenerate and there is no benefit to keeping them across reboots.
 ///
 /// All writes are atomic (`*.tmp` → rename). Errors are silently swallowed so
 /// an I/O failure never blocks the volunteer's data-capture flow.
 ///
 /// [restoreDraftWithBytes] reads the saved metadata JSON, resolves the bytes
-/// from the cache directory, and builds a [SessionDraft] ready for injection
-/// into [SessionController].
+/// from the durable capture directory, and builds a [SessionDraft] ready for
+/// injection into [SessionController].
 library;
 
 import 'dart:convert';
@@ -21,6 +26,7 @@ import 'dart:typed_data';
 
 import 'package:path_provider/path_provider.dart';
 
+import '../io/photo_cache_io.dart' show capturedBytesDir, inferenceBytesDir;
 import '../state/session_controller.dart';
 import 'draft_persistence.dart';
 
@@ -49,19 +55,19 @@ DraftPersistence createDraftPersistenceForTest(Directory testBaseDir) =>
 Future<SessionDraft?> restoreDraftWithBytes(Map<String, Object?> meta) async {
   try {
     final packetId = meta['packet_id'] as String;
-    final tmp = await getTemporaryDirectory();
-    final cacheDir = Directory('${tmp.path}/cairn_capture/$packetId');
+    final originals = await capturedBytesDir(packetId);
+    final sidecars = await inferenceBytesDir(packetId);
 
-    // Photos
+    // Photos: originals from durable app-support; inference sidecars from tmp.
     final photosMeta =
         (meta['photos'] as List? ?? []).cast<Map<String, Object?>>();
     final photoBytes = <String, Uint8List>{};
     final photoInferenceBytes = <String, Uint8List>{};
     for (final pm in photosMeta) {
       final ref = pm['ref'] as String;
-      final f = File('${cacheDir.path}/$ref.jpg');
+      final f = File('${originals.path}/$ref.jpg');
       if (f.existsSync()) photoBytes[ref] = await f.readAsBytes();
-      final inference = File('${cacheDir.path}/$ref.inference');
+      final inference = File('${sidecars.path}/$ref.inference');
       if (inference.existsSync()) {
         photoInferenceBytes[ref] = await inference.readAsBytes();
       }
@@ -73,7 +79,7 @@ Future<SessionDraft?> restoreDraftWithBytes(Map<String, Object?> meta) async {
     final audioBytes = <String, Uint8List>{};
     for (final am in audiosMeta) {
       final ref = am['ref'] as String;
-      final f = File('${cacheDir.path}/$ref.wav');
+      final f = File('${originals.path}/$ref.wav');
       if (f.existsSync()) audioBytes[ref] = await f.readAsBytes();
     }
 

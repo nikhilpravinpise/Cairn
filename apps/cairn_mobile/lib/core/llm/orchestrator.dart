@@ -927,8 +927,8 @@ class GemmaOrchestrator {
       rawText: rawText,
       task: 'describe_photo',
     );
-    final tags = (parsed['model_tags'] as List? ?? const []).cast<String>();
-    for (final tag in tags) {
+    final rawTags = (parsed['model_tags'] as List? ?? const []).cast<String>();
+    for (final tag in rawTags) {
       if (!EvidencePacketValidator.kAllowedModelTags.contains(tag)) {
         throw GemmaContractError(
           'describe_photo: model_tags contains unknown tag "$tag"',
@@ -936,6 +936,20 @@ class GemmaOrchestrator {
           task: 'describe_photo',
         );
       }
+    }
+    final tags = _normalizeDescribePhotoTags(rawTags);
+    if (tags.length != rawTags.length ||
+        tags.indexed.any((entry) => entry.$2 != rawTags[entry.$1])) {
+      PerfLogger.emit(PerfEvent(
+        phase: 'model_tag_repair',
+        task: 'describe_photo',
+        wallclockMs: 0,
+        extra: {
+          'observation_id': observationId,
+          'before': rawTags.join(','),
+          'after': tags.join(','),
+        },
+      ));
     }
 
     final bbox = [
@@ -1012,6 +1026,27 @@ class GemmaOrchestrator {
       wallclockMs: wallclockMs,
       outputCharCount: outputCharCount,
     );
+  }
+
+  List<String> _normalizeDescribePhotoTags(List<String> rawTags) {
+    const noVisibleDamage = 'no_visible_damage';
+    const uncertaintyOnly = {
+      'uncertain_structural',
+      'uncertain_cosmetic',
+    };
+
+    final unique = <String>[];
+    for (final tag in rawTags) {
+      if (!unique.contains(tag)) unique.add(tag);
+    }
+
+    final hasConcreteDamage = unique.any(
+      (tag) => tag != noVisibleDamage && !uncertaintyOnly.contains(tag),
+    );
+    if (hasConcreteDamage) {
+      unique.remove(noVisibleDamage);
+    }
+    return unique;
   }
 
   List<String> _expectedRefs(

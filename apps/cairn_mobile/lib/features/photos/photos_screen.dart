@@ -59,6 +59,11 @@ import '../../core/routing/app_router.dart';
 import '../../core/state/session_controller.dart';
 import '../../core/widgets/flow_stepper.dart';
 
+/// True when --dart-define=DEV_SKIP_MODEL=true is set at build time.
+/// Stripped as dead code in all release / production builds.
+const _kDevSkipModel =
+    bool.fromEnvironment('DEV_SKIP_MODEL', defaultValue: false);
+
 /// The four required reference views + one optional extra. Kept in display
 /// order; prompt_ids match the locked system-prompt contract.
 const _slots = <_SlotSpec>[
@@ -350,6 +355,12 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
           .load(profile: SessionProfile.vision);
     } catch (e) {
       if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Model load failed: $e'),
+          duration: const Duration(seconds: 6),
+        ),
+      );
       setState(() {
         _modelLoading = false;
         _describeAllInProgress = false;
@@ -502,6 +513,34 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
     }
   }
 
+  /// DEV_SKIP_MODEL: fill all 4 required slots with a valid 16×16 grey PNG
+  /// so the user can reach "Describe photos" without using the camera.
+  Future<void> _fillFakePhotos() async {
+    // Generate once — reused across all 4 slots.
+    final fakeBytes = await _makeFakePng();
+
+    final controller = ref.read(sessionControllerProvider.notifier);
+    for (final spec in _slots.where((s) => s.required)) {
+      if (_state[spec.slot]!.status != _SlotStatus.empty) continue;
+      final imgRef = controller.generateImageId();
+      controller.addPhoto(
+        ref: imgRef,
+        bytes: fakeBytes,
+        widthPx: 16,
+        heightPx: 16,
+        slot: spec.slot,
+      );
+      if (!mounted) return;
+      setState(() {
+        _state[spec.slot]!
+          ..thumb = fakeBytes
+          ..ref = imgRef
+          ..status = _SlotStatus.captured
+          ..error = null;
+      });
+    }
+  }
+
   Future<void> _retry(_SlotSpec spec) async {
     final st = _state[spec.slot]!;
     final bytes = st.thumb;
@@ -530,6 +569,9 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
         _capturedCount > 0 && !_describeAllInProgress && !_modelLoading;
     return Scaffold(
       appBar: AppBar(
+        leading: context.canPop()
+            ? BackButton(onPressed: () => context.pop())
+            : null,
         title: const Text('Walk around'),
         actions: [
           Padding(
@@ -567,6 +609,8 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
                             icon: Icons.memory_outlined,
                             text: _modelLoadingLabel,
                           ),
+                        if (_kDevSkipModel)
+                          _DevFillBanner(onFill: _fillFakePhotos),
                         const Text(
                           'Take one photo per reference view. When all photos are '
                           'captured, tap "Describe photos" to run Gemma on all of them.',
@@ -1010,6 +1054,23 @@ Observation _observationFrom(
   );
 }
 
+/// Generates a valid 16×16 solid-grey PNG for dev-mode fake photos.
+///
+/// Uses the already-imported [ui] canvas so no extra dependencies are needed.
+/// [Image.memory] can decode the result without errors.
+Future<Uint8List> _makeFakePng() async {
+  final recorder = ui.PictureRecorder();
+  Canvas(recorder).drawRect(
+    const Rect.fromLTWH(0, 0, 16, 16),
+    Paint()..color = const Color(0xFFBDBDBD),
+  );
+  final picture = recorder.endRecording();
+  final img = await picture.toImage(16, 16);
+  final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+  img.dispose();
+  return byteData!.buffer.asUint8List();
+}
+
 Future<(int, int)> _decodeSize(Uint8List bytes) async {
   // `ui.instantiateImageCodec` is available on all Flutter targets including
   // web (it decodes via ImageBitmap there), so we stay off `dart:io`.
@@ -1020,4 +1081,47 @@ Future<(int, int)> _decodeSize(Uint8List bytes) async {
   frame.image.dispose();
   codec.dispose();
   return (w, h);
+}
+
+/// Dev-only banner — only shown when --dart-define=DEV_SKIP_MODEL=true.
+///
+/// Tapping "Fill fake photos" populates all 4 required slots with 1-byte
+/// placeholder images so the user can skip the camera entirely and jump
+/// straight to the "Describe photos" → protocol → synthesize flow.
+class _DevFillBanner extends StatelessWidget {
+  const _DevFillBanner({required this.onFill});
+  final VoidCallback onFill;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade50,
+          border: Border.all(color: Colors.orange.shade300),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.developer_mode, color: Colors.orange.shade800, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'DEV_SKIP_MODEL active',
+                style: TextStyle(
+                    color: Colors.orange.shade900,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600),
+              ),
+            ),
+            TextButton(
+              onPressed: onFill,
+              style: TextButton.styleFrom(
+                  foregroundColor: Colors.orange.shade900,
+                  padding: const EdgeInsets.symmetric(horizontal: 8)),
+              child: const Text('Fill 4 fake photos →'),
+            ),
+          ],
+        ),
+      );
 }

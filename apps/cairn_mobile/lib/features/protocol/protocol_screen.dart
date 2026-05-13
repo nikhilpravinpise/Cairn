@@ -133,6 +133,9 @@ class _ProtocolScreenState extends ConsumerState<ProtocolScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: context.canPop()
+            ? BackButton(onPressed: () => context.pop())
+            : null,
         title: Text('Quick questions  ${_i + 1} / ${_qs.length}'),
       ),
       body: SafeArea(
@@ -144,7 +147,7 @@ class _ProtocolScreenState extends ConsumerState<ProtocolScreen> {
               child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               LinearProgressIndicator(value: (_i + 1) / _qs.length),
               const SizedBox(height: 24),

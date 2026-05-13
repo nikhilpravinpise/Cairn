@@ -10,6 +10,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import '../io/photo_cache.dart';
 import '../llm/orchestrator.dart';
 import '../models/evidence_packet.dart';
 import '../models/evidence_packet_validator.dart';
@@ -647,6 +648,9 @@ class SessionController extends Notifier<SessionDraft?> {
       await vault.saveTurnsJsonl(
           packet.packetId, [for (final t in s.turns) t.toJson()]);
     }
+    // Vault now owns durable copies of every asset; release the capture cache
+    // so we don't keep two copies of every photo on the device.
+    await clearCapturedBytes(packet.packetId);
     return packet;
   }
 

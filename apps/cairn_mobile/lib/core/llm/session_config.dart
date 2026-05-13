@@ -125,7 +125,8 @@ class SessionConfig {
   /// Vision profile — `describe_photo` turns.
   ///
   /// `maxTokens: 4096` matches the synthesis profile ceiling. The system
-  /// prompt (~500 tokens) + image tokens (~1800 tokens at 768 px) + user JSON
+  /// prompt (~500 tokens) + image tokens (device-measured LiteRT visual budget
+  /// at the 640 px production image bound) + user JSON
   /// (~200 tokens) sum to ~2695 tokens on device, which exceeds the former
   /// 2048 KV cache limit and causes INVALID_ARGUMENT errors in the engine.
   /// `temperature: 0.1` improves JSON contract adherence and output
@@ -343,8 +344,7 @@ class SessionConfig {
       );
 
   /// Human-readable summary for logcat / debug screens.
-  String toLogString() =>
-      'maxTokens=$maxTokens temperature=$temperature '
+  String toLogString() => 'maxTokens=$maxTokens temperature=$temperature '
       'topK=$topK topP=$topP backend=$preferredBackend '
       'maxNumImages=$maxNumImages clearHistory=$clearHistoryBetweenTurns';
 

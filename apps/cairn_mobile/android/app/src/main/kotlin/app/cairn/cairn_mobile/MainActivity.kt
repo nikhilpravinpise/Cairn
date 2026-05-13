@@ -58,7 +58,7 @@ class MainActivity : FlutterActivity() {
                             backend = call.argument<String>("backend") ?: "gpu",
                             visionBackend = call.argument<String>("visionBackend") ?: "gpu",
                             audioBackend = call.argument<String>("audioBackend") ?: "cpu",
-                            enableMtp = call.argument<Boolean>("enableMtp") ?: true,
+                            enableMtp = call.argument<Boolean>("enableMtp") ?: false,
                             enableVision = call.argument<Boolean>("enableVision") ?: true,
                         )
                     }.fold(
@@ -76,7 +76,7 @@ class MainActivity : FlutterActivity() {
                     runCatching {
                         generateNative(
                             text = call.argument<String>("text") ?: "",
-                            images = call.argument<List<ByteArray>>("images") ?: emptyList(),
+                            images = imageArguments(call.argument<Any>("images")),
                             timeoutMs = call.argument<Int>("timeoutMs") ?: 180_000,
                         )
                     }.fold(
@@ -84,6 +84,7 @@ class MainActivity : FlutterActivity() {
                             withContext(Dispatchers.Main) { result.success(payload) }
                         },
                         onFailure = { error ->
+                            Log.e("Cairn/native_mtp", "generate failed", error)
                             withContext(Dispatchers.Main) {
                                 result.error("native_mtp_generate", error.message, error.stackTraceToString())
                             }
@@ -292,6 +293,17 @@ class MainActivity : FlutterActivity() {
         engine?.close()
         engine = null
         backendUsed = "none"
+    }
+
+    private fun imageArguments(raw: Any?): List<ByteArray> {
+        val items = raw as? List<*> ?: return emptyList()
+        return items.mapNotNull { item ->
+            when (item) {
+                is ByteArray -> item
+                is List<*> -> item.mapNotNull { (it as? Number)?.toByte() }.toByteArray()
+                else -> null
+            }
+        }
     }
 
     private fun resizeJpegForInference(

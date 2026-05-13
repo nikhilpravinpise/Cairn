@@ -263,7 +263,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  // Sprint 3 — inferenceMaxLongEdgePx
+  // Sprint 5 — inferenceMaxLongEdgePx
   // -------------------------------------------------------------------------
 
   group('inferenceMaxLongEdgePx', () {
@@ -278,14 +278,13 @@ void main() {
       }
     });
 
-    test('e2b has Sprint 3 production default of 768', () {
-      expect(models['e2b']!.inferenceMaxLongEdgePx, 768,
-          reason: 'Sprint 3 conservative default; '
-              'benchmark 512 once device gate passes');
+    test('e2b has S23 FE promoted production default of 640', () {
+      expect(models['e2b']!.inferenceMaxLongEdgePx, 640,
+          reason: 'S23 FE benchmark promoted 640; 512 lost structural detail');
     });
 
-    test('e4b has Sprint 3 production default of 768', () {
-      expect(models['e4b']!.inferenceMaxLongEdgePx, 768,
+    test('e4b has S23 FE promoted production default of 640', () {
+      expect(models['e4b']!.inferenceMaxLongEdgePx, 640,
           reason: 'Same vision encoder as e2b — same token geometry');
     });
 

@@ -117,7 +117,12 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
       return const Scaffold();
     }
     return Scaffold(
-      appBar: AppBar(title: const Text('Location & building')),
+      appBar: AppBar(
+        leading: context.canPop()
+            ? BackButton(onPressed: () => context.pop())
+            : null,
+        title: const Text('Location & building'),
+      ),
       body: SafeArea(
         child: Column(
           children: [

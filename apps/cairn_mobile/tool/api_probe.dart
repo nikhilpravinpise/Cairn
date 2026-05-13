@@ -1,6 +1,6 @@
 // Compile-only probe — never executed at runtime.
 //
-// Proves flutter_gemma >=0.14.2 exposes every symbol that Cairn depends on.
+// Proves flutter_gemma >=0.15.0 exposes every symbol that Cairn depends on.
 // The probe is re-run whenever flutter_gemma is upgraded; a clean analysis
 // confirms backward compatibility before any feature code is changed.
 //
@@ -32,11 +32,13 @@ const bool kProbeTypesDistinct = ModelType.gemma4 != ModelType.gemmaIt;
 
 // Function is never called; analyzer still type-checks every expression.
 Future<void> _probe() async {
-  // getActiveModel: full multimodal parameter set (Sprint 0 surface).
+  // getActiveModel: full multimodal parameter set plus official Gemma 4 MTP
+  // toggle (flutter_gemma 0.15.0 surface).
   await FlutterGemma.getActiveModel(
     supportImage: true,
     supportAudio: true,
     maxNumImages: 5,
+    enableSpeculativeDecoding: true,
   );
 
   // installModel with gemma4 + litertlm: Sprint 1 target (Android .litertlm).

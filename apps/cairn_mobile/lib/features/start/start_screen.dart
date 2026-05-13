@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/io/photo_cache.dart';
 import '../../core/llm/gemma_session.dart';
 import '../../core/llm/model_registry.dart';
 import '../../core/providers.dart';
@@ -94,7 +95,13 @@ class _StartScreenState extends ConsumerState<StartScreen> {
   }
 
   Future<void> _discardDraft() async {
-    await ref.read(draftPersistenceProvider).clearDraft();
+    final dp = ref.read(draftPersistenceProvider);
+    final meta = await dp.loadDraftMeta();
+    await dp.clearDraft();
+    if (meta != null) {
+      final packetId = meta['packet_id'] as String?;
+      if (packetId != null) await clearCapturedBytes(packetId);
+    }
     if (!mounted) return;
     setState(() => _draftAvailable = false);
   }
