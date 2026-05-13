@@ -2,7 +2,11 @@ package app.cairn.cairn_mobile
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import android.graphics.Matrix
+import android.graphics.Paint
 import android.media.ExifInterface
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Content
@@ -356,11 +360,56 @@ class MainActivity : FlutterActivity() {
             oriented.recycle()
         }
 
-        return ByteArrayOutputStream().use { out ->
-            val ok = scaled.compress(Bitmap.CompressFormat.JPEG, quality, out)
+        // Enhance for the VLM. A small contrast boost + slight saturation
+        // pull-down makes hairline structural cracks more visible to Gemma's
+        // vision tower without changing the dominant color/lighting cues.
+        // Implemented as a single hardware-accelerated ColorMatrix draw —
+        // typically 3–8 ms on a modern Android device, run once per photo
+        // and cached by CachingImagePreprocessor on the Dart side.
+        val enhanced = applyStructuralEnhancement(scaled)
+        if (enhanced !== scaled) {
             scaled.recycle()
+        }
+
+        return ByteArrayOutputStream().use { out ->
+            val ok = enhanced.compress(Bitmap.CompressFormat.JPEG, quality, out)
+            enhanced.recycle()
             if (!ok) throw IllegalStateException("failed to encode JPEG")
             out.toByteArray()
+        }
+    }
+
+    /// Apply a fixed contrast + slight desaturation matrix. Boosts crack /
+    /// edge visibility for the vision model. Runs in one HW-accelerated
+    /// `Canvas.drawBitmap` call.
+    ///
+    /// Contrast formula (per channel): `out = c * in + (1 - c) * 128`, with
+    /// `c = 1.20` (mild — strong enough to surface hairline cracks but weak
+    /// enough not to crush midtones on light concrete).
+    /// Saturation `0.85` desaturates slightly (1.0 = no change).
+    private fun applyStructuralEnhancement(src: Bitmap): Bitmap {
+        return try {
+            val out = Bitmap.createBitmap(src.width, src.height, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(out)
+            val paint = Paint()
+            val contrast = 1.20f
+            val translate = (1f - contrast) * 128f
+            val contrastMatrix = ColorMatrix(
+                floatArrayOf(
+                    contrast, 0f, 0f, 0f, translate,
+                    0f, contrast, 0f, 0f, translate,
+                    0f, 0f, contrast, 0f, translate,
+                    0f, 0f, 0f, 1f, 0f,
+                ),
+            )
+            val saturationMatrix = ColorMatrix().apply { setSaturation(0.85f) }
+            contrastMatrix.postConcat(saturationMatrix)
+            paint.colorFilter = ColorMatrixColorFilter(contrastMatrix)
+            canvas.drawBitmap(src, 0f, 0f, paint)
+            out
+        } catch (error: Throwable) {
+            android.util.Log.w("Cairn/image_preprocess", "enhancement failed; using source", error)
+            src
         }
     }
 

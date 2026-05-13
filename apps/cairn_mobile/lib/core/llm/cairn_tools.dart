@@ -3,6 +3,12 @@ library;
 
 import 'package:flutter_gemma/flutter_gemma.dart';
 
+// Tag enum used by the Gemma function-calling schema. Damage tags listed
+// FIRST, uncertain second, `no_visible_damage` LAST. Small VLMs are biased
+// toward the first/last tokens of an enum; placing the "easy out" answer
+// last (and after the uncertainty options) reduces the model's tendency to
+// emit `no_visible_damage` when actual damage is present. Set membership
+// matches `EvidencePacketValidator.kAllowedModelTags`; only ordering differs.
 const _tagEnum = [
   'diagonal_crack',
   'horizontal_crack',
@@ -20,8 +26,8 @@ const _tagEnum = [
   'chimney_damage',
   'parapet_damage',
   'falling_hazard_unsecured',
-  'uncertain_structural',
   'uncertain_cosmetic',
+  'uncertain_structural',
   'no_visible_damage',
 ];
 

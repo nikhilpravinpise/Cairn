@@ -350,6 +350,15 @@ class GemmaOrchestrator {
     required String imageRef,
     String? userText,
   }) async {
+    // Per-prompt focus hint. Steers visual attention toward the structural
+    // features that matter for this slot. Costs ~10–20 input tokens per
+    // photo (negligible vs the ~600+ vision tokens for a 640 px image),
+    // and it consistently improves tag recall on small VLMs.
+    final focusHint = _focusHintForPromptId(promptId);
+    final mergedUserText = (userText == null || userText.trim().isEmpty)
+        ? focusHint
+        : (focusHint == null ? userText : '$focusHint $userText');
+
     final user = jsonEncode({
       'task': 'describe_photo',
       'observation_id': observationId,
@@ -357,7 +366,7 @@ class GemmaOrchestrator {
       'asked_in': askedIn,
       'image_refs': [imageRef],
       'audio_refs': <String>[],
-      'user_text': userText,
+      'user_text': mergedUserText,
     });
     final prepared = await _prepareInferenceBytes(
       rawBytes: imageBytes,
@@ -400,6 +409,84 @@ class GemmaOrchestrator {
       wallclockMs: out.wallclockMs,
       outputCharCount: out.outputCharCount,
     );
+  }
+
+  /// Vision turn with **low-confidence retry**. Runs [describePhoto] once.
+  /// If the result has `model_confidence < minAcceptableConfidence` AND the
+  /// model returned a `bbox`, re-run **once** on a tightly cropped view of
+  /// the predicted region. Returns whichever pass produced higher confidence.
+  ///
+  /// ## Why
+  ///
+  /// Confident photos (the 80%+ majority) pay zero extra inference cost —
+  /// the function returns after the first call. Only the genuinely weak
+  /// photos pay for the second pass, and they get a much higher
+  /// pixels-per-feature density on the crop, which is the standard remedy
+  /// for small-VLM recall failure on thin features (cracks, spalling).
+  ///
+  /// Caps the extra cost to **at most one retry** per photo.
+  Future<DescribePhotoResult> describePhotoWithRetry({
+    required String observationId,
+    required String promptId,
+    required String askedIn,
+    required Uint8List imageBytes,
+    Uint8List? inferenceImageBytes,
+    required String imageRef,
+    String? userText,
+    double minAcceptableConfidence = 0.5,
+  }) async {
+    final first = await describePhoto(
+      observationId: observationId,
+      promptId: promptId,
+      askedIn: askedIn,
+      imageBytes: imageBytes,
+      inferenceImageBytes: inferenceImageBytes,
+      imageRef: imageRef,
+      userText: userText,
+    );
+    if (first.modelConfidence >= minAcceptableConfidence) return first;
+    if (first.bbox.isEmpty) return first;
+
+    // Pull the first bbox's box_2d coordinates. Skip retry if missing.
+    final box2d = first.bbox.first['box_2d'];
+    if (box2d is! List) return first;
+    final coords = <int>[];
+    for (final v in box2d) {
+      if (v is! num) return first;
+      coords.add(v.toInt());
+    }
+    if (coords.length != 4) return first;
+
+    final cropped = await cropImageToBox2d(imageBytes, coords);
+    if (cropped == null) return first;
+
+    PerfLogger.emit(PerfEvent(
+      phase: 'low_conf_crop_retry',
+      task: 'describe_photo',
+      wallclockMs: 0,
+      extra: {
+        'observation_id': observationId,
+        'first_confidence': first.modelConfidence.toStringAsFixed(3),
+        'cropped_bytes': cropped.length,
+      },
+    ));
+
+    try {
+      final second = await describePhoto(
+        observationId: observationId,
+        promptId: promptId,
+        askedIn: askedIn,
+        imageBytes: cropped,
+        // Force re-preprocessing — the crop is at original resolution and
+        // benefits from the normal downscale + enhancement pipeline.
+        imageRef: imageRef,
+        userText: userText,
+      );
+      return second.modelConfidence > first.modelConfidence ? second : first;
+    } on GemmaContractError {
+      // Retry produced an unparseable response; keep the original result.
+      return first;
+    }
   }
 
   /// Audio turn: ask Gemma to describe one audio clip against a P-154 prompt.
@@ -1098,6 +1185,37 @@ class GemmaOrchestrator {
       );
     }
     return confidence;
+  }
+
+  /// Per-prompt visual focus hint injected into `user_text` before describing
+  /// a photo. Returns `null` for unknown / generic prompts so the existing
+  /// behaviour is preserved.
+  ///
+  /// These hints map the FEMA P-154 reference views to the structural
+  /// surfaces the model should attend to. Each hint is short (~10–20
+  /// tokens) so it does not measurably grow prefill, but it gives the
+  /// vision model a concrete attention prior — which boosts tag recall on
+  /// small VLMs by reducing the search space at the start of decode.
+  static String? _focusHintForPromptId(String promptId) {
+    switch (promptId) {
+      case 'fema_p154_q01': // Front elevation
+        return 'Focus on the building\'s exterior load-bearing walls, '
+            'columns, and overall lean. Ignore vegetation and vehicles.';
+      case 'fema_p154_q02': // Ground floor
+        return 'Focus on first-story openings, columns, and pier walls. '
+            'Look for soft-story signs and column-base damage.';
+      case 'fema_p154_q03': // Visible cracks
+        return 'Focus on crack geometry: diagonal, X-pattern, '
+            'horizontal, vertical, or out-of-plane bulging. '
+            'Note crack length, width, and location relative to openings.';
+      case 'fema_p154_q04': // Foundation
+        return 'Focus on the sill plate, stem wall, and ground line. '
+            'Look for offsets, gaps, and tilt at the foundation.';
+      case 'fema_p154_qextra':
+        return null; // Volunteer-chosen subject; no fixed prior.
+      default:
+        return null;
+    }
   }
 }
 

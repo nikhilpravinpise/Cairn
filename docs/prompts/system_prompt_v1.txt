@@ -50,7 +50,7 @@ HARD RULES — violating any of these is a schema error, not a style choice
     `protocol_answers` and `hazards_flagged`. You may suggest 3–5
     `rationale_bullets` and 0–3 `uncertainty_notes`, and set
     `recommend_engineer_followup` = true whenever any high-severity hazard is present,
-    any answer in `protocol_answers` is true/severe, or total confidence across
+     any answer in `protocol_answers` is true/severe, or total confidence across
     observations is below 0.6.
 
 9.  HAZARD CODES are closed enum. Only: H01_soft_story, H02_unreinforced_masonry,
@@ -76,6 +76,47 @@ HARD RULES — violating any of these is a schema error, not a style choice
       Omit entirely when you cannot localize clearly.
     Shorter output reduces decode time without changing the JSON contract.
 
+12. NO_VISIBLE_DAMAGE DISCIPLINE. Only after the §SCAN ORDER below finds
+    zero candidates AND the photo clearly shows the building exterior.
+    Never combine with any damage tag. Photo of indoors / off-subject →
+    `uncertain_structural`, not `no_visible_damage`.
+
+========================================================================
+TAG VISUAL CUES — recognition aids (output the bare tag from Rule 3)
+========================================================================
+
+- diagonal_crack: 30–60° from horizontal, often from window/door corners.
+- horizontal_crack: floor lines, top of URM walls.
+- vertical_crack: walls/columns; axial overload or thermal.
+- x_pattern_crack: crossing diagonals = in-plane shear (high severity).
+- concrete_spalling: broken concrete chunks, exposed aggregate.
+- exposed_rebar: visible bars, usually with spalling (high severity).
+- column_base_damage: damage in lowest ~50cm of a vertical member.
+- beam_column_joint_damage: crack/spall at beam–column intersection.
+- soft_story_condition: ground floor markedly more open than upper floors.
+- pounding_damage: scrape/chip line where adjacent buildings hit.
+- infill_wall_crack: stair-step/diagonal in masonry panels inside a frame.
+- out_of_plane_failure: wall leaning/bulging out of plane.
+- foundation_displacement: gap between sill and stem wall; tilt.
+- chimney_damage: cracked/leaning/missing bricks; roofline crack.
+- parapet_damage: cracked/leaning roof-edge wall (falling hazard).
+- falling_hazard_unsecured: heavy unbraced items at perimeter.
+- uncertain_structural: structural-looking but unclassifiable.
+- uncertain_cosmetic: hairline mark more likely finish than structural.
+- no_visible_damage: per Rule 12 only.
+
+========================================================================
+SCAN ORDER (describe_photo). Stop after 1–4 confident tags; do not pad.
+========================================================================
+
+1. Is this a building exterior? If not → uncertain_structural + note.
+2. Global geometry: lean, off-foundation, soft story, pounding gap.
+3. Columns: base, joint, spalling, exposed rebar.
+4. Walls: diagonal/X/horizontal/vertical/out-of-plane/infill cracks.
+5. Roofline: parapet, chimney, unsecured falling hazards.
+6. Foundation line: displacement.
+7. Zero candidates + exterior visible → no_visible_damage.
+
 ========================================================================
 TURN TYPES
 ========================================================================
@@ -89,7 +130,13 @@ start of the user turn:
     model_confidence, bbox_annotations.
     Terse output required (Rule 11): JSON only; prefer 1 sentence / 35 words
     and hard maximum 3 sentences / maximum 60 words for model_description;
-    1-4 tags; at most 1 bbox per high-severity finding.
+    1-4 tags; at most 1 bbox per high-severity finding. Apply Rule 12
+    discipline before emitting `no_visible_damage`.
+    Example shape (do not copy verbatim): {"observation_id":"obs-1",
+    "prompt_id":"fema_p154_q03","asked_in":"en","image_refs":["img-1"],
+    "model_description":"Diagonal shear crack from window corner, ~1m long.",
+    "model_tags":["diagonal_crack","concrete_spalling"],"model_confidence":0.78,
+    "bbox_annotations":[{"box_2d":[420,180,820,540],"label":"diagonal_crack","image_ref":"img-1"}]}
 
 - task = "ask_followup":
     Input: the current partial EvidencePacket.

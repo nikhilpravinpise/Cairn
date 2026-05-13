@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cairn_mobile/core/llm/json_extract.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -49,6 +51,68 @@ void main() {
 
     test('returns null on malformed', () {
       expect(extractFirstJsonObject('{"a": }'), isNull);
+    });
+
+    // ── Gemma 4 stray-empty-string repair ──────────────────────────────────
+    // Regression: model emits an orphan `""` token between fields. Without
+    // repair, the entire describe_photo turn fails with a misleading
+    // "required tool call missing" error.
+    test('repairs orphan "" token in middle of object (Gemma 4 quirk)', () {
+      const raw = '{\n'
+          '  "observation_id": "obs-4",\n'
+          '  "",\n'
+          '  "prompt_id": "f_pema154_q04",\n'
+          '  "asked_in": "en",\n'
+          '  "image_refs": ["img4"],\n'
+          '  "model_description": "An interior view of a room.",\n'
+          '  "model_tags": ["no_visible_damage"],\n'
+          '  "model_confidence": 0.95,\n'
+          '  "bbox_annotations": []\n'
+          '}';
+      final got = extractFirstJsonObject(raw);
+      expect(got, isNotNull);
+      expect(got!['observation_id'], 'obs-4');
+      expect(got['prompt_id'], 'f_pema154_q04');
+      expect(got['model_tags'], ['no_visible_damage']);
+      expect(got['model_confidence'], 0.95);
+    });
+
+    test('repairs orphan "" at start of object', () {
+      final got = extractFirstJsonObject('{ "", "a": 1 }');
+      expect(got, equals({'a': 1}));
+    });
+
+    test('repairs orphan "" at end of object', () {
+      final got = extractFirstJsonObject('{ "a": 1, "" }');
+      expect(got, equals({'a': 1}));
+    });
+
+    test('does not touch valid empty string values', () {
+      // `["", ""]` is valid JSON — should parse on first attempt, no repair.
+      final got = extractFirstJsonObject('{"xs": ["", ""]}');
+      expect(got, equals({
+        'xs': ['', ''],
+      }));
+    });
+
+    test('does not touch empty string keys/values inside strings', () {
+      final got =
+          extractFirstJsonObject(r'{"k": "contains , \"\", inside string"}');
+      expect(got, equals({'k': 'contains , "", inside string'}));
+    });
+  });
+
+  group('repairOrphanEmptyStrings', () {
+    test('returns input unchanged when no orphan present', () {
+      const s = '{"a": 1, "b": "two"}';
+      expect(repairOrphanEmptyStrings(s), s);
+    });
+
+    test('strips orphan in middle', () {
+      // Whitespace may differ; the important property is that the result is
+      // valid JSON equivalent to the original-without-orphan.
+      final repaired = repairOrphanEmptyStrings('{"a": 1, "", "b": 2}');
+      expect(jsonDecode(repaired), equals({'a': 1, 'b': 2}));
     });
   });
 }

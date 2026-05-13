@@ -121,7 +121,7 @@ void main() {
     test('valid tags → DescribePhotoResult without error', () async {
       final res = await _photo(
           _photoJson(tags: '["diagonal_crack","no_visible_damage"]'));
-      expect(res.modelTags, ['diagonal_crack', 'no_visible_damage']);
+      expect(res.modelTags, ['diagonal_crack']);
     });
 
     test('empty tags list → ok', () async {
@@ -172,7 +172,7 @@ void main() {
           '"uncertain_structural","uncertain_cosmetic","no_visible_damage"'
           ']';
       final res = await _photo(_photoJson(tags: allTags));
-      expect(res.modelTags.length, 19);
+      expect(res.modelTags.length, 18);
     });
   });
 

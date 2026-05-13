@@ -125,12 +125,15 @@ class SessionConfig {
   /// Vision profile — `describe_photo` turns.
   ///
   /// `maxTokens: 4096` matches the synthesis profile ceiling. The system
-  /// prompt (~500 tokens) + image tokens (device-measured LiteRT visual budget
-  /// at the 640 px production image bound) + user JSON
-  /// (~200 tokens) sum to ~2695 tokens on device, which exceeds the former
-  /// 2048 KV cache limit and causes INVALID_ARGUMENT errors in the engine.
+  /// prompt (~2,700 tokens after the v2 visual-cues + scan-order additions)
+  /// + image tokens (device-measured LiteRT visual budget at the 640 px
+  /// production image bound) + user JSON (~200 tokens) sum to a budget that
+  /// exceeded the former 2048 KV cache limit and caused INVALID_ARGUMENT
+  /// errors in the engine.
+  ///
   /// `temperature: 0.1` improves JSON contract adherence and output
   /// determinism for structured describe_photo responses.
+  ///
   static const vision = SessionConfig(
     maxTokens: 4096,
     temperature: 0.1,

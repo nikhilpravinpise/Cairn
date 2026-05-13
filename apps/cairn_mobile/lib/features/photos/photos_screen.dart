@@ -471,7 +471,10 @@ class _PhotosScreenState extends ConsumerState<PhotosScreen> {
       return;
     }
     try {
-      final res = await orch.describePhoto(
+      // Use the low-confidence retry path: confident photos return after one
+      // call (no extra cost); only weak first-pass results trigger a single
+      // retry on a tightly cropped view of the predicted bbox region.
+      final res = await orch.describePhotoWithRetry(
         observationId: obsId,
         promptId: spec.promptId,
         askedIn: draft.askedIn,
