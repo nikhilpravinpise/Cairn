@@ -13,8 +13,9 @@ with photos, audio observations, deterministic triage, and a PDF report.
 - **Model policy:** Gemma 4 only.
 - **Approved models:** `gemma-4-E2B-it` and `gemma-4-E4B-it` LiteRT-LM artifacts
   from `litert-community`.
-- **Runtime:** `flutter_gemma` by default; Android `native_mtp` bridge is
-  available for LiteRT-LM speculative decoding experiments.
+- **Runtime:** `flutter_gemma` with LiteRT-LM speculative decoding enabled by
+  default. The legacy Android `native_mtp` bridge remains diagnostic-only and
+  is not the publish path.
 - **Trust boundary:** `GemmaOrchestrator` is the only code path that parses
   model JSON. It validates tags, media refs, bounding boxes, confidence, tool
   shape, and triage ownership before app state can persist the output.

@@ -242,8 +242,8 @@ class GemmaSession implements GemmaSessionInterface {
 
   /// Whether the flutter_gemma LiteRT-LM engine is asked to enable Gemma 4 MTP.
   ///
-  /// Production default is false. Turn on with `BENCH_MTP=true` and compare
-  /// perf + schema results on the physical device before promoting.
+  /// Production default is enabled by providers. Opt out with
+  /// `BENCH_MTP=false` for perf + schema A/B runs on the physical device.
   final bool enableSpeculativeDecoding;
 
   /// The [SessionConfig] used to create this session.

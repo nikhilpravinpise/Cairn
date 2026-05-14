@@ -19,11 +19,11 @@ cd apps/cairn_mobile
 flutter run -d <android-device-id>
 ```
 
-Optional LiteRT-LM MTP bridge:
+Optional A/B run with LiteRT-LM speculative decoding disabled:
 
 ```bash
 cd apps/cairn_mobile
-flutter run -d <android-device-id> --dart-define=INFERENCE_RUNTIME=native_mtp
+flutter run -d <android-device-id> --dart-define=BENCH_MTP=false
 ```
 
 ### Run on web

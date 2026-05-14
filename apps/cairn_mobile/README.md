@@ -15,11 +15,13 @@ or runtime model types are introduced.
 
 ## Runtime paths
 
-- `flutter_gemma` is the default runtime.
+- `flutter_gemma` is the production runtime.
 - Android `.litertlm` files are used outside web.
 - Web uses `.task` files.
-- `INFERENCE_RUNTIME=native_mtp` enables the Android LiteRT-LM MTP bridge for
-  speculative decoding experiments.
+- LiteRT-LM speculative decoding is requested by default through
+  `flutter_gemma`.
+- The legacy `INFERENCE_RUNTIME=native_mtp` bridge is diagnostic-only and is
+  blocked on the current Android 16 test device.
 
 ## Core flow
 
@@ -57,10 +59,10 @@ Run on Android:
 flutter run -d <android-device-id>
 ```
 
-Run on Android with the MTP bridge:
+Run on Android with MTP disabled for A/B debugging:
 
 ```bash
-flutter run -d <android-device-id> --dart-define=INFERENCE_RUNTIME=native_mtp
+flutter run -d <android-device-id> --dart-define=BENCH_MTP=false
 ```
 
 Run on web:

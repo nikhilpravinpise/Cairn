@@ -108,8 +108,8 @@ def test_prompt_describe_photo_output_constraints() -> None:
         "Rule 11: 'maximum 60 words' constraint missing from system prompt.\n"
         "Add output-size limits for describe_photo to docs/prompts/system_prompt_v1.txt."
     )
-    assert "1 to 5 values" in text, (
-        "Rule 11: '1 to 5 values' model_tags constraint missing from system prompt.\n"
+    assert "1 to 4 values" in text, (
+        "Rule 11: '1 to 4 values' model_tags constraint missing from system prompt.\n"
         "Add output-size limits for describe_photo to docs/prompts/system_prompt_v1.txt."
     )
     assert "1 box per high-severity" in text, (
