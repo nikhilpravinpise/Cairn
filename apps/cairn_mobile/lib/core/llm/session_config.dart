@@ -237,6 +237,34 @@ class SessionConfig {
   );
 
   // ---------------------------------------------------------------------------
+  // Session 5 — maxNumImages benchmark
+  // Run: tool/benchmark_session_config.ps1 -Variant vision_single_image
+  // Gate: equal or better TTFT + no contract regression vs production vision.
+  // ---------------------------------------------------------------------------
+
+  /// Vision — single-image-per-turn benchmark candidate.
+  ///
+  /// Identical to production [vision] but with `maxNumImages: 1`.
+  ///
+  /// Rationale: the describe_photo turn always submits exactly one image
+  /// sequentially (OPT-7 confirmed `Message.withImages()` is unsupported).
+  /// The production default of `maxNumImages: 5` causes LiteRT-LM to
+  /// allocate a vision encoder buffer for 5 images on every turn even though
+  /// only 1 is used. Reducing to 1 should lower per-turn memory overhead and
+  /// may improve TTFT and engine_create time on memory-constrained devices.
+  ///
+  /// Gate: (a) engine_create wall ≤ production [vision], (b) per-turn wall ≤
+  /// production [vision], (c) GemmaContractError rate unchanged.
+  static const visionSingleImage = SessionConfig(
+    maxTokens: 4096,
+    temperature: 0.1,
+    topK: 40,
+    topP: 0.95,
+    preferredBackend: PreferredBackend.gpu,
+    maxNumImages: 1,
+  );
+
+  // ---------------------------------------------------------------------------
   // Sprint 4 OPT-5 — history retention A/B
   // Run: tool/benchmark_session_config.ps1 -Variant vision_history_retained
   // Gate: zero cross-photo contamination + TTFT improvement before promoting.

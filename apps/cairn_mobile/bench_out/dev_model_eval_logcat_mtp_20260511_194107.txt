@@ -1,0 +1,46 @@
+﻿05-11 19:45:18.992 I/flutter ( 6845): [Cairn/perf] phase=install wall=0ms
+05-11 19:45:50.073 I/flutter ( 6845): [Cairn/perf] phase=engine_create wall=31071ms runtime=native_mtp backend=gpu model=e2b max_tokens=4096 max_images=5 mtp_requested=true mtp_available=true gpu_fallback=false
+05-11 19:45:50.142 I/flutter ( 6845): [Cairn/perf] phase=image_preprocess task=describe_photo wall=40ms img_bytes=193983 src_img_bytes=193983 cache_key=562603414 preprocessed=false
+05-11 19:45:50.347 I/flutter ( 6845): [Cairn/perf] phase=image_preprocess task=describe_photo wall=4ms img_bytes=80840 src_img_bytes=80840 cache_key=319999359 preprocessed=false
+05-11 19:45:50.469 I/flutter ( 6845): [Cairn/perf] phase=image_preprocess task=describe_photo wall=9ms img_bytes=130085 src_img_bytes=130085 cache_key=287805688 preprocessed=false
+05-11 19:45:50.582 I/flutter ( 6845): [Cairn/perf] phase=image_preprocess task=describe_photo wall=5ms img_bytes=86477 src_img_bytes=86477 cache_key=864807082 preprocessed=false
+05-11 19:45:50.672 I/flutter ( 6845): [Cairn/perf] phase=describe_all wall=573ms photo_count=4 total_wallclock_ms=573
+05-11 19:45:50.753 I/flutter ( 6845): [Cairn/perf] phase=image_preprocess task=describe_photo wall=3ms img_bytes=68436 src_img_bytes=68436 cache_key=90403216 preprocessed=false
+05-11 19:45:50.905 I/flutter ( 6845): [Cairn/perf] phase=image_preprocess task=describe_photo wall=71ms img_bytes=59005 src_img_bytes=111370 cache_key=471724976 preprocessed=false
+05-11 19:45:51.057 I/flutter ( 6845): [Cairn/perf] phase=image_preprocess task=describe_photo wall=31ms img_bytes=61233 src_img_bytes=115792 cache_key=982555917 preprocessed=false
+05-11 19:45:51.241 I/flutter ( 6845): [Cairn/perf] phase=image_preprocess task=describe_photo wall=53ms img_bytes=87184 src_img_bytes=140527 cache_key=362377387 preprocessed=false
+05-11 19:45:51.366 I/flutter ( 6845): [Cairn/perf] phase=describe_all wall=615ms photo_count=4 total_wallclock_ms=615
+05-11 19:45:51.421 I/flutter ( 6845): [Cairn/perf] phase=image_preprocess task=describe_photo wall=47ms img_bytes=77474 src_img_bytes=144645 cache_key=586860294 preprocessed=false
+05-11 19:45:51.556 I/flutter ( 6845): [Cairn/perf] phase=image_preprocess task=describe_photo wall=6ms img_bytes=73484 src_img_bytes=73484 cache_key=149797103 preprocessed=false
+05-11 19:45:51.681 I/flutter ( 6845): [Cairn/perf] phase=image_preprocess task=describe_photo wall=9ms img_bytes=83393 src_img_bytes=83393 cache_key=1065953253 preprocessed=false
+05-11 19:45:51.843 I/flutter ( 6845): [Cairn/perf] phase=image_preprocess task=describe_photo wall=41ms img_bytes=81999 src_img_bytes=152906 cache_key=1073335804 preprocessed=false
+05-11 19:45:51.990 I/flutter ( 6845): [Cairn/perf] phase=describe_all wall=616ms photo_count=4 total_wallclock_ms=616
+05-11 19:46:03.304 I/BCL@Common( 7839): /PERF/BixbyApplication onCreate() start
+05-11 19:46:03.306 I/BCL@Common( 7839): /PERF/BixbyApplication onCreate() after super
+05-11 19:46:03.485 I/BCL@Common( 7839): /PERF/BixbyApplication onCreate() end
+05-11 19:46:56.324 I/BCL@Common( 9878): /PERF/BixbyApplication onCreate() start
+05-11 19:46:56.341 I/BCL@Common( 9878): /PERF/BixbyApplication onCreate() after super
+05-11 19:46:56.463 I/BCL@Common( 9878): /PERF/BixbyApplication onCreate() end
+05-11 19:47:05.047 W/PerformanceInfo(10468): start time : 1778509025047
+05-11 19:47:05.051 W/PerformanceInfo(10468): device totalMem=7649599488, availMem=1243979776, advertisedMem=8589934592, threshold=408944640, lowMemory=false
+05-11 19:47:05.051 W/PerformanceInfo(10468): low memory device false
+05-11 19:47:05.051 W/PerformanceInfo(10468): success getMemoryInfo, took time : 4
+05-11 19:47:09.876 I/BCL@Common(11046): /PERF/BixbyApplication onCreate() start
+05-11 19:47:09.880 I/BCL@Common(11046): /PERF/BixbyApplication onCreate() after super
+05-11 19:47:10.030 I/BCL@Common(11046): /PERF/BixbyApplication onCreate() end
+05-11 20:00:31.541 I/BCL@Common(21229): /PERF/BixbyApplication onCreate() start
+05-11 20:00:31.545 I/BCL@Common(21229): /PERF/BixbyApplication onCreate() after super
+05-11 20:00:31.685 I/BCL@Common(21229): /PERF/BixbyApplication onCreate() end
+05-11 20:00:56.674 I/flutter (19858): [Cairn/perf] phase=install wall=2ms
+05-11 20:01:06.655 I/flutter (19858): [Cairn/perf] phase=engine_create wall=9980ms runtime=native_mtp backend=gpu model=e2b max_tokens=4096 max_images=5 mtp_requested=true mtp_available=true gpu_fallback=false
+05-11 20:01:06.750 I/flutter (19858): [Cairn/perf] phase=image_preprocess task=describe_photo wall=87ms img_bytes=54186 src_img_bytes=254344 cache_key=207501445 preprocessed=false
+05-11 20:01:07.208 I/flutter (19858): [Cairn/perf] phase=image_preprocess task=describe_photo wall=245ms img_bytes=56451 src_img_bytes=264344 cache_key=947943196 preprocessed=false
+05-11 20:01:07.425 I/flutter (19858): [Cairn/perf] phase=image_preprocess task=describe_photo wall=68ms img_bytes=56496 src_img_bytes=266220 cache_key=784948165 preprocessed=false
+05-11 20:01:07.556 I/flutter (19858): [Cairn/perf] phase=image_preprocess task=describe_photo wall=41ms img_bytes=56247 src_img_bytes=262303 cache_key=735653539 preprocessed=false
+05-11 20:01:07.633 I/flutter (19858): [Cairn/perf] phase=describe_all wall=970ms photo_count=4 total_wallclock_ms=970
+05-11 20:01:32.016 I/BCL@Common(24325): /PERF/BixbyApplication onCreate() start
+05-11 20:01:32.024 I/BCL@Common(24325): /PERF/BixbyApplication onCreate() after super
+05-11 20:01:32.227 I/BCL@Common(24325): /PERF/BixbyApplication onCreate() end
+05-11 20:02:52.645 I/BCL@Common(26855): /PERF/BixbyApplication onCreate() start
+05-11 20:02:52.648 I/BCL@Common(26855): /PERF/BixbyApplication onCreate() after super
+05-11 20:02:52.709 I/BCL@Common(26855): /PERF/BixbyApplication onCreate() end

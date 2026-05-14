@@ -1,0 +1,966 @@
+﻿Resolving dependencies...
+Downloading packages...
+  flutter_lints 4.0.0 (6.0.0 available)
+  flutter_map 7.0.2 (8.3.0 available)
+  flutter_riverpod 2.6.1 (3.3.1 available)
+  geocoding 3.0.0 (4.0.0 available)
+  geocoding_android 3.3.1 (5.0.1 available)
+  geocoding_platform_interface 3.2.0 (5.0.0 available)
+  geolocator 13.0.4 (14.0.2 available)
+  geolocator_android 4.6.2 (5.0.2 available)
+  go_router 14.8.1 (17.2.3 available)
+  image_picker 1.2.1 (1.2.2 available)
+  image_picker_android 0.8.13+16 (0.8.13+17 available)
+  latlong2 0.9.1 (0.10.1 available)
+  lints 4.0.0 (6.1.0 available)
+  matcher 0.12.19 (0.12.20 available)
+  meta 1.17.0 (1.18.2 available)
+  mgrs_dart 2.0.0 (3.0.0 available)
+  native_toolchain_c 0.17.6 (0.18.0 available)
+  permission_handler 11.4.0 (12.0.1 available)
+  permission_handler_android 12.1.0 (13.0.1 available)
+  proj4dart 2.1.0 (3.0.0 available)
+  record 5.2.1 (6.2.0 available)
+! record_linux 1.3.0 (overridden)
+  riverpod 2.6.1 (3.2.1 available)
+  share_plus 10.1.4 (13.1.0 available)
+  share_plus_platform_interface 5.0.2 (7.1.0 available)
+  test_api 0.7.10 (0.7.12 available)
+  unicode 0.3.1 (1.1.9 available)
+  url_launcher_web 2.4.2 (2.4.3 available)
+  vector_math 2.2.0 (2.3.0 available)
+  vm_service 15.1.0 (15.2.0 available)
+  win32 5.15.0 (6.2.0 available)
+  xml 6.6.1 (7.0.1 available)
+Got dependencies!
+31 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+flutter.bat : flutter_gemma: Downloading native libs from https://github.com/Denis
+ovAV/flutter_gemma/releases/download/native-v0.11.0-a/litertlm-windows_x86_64.tar.
+gz ...
+At line:1 char:38
++ ... \System32"; & "C:\Dev\flutter\bin\flutter.bat" test --reporter expand ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (flutter_gemma: ...6_64.tar.gz ...:St 
+   ring) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+flutter_gemma: Checksum verified
+
+flutter_gemma: Native libs cached to 
+C:\Users\admin\AppData\Local\flutter_gemma\native/windows_x86_64
+
+flutter_gemma: Downloading https://github.com/DenisovAV/flutter_gemma/releases/dow
+nload/v0.12.7/tensorflowlite_c_windows_amd64.dll ...
+
+flutter_gemma: TFLite C cached to C:\Users\admin\AppData\Local\flutter_gemma\nativ
+e/windows_x86_64/tensorflowlite_c.dll
+
+File modified during build. Build must be rerun.
+00:00 +0: loading C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart
+00:00 +0: C:/Dev/gemma_project/apps/cairn_mobile/test/batch_feasibility_test.dart: OPT-7 finding ΓÇö batch inference not supported in flutter_gemma describeAll issues one generate() call per photo (sequential, not batched)
+00:00 +1: C:/Dev/gemma_project/apps/cairn_mobile/test/batch_feasibility_test.dart: OPT-7 finding ΓÇö batch inference not supported in flutter_gemma describeAll issues one generate() call per photo (sequential, not batched)
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=16 src_img_bytes=16 cache_key=823766431 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=1ms out_chars=80
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=16 src_img_bytes=16 cache_key=1050132269 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=16 src_img_bytes=16 cache_key=574119693 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=describe_all wall=25ms photo_count=3 total_wallclock_ms=25
+00:00 +2: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: SessionController.addAudio ΓÇö constraint enforcement accepts durationS == 0 (boundary)
+00:00 +3: C:/Dev/gemma_project/apps/cairn_mobile/test/batch_feasibility_test.dart: OPT-7 finding ΓÇö batch inference not supported in flutter_gemma each generate() call receives a distinct prompt with its own observation_id
+00:00 +4: C:/Dev/gemma_project/apps/cairn_mobile/test/batch_feasibility_test.dart: OPT-7 finding ΓÇö batch inference not supported in flutter_gemma each generate() call receives a distinct prompt with its own observation_id
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=16 src_img_bytes=16 cache_key=650096525 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=16 src_img_bytes=16 cache_key=537818017 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=16 src_img_bytes=16 cache_key=655329908 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=describe_all wall=2ms photo_count=3 total_wallclock_ms=2
+00:00 +5: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: SessionController.addAudio ΓÇö constraint enforcement rejects durationS < 0
+00:00 +6: C:/Dev/gemma_project/apps/cairn_mobile/test/batch_feasibility_test.dart: OPT-7 finding ΓÇö batch inference not supported in flutter_gemma describeAll with 1 photo issues exactly 1 generate() call
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=16 src_img_bytes=16 cache_key=699756743 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=describe_all wall=0ms photo_count=1 total_wallclock_ms=0
+00:00 +7: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: SessionController.addAudio ΓÇö constraint enforcement rejects durationS > 30
+00:00 +8: C:/Dev/gemma_project/apps/cairn_mobile/test/batch_feasibility_test.dart: OPT-7 finding ΓÇö batch inference not supported in flutter_gemma describeAll with 5 photos issues exactly 5 generate() calls
+00:00 +9: C:/Dev/gemma_project/apps/cairn_mobile/test/batch_feasibility_test.dart: OPT-7 finding ΓÇö batch inference not supported in flutter_gemma describeAll with 5 photos issues exactly 5 generate() calls
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=16 src_img_bytes=16 cache_key=385954803 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=16 src_img_bytes=16 cache_key=817819068 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=16 src_img_bytes=16 cache_key=940526078 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=16 src_img_bytes=16 cache_key=697187280 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=16 src_img_bytes=16 cache_key=437450945 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=describe_all wall=4ms photo_count=5 total_wallclock_ms=4
+00:00 +10: C:/Dev/gemma_project/apps/cairn_mobile/test/batch_feasibility_test.dart: OPT-7 finding ΓÇö batch inference not supported in flutter_gemma describeAll with 5 photos issues exactly 5 generate() calls
+00:00 +11: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: SessionController.addAudio ΓÇö constraint enforcement ArgumentError message for durationS < 0 names the param
+00:00 +12: C:/Dev/gemma_project/apps/cairn_mobile/test/batch_feasibility_test.dart: sequential describeAll ΓÇö reliability properties a single photo failure does not abort the remaining batch
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=16 src_img_bytes=16 cache_key=308755770 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+00:00 +13: C:/Dev/gemma_project/apps/cairn_mobile/test/batch_feasibility_test.dart: sequential describeAll ΓÇö reliability properties a single photo failure does not abort the remaining batch
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=16 src_img_bytes=16 cache_key=106851069 preprocessed=false
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=16 src_img_bytes=16 cache_key=944513940 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=16 src_img_bytes=16 cache_key=233827617 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=describe_all wall=6ms photo_count=4 total_wallclock_ms=6
+00:00 +14: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: SessionController.addAudio ΓÇö constraint enforcement failed constraint does NOT enroll the audio in the draft
+00:00 +15: C:/Dev/gemma_project/apps/cairn_mobile/test/batch_feasibility_test.dart: sequential describeAll ΓÇö reliability properties empty batch emits no events
+00:00 +16: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: SessionController.addAudio ΓÇö constraint enforcement addAudio emits a new state instance (Riverpod identity regression)
+00:00 +17: C:/Dev/gemma_project/apps/cairn_mobile/test/batch_feasibility_test.dart: sequential describeAll ΓÇö reliability properties events are ordered: started ΓåÆ succeeded/failed for each photo
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=16 src_img_bytes=16 cache_key=650397809 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=16 src_img_bytes=16 cache_key=136794411 preprocessed=false
+00:00 +18: C:/Dev/gemma_project/apps/cairn_mobile/test/batch_feasibility_test.dart: sequential describeAll ΓÇö reliability properties events are ordered: started ΓåÆ succeeded/failed for each photo
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=describe_all wall=3ms photo_count=2 total_wallclock_ms=3
+00:00 +19: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: Audio ID generation multiple audios enrolled have consecutive refs
+00:00 +20: C:/Dev/gemma_project/apps/cairn_mobile/test/batch_feasibility_test.dart: preprocessor integration with sequential batch PassthroughImagePreprocessor does not mutate bytes during describeAll
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=8 src_img_bytes=8 cache_key=451385099 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=describe_all wall=1ms photo_count=1 total_wallclock_ms=1
+00:00 +21: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: Audio ID generation audio counter is independent of image and obs counters
+00:00 +22: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: GemmaOrchestrator.describeAudio ΓÇö happy path valid response returns DescribeAudioResult with correct fields
+00:00 +23: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: GemmaOrchestrator.describeAudio ΓÇö happy path TTFT and wallclock are propagated from the session
+00:00 +24: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: GemmaOrchestrator.describeAudio ΓÇö happy path audioRef is included in result.audioRefs even when omitted by model
+00:00 +25: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: GemmaOrchestrator.describeAudio ΓÇö happy path all 19 allowed model_tags are accepted individually
+00:00 +26: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: GemmaOrchestrator.describeAudio ΓÇö contract errors unknown model_tag throws GemmaContractError
+00:00 +27: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: GemmaOrchestrator.describeAudio ΓÇö contract errors missing model_description throws GemmaContractError
+00:00 +28: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: GemmaOrchestrator.describeAudio ΓÇö contract errors no JSON object in response throws GemmaContractError
+00:00 +29: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: GemmaOrchestrator.describeAudio ΓÇö contract errors GemmaContractError carries raw response text
+00:00 +30: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: AudioAsset in sealed EvidencePacket sealed packet contains AudioAsset with correct metadata
+00:00 +31: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: AudioAsset in sealed EvidencePacket sealed AudioAsset has a 64-char lowercase hex sha256
+00:00 +32: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: AudioAsset in sealed EvidencePacket EvidencePacketValidator accepts a packet with one valid AudioAsset
+00:00 +33: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: AudioAsset in sealed EvidencePacket EvidencePacketValidator rejects AudioAsset with wrong sampleRateHz
+00:00 +34: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: Audio observation schema cross-reference observation with audioRef that matches AudioAsset passes validator
+00:00 +35: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: Audio observation schema cross-reference observation audioRef that has no matching AudioAsset fails validator
+00:00 +36: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: Audio observation schema cross-reference aud-N ref pattern is enforced by validator regex
+00:00 +37: C:/Dev/gemma_project/apps/cairn_mobile/test/audio_capture_test.dart: Audio observation schema cross-reference AudioAsset.toJson round-trip is stable
+00:00 +38: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: empty list produces no events
+00:00 +39: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: single photo success emits exactly two events: Started then Succeeded
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=530588170 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=1ms out_chars=231
+[Cairn/perf] phase=describe_all wall=28ms photo_count=1 total_wallclock_ms=28
+00:00 +40: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: single photo success DescribePhotoStarted has index=0, total=1
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=447318020 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=describe_all wall=1ms photo_count=1 total_wallclock_ms=1
+00:00 +41: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: single photo success DescribePhotoStarted echoes the original request
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=76280612 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=describe_all wall=0ms photo_count=1 total_wallclock_ms=0
+00:00 +42: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: single photo success DescribePhotoSucceeded result has the parsed model output
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=915435781 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=describe_all wall=1ms photo_count=1 total_wallclock_ms=1
+00:00 +43: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: TurnRecord construction task is describe_photo
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=149929020 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=describe_all wall=1ms photo_count=1 total_wallclock_ms=1
+00:00 +44: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: TurnRecord construction observationId comes from the request
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=863717766 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=232
+[Cairn/perf] phase=describe_all wall=8ms photo_count=1 total_wallclock_ms=8
+00:00 +45: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: TurnRecord construction ttftMs and wallclockMs come from session result
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=767536786 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=describe_all wall=1ms photo_count=1 total_wallclock_ms=1
+00:00 +46: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: TurnRecord construction outputCharCount is non-negative
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=147938522 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=describe_all wall=1ms photo_count=1 total_wallclock_ms=1
+00:00 +47: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: TurnRecord construction ts is a recent UTC timestamp
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=213907668 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=describe_all wall=0ms photo_count=1 total_wallclock_ms=0
+00:00 +48: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: single photo failure emits exactly two events: Started then Failed
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=1044751200 preprocessed=false
+[Cairn/perf] phase=describe_all wall=3ms photo_count=1 total_wallclock_ms=3
+00:00 +49: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: single photo failure DescribePhotoFailed carries the original request
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=782040799 preprocessed=false
+[Cairn/perf] phase=describe_all wall=0ms photo_count=1 total_wallclock_ms=0
+00:00 +50: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: single photo failure DescribePhotoFailed carries the error
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=1058628005 preprocessed=false
+[Cairn/perf] phase=describe_all wall=0ms photo_count=1 total_wallclock_ms=0
+00:00 +51: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: error isolation across batch 3 photos: [fail, succeed, succeed] all emit events
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=268540749 preprocessed=false
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=273730473 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=234
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=6525381 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=describe_all wall=5ms photo_count=3 total_wallclock_ms=5
+00:00 +52: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: error isolation across batch indices are sequential even when a photo fails
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=663408191 preprocessed=false
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=300789462 preprocessed=false
+[Cairn/perf] phase=describe_all wall=1ms photo_count=2 total_wallclock_ms=1
+00:00 +53: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: multiple photos happy path 4 photos emit 8 events (4├ù Started + 4├ù Succeeded)
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=944602605 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=609650546 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=620483185 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=109345004 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=describe_all wall=2ms photo_count=4 total_wallclock_ms=2
+00:00 +54: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: multiple photos happy path Started events have sequential indices 0..3
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=1030074779 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=703607023 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=975485220 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=1046404402 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=describe_all wall=2ms photo_count=4 total_wallclock_ms=2
+00:00 +55: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: multiple photos happy path all total fields equal 4
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=981819109 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=896389675 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=737121942 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=182155503 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=describe_all wall=1ms photo_count=4 total_wallclock_ms=1
+00:00 +56: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: preprocessor forwarding preprocessor is called once per photo
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=714230531 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=566151054 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=574407720 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=describe_all wall=3ms photo_count=3 total_wallclock_ms=3
+00:00 +57: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: preprocessor forwarding default orchestrator uses PassthroughImagePreprocessor (no crash)
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=1051706883 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=describe_all wall=0ms photo_count=1 total_wallclock_ms=0
+00:00 +58: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: preprocessor forwarding each photo receives its own bytes (distinct Uint8List instances)
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=3 src_img_bytes=3 cache_key=100149523 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=3 src_img_bytes=3 cache_key=1039658220 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+[Cairn/perf] phase=describe_all wall=1ms photo_count=2 total_wallclock_ms=1
+00:00 +59: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: contract error surfacing unknown tag becomes DescribePhotoFailed, not an unhandled throw
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=462826868 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=217
+[Cairn/perf] phase=describe_all wall=0ms photo_count=1 total_wallclock_ms=0
+00:00 +60: C:/Dev/gemma_project/apps/cairn_mobile/test/describe_all_test.dart: contract error surfacing after a contract error subsequent photos continue
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=422462346 preprocessed=false
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=464024431 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=234
+[Cairn/perf] phase=describe_all wall=1ms photo_count=2 total_wallclock_ms=1
+00:01 +61: C:/Dev/gemma_project/apps/cairn_mobile/test/dev_scenario_test.dart: built-in manifest exposes 3 scenarios with 4 photos each
+00:01 +62: C:/Dev/gemma_project/apps/cairn_mobile/test/dev_scenario_test.dart: tagJaccard handles overlap and empty sets
+00:01 +63: C:/Dev/gemma_project/apps/cairn_mobile/test/dev_scenario_test.dart: severity and damage helpers map structural tags conservatively
+00:01 +64: C:/Dev/gemma_project/apps/cairn_mobile/test/dev_scenario_test.dart: runDevScenario passes when observed tags match expectations
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=8 src_img_bytes=8 cache_key=587254377 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=1ms out_chars=80
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=8 src_img_bytes=8 cache_key=5849022 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=8 src_img_bytes=8 cache_key=89897026 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=8 src_img_bytes=8 cache_key=717236347 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=describe_all wall=105ms photo_count=4 total_wallclock_ms=105
+00:01 +65: C:/Dev/gemma_project/apps/cairn_mobile/test/dev_scenario_test.dart: runDevScenario fails pass gate on missing asset
+00:01 +66: C:/Dev/gemma_project/apps/cairn_mobile/test/dev_scenario_test.dart: priority-band matching fails when deterministic score is outside band
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=8 src_img_bytes=8 cache_key=305916469 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=8 src_img_bytes=8 cache_key=855339312 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=8 src_img_bytes=8 cache_key=280275639 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=8 src_img_bytes=8 cache_key=907598905 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=80
+[Cairn/perf] phase=describe_all wall=5ms photo_count=4 total_wallclock_ms=5
+00:01 +67: C:/Dev/gemma_project/apps/cairn_mobile/test/draft_persistence_test.dart: SessionDraft.toMetaMap / fromMetaMap round-trips scalar fields
+00:01 +68: C:/Dev/gemma_project/apps/cairn_mobile/test/draft_persistence_test.dart: SessionDraft.toMetaMap / fromMetaMap round-trips location
+00:01 +69: C:/Dev/gemma_project/apps/cairn_mobile/test/draft_persistence_test.dart: SessionDraft.toMetaMap / fromMetaMap round-trips building
+00:01 +70: C:/Dev/gemma_project/apps/cairn_mobile/test/draft_persistence_test.dart: SessionDraft.toMetaMap / fromMetaMap round-trips observations
+00:01 +71: C:/Dev/gemma_project/apps/cairn_mobile/test/draft_persistence_test.dart: SessionDraft.toMetaMap / fromMetaMap round-trips turns
+00:01 +72: C:/Dev/gemma_project/apps/cairn_mobile/test/draft_persistence_test.dart: SessionDraft.toMetaMap / fromMetaMap round-trips counters
+00:01 +73: C:/Dev/gemma_project/apps/cairn_mobile/test/draft_persistence_test.dart: SessionDraft.toMetaMap / fromMetaMap photos with matching bytes are restored
+00:01 +74: C:/Dev/gemma_project/apps/cairn_mobile/test/draft_persistence_test.dart: SessionDraft.toMetaMap / fromMetaMap photos with missing bytes are silently omitted
+00:01 +75: C:/Dev/gemma_project/apps/cairn_mobile/test/draft_persistence_test.dart: SessionDraft.toMetaMap / fromMetaMap empty draft round-trips without error
+00:01 +76: C:/Dev/gemma_project/apps/cairn_mobile/test/draft_persistence_test.dart: TurnRecord JSON round-trip toJson includes all set fields
+00:01 +77: C:/Dev/gemma_project/apps/cairn_mobile/test/draft_persistence_test.dart: TurnRecord JSON round-trip fromJson round-trips
+00:01 +78: C:/Dev/gemma_project/apps/cairn_mobile/test/draft_persistence_test.dart: _FileBackedDraftPersistence (file-backed) hasActiveDraft is false initially
+00:01 +79: C:/Dev/gemma_project/apps/cairn_mobile/test/draft_persistence_test.dart: _FileBackedDraftPersistence (file-backed) saveDraftMeta + hasActiveDraft = true
+00:02 +80: C:/Dev/gemma_project/apps/cairn_mobile/test/draft_persistence_test.dart: _FileBackedDraftPersistence (file-backed) loadDraftMeta returns null before save
+00:02 +81: C:/Dev/gemma_project/apps/cairn_mobile/test/draft_persistence_test.dart: _FileBackedDraftPersistence (file-backed) round-trips draft meta through file
+00:02 +82: C:/Dev/gemma_project/apps/cairn_mobile/test/draft_persistence_test.dart: _FileBackedDraftPersistence (file-backed) clearDraft removes the file
+00:02 +83: C:/Dev/gemma_project/apps/cairn_mobile/test/draft_persistence_test.dart: _FileBackedDraftPersistence (file-backed) clearDraft is a no-op when file absent
+00:02 +84: C:/Dev/gemma_project/apps/cairn_mobile/test/draft_persistence_test.dart: _FileBackedDraftPersistence (file-backed) active.json is not left with a .tmp extension after save
+00:02 +85: C:/Dev/gemma_project/apps/cairn_mobile/test/draft_persistence_test.dart: NoOpDraftPersistence all methods complete without error
+00:02 +86: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_bundle_test.dart: buildEvidenceBundle includes packet, pdf, and photos
+00:03 +87: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_test.dart: EvidencePacket round-trip toJson / fromJson preserves all fields
+00:03 +88: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_test.dart: EvidencePacket round-trip top-level schema string is correct
+00:03 +89: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_test.dart: EvidencePacket round-trip omits null model.lora when not set
+00:04 +90: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö valid packet fully valid packet produces zero errors
+00:04 +91: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö valid packet validateOrThrow does not throw on valid packet
+00:04 +92: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö valid packet packet with audio passes when audio is compliant
+00:04 +93: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö valid packet volunteer-authored observation (null modelDescription) passes
+00:04 +94: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö top-level rejects invalid packet_id (not UUIDv7)
+00:04 +95: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö top-level rejects UUIDv4 (version digit is 4, not 7)
+00:04 +96: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö top-level rejects invalid app_version
+00:04 +97: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö top-level accepts semver with pre-release label
+00:04 +98: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö top-level rejects wrong protocol string
+00:04 +99: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö model rejects unknown quant
+00:04 +100: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö model accepts all allowed quants
+00:04 +101: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö location rejects lat > 90
+00:04 +102: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö location rejects lat < -90
+00:04 +103: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö location rejects lng > 180
+00:04 +104: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö location rejects lng < -180
+00:04 +105: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö building rejects unknown building type
+00:04 +106: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö building accepts all known building types
+00:04 +107: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö building rejects stories_above_grade > 200
+00:04 +108: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö observations rejects observation_id not matching ^obs-[0-9]+$
+00:04 +109: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö observations rejects UUID-style observation_id
+00:04 +110: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö observations accepts obs-1, obs-99, obs-1000
+00:04 +111: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö observations rejects model_tag not in schema enum
+00:04 +112: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö observations rejects user_override model_tag
+00:04 +113: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö observations accepts all 19 valid model_tags
+00:04 +114: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö observations rejects more than 16 observations
+00:04 +115: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö observations rejects image_ref in obs not found in assets.images
+00:04 +116: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö observations rejects audio_ref in obs not found in assets.audio
+00:04 +117: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö observations rejects invalid asked_in language
+00:04 +118: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö bbox valid bbox passes
+00:04 +119: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö bbox rejects bbox with wrong coordinate count
+00:04 +120: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö bbox rejects bbox coord > 1000
+00:04 +121: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö bbox rejects bbox coord < 0
+00:04 +122: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö bbox rejects bbox with empty label
+00:04 +123: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö bbox rejects bbox imageRef not in assets.images
+00:04 +124: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö bbox boundary coords 0 and 1000 are valid
+00:04 +125: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö bbox rejects bbox where y1 >= y2 (inverted rows)
+00:04 +126: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö bbox rejects bbox where x1 >= x2 (inverted cols)
+00:04 +127: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö bbox valid non-degenerate bbox passes ordering check
+00:04 +128: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö audio assets rejects aud ref not matching ^aud-[0-9]+$
+00:04 +129: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö audio assets rejects duration_s > 30
+00:04 +130: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö audio assets rejects duration_s < 0
+00:04 +131: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö audio assets accepts duration_s exactly 0 and 30
+00:04 +132: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö audio assets rejects sample_rate_hz != 16000
+00:04 +133: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö audio assets rejects channels != 1
+00:04 +134: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö audio assets rejects malformed sha256
+00:04 +135: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö image assets rejects img ref not matching ^img-[0-9]+$
+00:04 +136: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö image assets rejects width_px < 1
+00:04 +137: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö triage rejects empty rationale_bullets
+00:04 +138: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö triage rejects rationale_bullets > 5
+00:04 +139: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö triage rejects empty string in rationale_bullets
+00:04 +140: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö triage rejects priority_score < 1
+00:04 +141: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö triage rejects priority_score > 10
+00:04 +142: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö triage accepts priority_score 1..10
+00:04 +143: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö triage rejects unknown priority_band
+00:04 +144: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö triage accepts all four priority bands
+00:04 +145: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö protocol_answers rejects invalid leaning value
+00:04 +146: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö protocol_answers accepts all four leaning values
+00:04 +147: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö volunteer rejects invalid locale format
+00:04 +148: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö volunteer accepts en, es, tr base locales
+00:04 +149: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö volunteer accepts en-US, es-MX, tr-TR
+00:04 +150: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö volunteer rejects malformed signature_hash
+00:04 +151: C:/Dev/gemma_project/apps/cairn_mobile/test/evidence_packet_validator_test.dart: EvidencePacketValidator ΓÇö volunteer rejects signature_hash without sha256 prefix
+00:04 +152: C:/Dev/gemma_project/apps/cairn_mobile/test/history_retention_test.dart: SessionConfig.clearHistoryBetweenTurns ΓÇö field contract production default is true for vision
+00:04 +153: C:/Dev/gemma_project/apps/cairn_mobile/test/history_retention_test.dart: SessionConfig.clearHistoryBetweenTurns ΓÇö field contract production default is true for vision
+00:04 +154: C:/Dev/gemma_project/apps/cairn_mobile/test/history_retention_test.dart: SessionConfig.clearHistoryBetweenTurns ΓÇö field contract production default is true for vision
+00:04 +155: C:/Dev/gemma_project/apps/cairn_mobile/test/history_retention_test.dart: SessionConfig.clearHistoryBetweenTurns ΓÇö field contract production default is true for audio
+00:04 +156: C:/Dev/gemma_project/apps/cairn_mobile/test/history_retention_test.dart: SessionConfig.clearHistoryBetweenTurns ΓÇö field contract production default is true for synthesis
+00:04 +157: C:/Dev/gemma_project/apps/cairn_mobile/test/history_retention_test.dart: SessionConfig.clearHistoryBetweenTurns ΓÇö field contract production default is true for standard
+00:04 +158: C:/Dev/gemma_project/apps/cairn_mobile/test/history_retention_test.dart: SessionConfig.clearHistoryBetweenTurns ΓÇö field contract visionHistoryRetained has clearHistoryBetweenTurns: false
+00:04 +159: C:/Dev/gemma_project/apps/cairn_mobile/test/history_retention_test.dart: SessionConfig.clearHistoryBetweenTurns ΓÇö field contract visionHistoryRetained is otherwise identical to vision
+00:04 +160: C:/Dev/gemma_project/apps/cairn_mobile/test/history_retention_test.dart: SessionConfig.clearHistoryBetweenTurns ΓÇö field contract default constructor defaults clearHistoryBetweenTurns to true
+00:04 +161: C:/Dev/gemma_project/apps/cairn_mobile/test/history_retention_test.dart: SessionConfig.copyWith ΓÇö clearHistoryBetweenTurns copyWith can set clearHistoryBetweenTurns to false
+00:04 +162: C:/Dev/gemma_project/apps/cairn_mobile/test/history_retention_test.dart: SessionConfig.copyWith ΓÇö clearHistoryBetweenTurns copyWith preserves all other fields when only toggling clearHistory
+00:04 +163: C:/Dev/gemma_project/apps/cairn_mobile/test/history_retention_test.dart: SessionConfig.copyWith ΓÇö clearHistoryBetweenTurns copyWith with no args returns config with same clearHistoryBetweenTurns
+00:04 +164: C:/Dev/gemma_project/apps/cairn_mobile/test/history_retention_test.dart: SessionConfig.copyWith ΓÇö clearHistoryBetweenTurns copyWith can restore clearHistoryBetweenTurns to true
+00:04 +165: C:/Dev/gemma_project/apps/cairn_mobile/test/history_retention_test.dart: toLogString includes clearHistory production vision toLogString includes clearHistory=true
+00:04 +166: C:/Dev/gemma_project/apps/cairn_mobile/test/history_retention_test.dart: toLogString includes clearHistory visionHistoryRetained toLogString includes clearHistory=false
+00:04 +167: C:/Dev/gemma_project/apps/cairn_mobile/test/history_retention_test.dart: toLogString includes clearHistory clearHistory field appears in toString()
+00:04 +168: C:/Dev/gemma_project/apps/cairn_mobile/test/history_retention_test.dart: fake session ΓÇö generate call count generate() is callable and returns a result
+00:04 +169: C:/Dev/gemma_project/apps/cairn_mobile/test/history_retention_test.dart: fake session ΓÇö generate call count five sequential generate() calls increment count to 5
+00:04 +170: C:/Dev/gemma_project/apps/cairn_mobile/test/history_retention_test.dart: A/B gate documentation production variant (clearHistoryBetweenTurns: true) is the safety default
+00:04 +171: C:/Dev/gemma_project/apps/cairn_mobile/test/history_retention_test.dart: A/B gate documentation retained variant (clearHistoryBetweenTurns: false) must pass contamination gate
+00:04 +172: C:/Dev/gemma_project/apps/cairn_mobile/test/history_retention_test.dart: A/B gate documentation only visionHistoryRetained has clearHistoryBetweenTurns: false
+00:05 +173: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: PassthroughImagePreprocessor returns the same byte object (identity)
+00:05 +174: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: PassthroughImagePreprocessor returns empty bytes unchanged
+00:05 +175: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: PassthroughImagePreprocessor does not mutate the bytes
+00:05 +176: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: CachingImagePreprocessor returns stable bytes for the same source object
+00:05 +177: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: CachingImagePreprocessor invalidates when a different byte object is used
+00:05 +178: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: AndroidJpegImagePreprocessor uses native JPEG channel on Android
+00:06 +179: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: AndroidJpegImagePreprocessor uses native JPEG channel on Android
+00:06 +180: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: AndroidJpegImagePreprocessor uses native JPEG channel on Android
+00:06 +181: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: AndroidJpegImagePreprocessor uses native JPEG channel on Android
+00:06 +182: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: AndroidJpegImagePreprocessor uses native JPEG channel on Android
+00:06 +183: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: AndroidJpegImagePreprocessor uses native JPEG channel on Android
+00:06 +184: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: AndroidJpegImagePreprocessor uses native JPEG channel on Android
+00:06 +184: C:/Dev/gemma_project/apps/cairn_mobile/test/inference_runtime_test.dart: Gemma tool-call output describePhoto accepts matching FunctionCallResponse payload
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=4 src_img_bytes=4 cache_key=300385469 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=120
+00:06 +185: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: AndroidJpegImagePreprocessor uses native JPEG channel on Android
+00:06 +185: C:/Dev/gemma_project/apps/cairn_mobile/test/inference_runtime_test.dart: Gemma tool-call output flutter_gemma runtime accepts text-only JSON when no tool call present
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=4 src_img_bytes=4 cache_key=625737180 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=50
+00:06 +186: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: AndroidJpegImagePreprocessor uses native JPEG channel on Android
+00:06 +186: C:/Dev/gemma_project/apps/cairn_mobile/test/inference_runtime_test.dart: Gemma tool-call output flutter_gemma contract fails when both tool call and JSON are absent
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=3ms img_bytes=4 src_img_bytes=4 cache_key=1043426536 preprocessed=false
+00:06 +187: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: AndroidJpegImagePreprocessor uses native JPEG channel on Android
+00:06 +187: C:/Dev/gemma_project/apps/cairn_mobile/test/inference_runtime_test.dart: Gemma tool-call output describePhoto uses inference bytes when provided
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=2 src_img_bytes=4 cache_key=460909321 preprocessed=true
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=50
+00:06 +188: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: AndroidJpegImagePreprocessor uses native JPEG channel on Android
+00:06 +188: C:/Dev/gemma_project/apps/cairn_mobile/test/inference_runtime_test.dart: Gemma tool-call output describePhoto removes contradictory no_visible_damage tag
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=4 src_img_bytes=4 cache_key=52119221 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=50
+[Cairn/perf] phase=model_tag_repair task=describe_photo wall=0ms observation_id=obs-1 before=horizontal_crack,no_visible_damage,horizontal_crack,uncertain_structural after=horizontal_crack,uncertain_structural
+00:06 +189: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: AndroidJpegImagePreprocessor uses native JPEG channel on Android
+00:06 +189: C:/Dev/gemma_project/apps/cairn_mobile/test/inference_runtime_test.dart: native batch path describePhotosBatch returns typed fallback on count mismatch
+[Cairn/perf] phase=image_preprocess task=describe_photos_batch wall=0ms img_bytes=8 src_img_bytes=8 image_count=2 preprocessed_count=0
+[Cairn/perf] phase=parse_contract task=describe_photos_batch wall=0ms out_chars=20
+00:06 +190: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: AndroidJpegImagePreprocessor uses native JPEG channel on Android
+00:06 +190: C:/Dev/gemma_project/apps/cairn_mobile/test/inference_runtime_test.dart: native batch path describeAll falls back to sequential after failed native batch
+[Cairn/perf] phase=image_preprocess task=describe_photos_batch wall=0ms img_bytes=8 src_img_bytes=8 image_count=2 preprocessed_count=0
+[Cairn/perf] phase=parse_contract task=describe_photos_batch wall=0ms out_chars=20
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=4 src_img_bytes=4 cache_key=231171746 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=100
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=4 src_img_bytes=4 cache_key=727991962 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=100
+[Cairn/perf] phase=describe_all wall=3ms photo_count=2 total_wallclock_ms=3
+00:06 +191: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: AndroidJpegImagePreprocessor uses native JPEG channel on Android
+00:07 +192: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: AndroidJpegImagePreprocessor falls back when native channel fails
+00:07 +193: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö within bounds image whose long edge < bound returns raw bytes unchanged
+00:07 +194: C:/Dev/gemma_project/apps/cairn_mobile/test/json_encoding_test.dart: JsonEncoder.withIndent ΓÇö round-trip correctness plain string round-trips unchanged
+00:07 +195: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö within bounds image whose long edge == bound returns raw bytes unchanged
+00:07 +196: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö within bounds image whose long edge == bound returns raw bytes unchanged
+00:07 +197: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö within bounds image whose long edge == bound returns raw bytes unchanged
+00:07 +198: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö within bounds image whose long edge == bound returns raw bytes unchanged
+00:07 +199: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö within bounds image whose long edge == bound returns raw bytes unchanged
+00:07 +200: C:/Dev/gemma_project/apps/cairn_mobile/test/json_encoding_test.dart: JsonEncoder.withIndent ΓÇö round-trip correctness carriage return in string is escaped
+00:07 +201: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö within bounds square image within bounds returns raw bytes
+00:07 +202: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö within bounds square image within bounds returns raw bytes
+00:07 +203: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö within bounds square image within bounds returns raw bytes
+00:07 +204: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö within bounds square image within bounds returns raw bytes
+00:07 +205: C:/Dev/gemma_project/apps/cairn_mobile/test/json_encoding_test.dart: JsonEncoder.withIndent ΓÇö round-trip correctness output is valid JSON (jsonDecode does not throw)
+00:07 +206: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö downscaling landscape image: long edge equals maxLongEdgePx after resize
+00:07 +207: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö downscaling landscape image: long edge equals maxLongEdgePx after resize
+00:07 +208: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö downscaling landscape image: long edge equals maxLongEdgePx after resize
+00:07 +209: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö downscaling portrait image: long edge equals maxLongEdgePx after resize
+00:07 +210: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö downscaling square image: both dimensions equal maxLongEdgePx
+00:07 +211: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö downscaling downscaled output is decodable PNG
+00:07 +212: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö downscaling result is smaller in bytes than the original for large inputs
+00:07 +213: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö aspect ratio 3:1 wide image preserves ratio after resize
+00:07 +214: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö aspect ratio 1:3 tall image preserves ratio after resize
+00:07 +215: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö aspect ratio 4:3 landscape common camera ratio preserved
+00:07 +216: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö JPEG header fast path reads dims from JPEG with no fill bytes; returns rawBytes unchanged
+00:07 +217: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö JPEG header fast path reads dims from JPEG with 1 fill byte before SOF0; returns rawBytes unchanged
+00:07 +218: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö benchmark dimensions Sprint 3 768px benchmark: 1600├ù900 ΓåÆ 768├ù432
+00:08 +219: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö benchmark dimensions Sprint 3 768px benchmark: 1600├ù900 ΓåÆ 768├ù432
+00:08 +220: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö benchmark dimensions Sprint 3 768px benchmark: 1600├ù900 ΓåÆ 768├ù432
+00:08 +221: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö benchmark dimensions Sprint 3 768px benchmark: 1600├ù900 ΓåÆ 768├ù432
+00:08 +222: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö benchmark dimensions Sprint 3 768px benchmark: 1600├ù900 ΓåÆ 768├ù432
+00:08 +223: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö benchmark dimensions Sprint 3 768px benchmark: 1600├ù900 ΓåÆ 768├ù432
+00:08 +224: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö benchmark dimensions Sprint 3 768px benchmark: 1600├ù900 ΓåÆ 768├ù432
+00:08 +225: C:/Dev/gemma_project/apps/cairn_mobile/test/json_extract_test.dart: extractFirstJsonObject returns null on no object
+00:08 +226: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö benchmark dimensions Sprint 3 512px benchmark: 1600├ù900 ΓåÆ 512├ù288
+00:08 +227: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö benchmark dimensions Sprint 3 512px benchmark: 1600├ù900 ΓåÆ 512├ù288
+00:08 +228: C:/Dev/gemma_project/apps/cairn_mobile/test/image_preprocessor_test.dart: BoundedImagePreprocessor ΓÇö benchmark dimensions portrait: 900├ù1600 ΓåÆ 432├ù768 at 768px
+00:09 +229: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: resolveLocation ΓÇö service disabled returns servicesDisabled when location service is off
+00:09 +230: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: resolveLocation ΓÇö permission denied forever (initial) returns deniedForever without requesting permission
+00:09 +231: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: resolveLocation ΓÇö denied, then granted after request returns success when request grants whileInUse
+00:09 +232: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: resolveLocation ΓÇö denied, then granted after request returns denied when request still returns denied
+00:09 +233: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: resolveLocation ΓÇö denied, then granted after request returns deniedForever when request escalates to deniedForever
+00:09 +234: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: resolveLocation ΓÇö timeout returns timeout when getCurrentPosition throws TimeoutException
+00:09 +235: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: resolveLocation ΓÇö unknown error returns unknown when getCurrentPosition throws generic error
+00:09 +236: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: resolveLocation ΓÇö happy path returns success with correct coordinates and address
+00:09 +237: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: resolveLocation ΓÇö happy path succeeds even when geocode returns empty string
+00:09 +238: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: resolveLocation ΓÇö happy path already-granted permission skips requestPermission
+00:09 +239: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: LocationResult LocationSuccess.location is set; errorKind is null
+00:09 +240: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: LocationResult LocationFailure.errorKind is set; location is null
+00:10 +241: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: LocationResult LocationFailure carries optional message
+00:10 +242: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: LocationErrorKindX.label all five kinds have non-empty labels
+00:10 +243: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: LocationErrorKindX.label labels are distinct
+00:10 +244: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: LocationErrorKindX.guidance all five kinds have non-empty guidance strings
+00:10 +245: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: LocationErrorKindX.canRetryInApp deniedForever cannot retry in-app
+00:10 +246: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: LocationErrorKindX.canRetryInApp all others can retry in-app
+00:10 +247: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: LocationErrorKindX.requiresSettings deniedForever and servicesDisabled require settings
+00:10 +248: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: LocationErrorKindX.requiresSettings denied, timeout, unknown do not require settings
+00:10 +249: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: kSkippedGeoLocation has accuracyMeters == 0.0 (schema-valid sentinel)
+00:10 +250: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: kSkippedGeoLocation lat and lng are 0.0
+00:10 +251: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: kSkippedGeoLocation addressText is non-empty (visible in report)
+00:10 +252: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: kSkippedGeoLocation isSkippedLocation returns true for sentinel
+00:10 +253: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: kSkippedGeoLocation isSkippedLocation returns false for real location
+00:10 +254: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: kSkippedGeoLocation zero-accuracy real fix is NOT the skip sentinel
+00:10 +255: C:/Dev/gemma_project/apps/cairn_mobile/test/location_service_test.dart: kSkippedGeoLocation kSkippedGeoLocation passes EvidencePacketValidator accuracy check
+00:10 +256: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: registry contains both e2b and e4b
+00:10 +257: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: Gemma 4-only architecture guard registry exposes only approved Gemma 4 keys
+00:10 +258: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: Gemma 4-only architecture guard e2b declares Gemma 4 family and runtime model type
+00:10 +259: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: Gemma 4-only architecture guard e2b HuggingFace repo is a LiteRT Community Gemma 4 repo
+00:10 +260: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: Gemma 4-only architecture guard e2b artifact filenames are Gemma 4 LiteRT-LM artifacts
+00:10 +261: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: Gemma 4-only architecture guard e4b declares Gemma 4 family and runtime model type
+00:10 +262: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: Gemma 4-only architecture guard e4b HuggingFace repo is a LiteRT Community Gemma 4 repo
+00:10 +263: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: Gemma 4-only architecture guard e4b artifact filenames are Gemma 4 LiteRT-LM artifacts
+00:10 +264: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e2b metadata key
+00:10 +265: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e2b metadata hfRepo
+00:10 +266: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e2b metadata quant
+00:10 +267: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e2b metadata appContextBudgetTokens
+00:10 +268: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e2b metadata modalities contains text and image
+00:10 +269: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e2b metadata web filename
+00:10 +270: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e2b metadata android filename
+00:10 +271: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e2b filename routing getTaskFilename(true) returns web filename
+00:10 +272: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e2b filename routing getTaskFilename(false) returns android filename
+00:10 +273: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e2b download URLs hfDownloadUrl(isWeb=true) is well-formed HuggingFace URL with web filename
+00:10 +274: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e2b download URLs hfDownloadUrl(isWeb=false) is well-formed HuggingFace URL with android filename
+00:10 +275: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e2b download URLs resolvedDownloadUrl in test environment (kIsWeb=false) returns android URL
+00:10 +276: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e2b file types fileType(isWeb=true) returns ModelFileType.task
+00:10 +277: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e2b file types fileType(isWeb=false) returns ModelFileType.litertlm
+00:10 +278: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e2b file types resolvedFileType in test environment (kIsWeb=false) returns litertlm
+00:10 +279: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e2b Exynos compatibility (┬º1.2) android artifact is not Qualcomm-specific (Exynos 2200 target)
+00:10 +280: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e2b Exynos compatibility (┬º1.2) hfRepo is generic litert-community, not Qualcomm AI Hub
+00:10 +281: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e4b metadata key
+00:10 +282: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e4b metadata hfRepo
+00:10 +283: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e4b metadata web filename ends with .task
+00:10 +284: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e4b metadata android filename ends with .litertlm
+00:10 +285: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e4b file types fileType(isWeb=true) returns ModelFileType.task
+00:10 +286: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: e4b file types fileType(isWeb=false) returns ModelFileType.litertlm
+00:10 +287: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: URL structure invariants e2b web URL ends with .task
+00:10 +288: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: URL structure invariants e2b android URL ends with .litertlm
+00:10 +289: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: URL structure invariants e2b web URL contains HuggingFace resolve path
+00:10 +290: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: URL structure invariants e2b android URL contains HuggingFace resolve path
+00:10 +291: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: URL structure invariants e2b web and android URLs are distinct
+00:10 +292: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: URL structure invariants e4b web URL ends with .task
+00:10 +293: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: URL structure invariants e4b android URL ends with .litertlm
+00:10 +294: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: URL structure invariants e4b web URL contains HuggingFace resolve path
+00:10 +295: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: URL structure invariants e4b android URL contains HuggingFace resolve path
+00:10 +296: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: URL structure invariants e4b web and android URLs are distinct
+00:10 +297: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: file-type / filename coherence e2b web: fileType=task matches .task filename
+00:10 +298: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: file-type / filename coherence e2b android: fileType=litertlm matches .litertlm filename
+00:10 +299: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: file-type / filename coherence e4b web: fileType=task matches .task filename
+00:10 +300: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: file-type / filename coherence e4b android: fileType=litertlm matches .litertlm filename
+00:10 +301: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: inferenceMaxLongEdgePx all models have inferenceMaxLongEdgePx > 0
+00:10 +302: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: inferenceMaxLongEdgePx e2b has S23 FE promoted production default of 640
+00:10 +303: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: inferenceMaxLongEdgePx e4b has S23 FE promoted production default of 640
+00:10 +304: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: inferenceMaxLongEdgePx all models have inferenceMaxLongEdgePx in sane benchmark range (256..2048)
+00:10 +305: C:/Dev/gemma_project/apps/cairn_mobile/test/model_registry_platform_test.dart: inferenceMaxLongEdgePx BoundedImagePreprocessor can be constructed from e2b spec
+00:10 +306: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö tag contract valid tags ΓåÆ DescribePhotoResult without error
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=308583399 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=250
+[Cairn/perf] phase=model_tag_repair task=describe_photo wall=0ms observation_id=obs-1 before=diagonal_crack,no_visible_damage after=diagonal_crack
+00:10 +306 -1: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö tag contract valid tags ΓåÆ DescribePhotoResult without error [E]
+  Expected: ['diagonal_crack', 'no_visible_damage']
+    Actual: ['diagonal_crack']
+     Which: at location [1] is ['diagonal_crack'] which shorter than expected
+  
+  package:matcher                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18  expect
+  test\orchestrator_contract_test.dart 124:7          main.<fn>.<fn>
+  
+00:10 +306 -1: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö tag contract empty tags list ΓåÆ ok
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=1039810859 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=214
+00:10 +307 -1: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö tag contract single unknown tag ΓåÆ throws GemmaContractError
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=3ms img_bytes=0 src_img_bytes=0 cache_key=724166652 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=234
+00:10 +308 -1: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö tag contract mix of valid + invalid tags ΓåÆ throws on the invalid one
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=595573562 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=239
+00:10 +309 -1: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö tag contract task field is describe_photo in thrown error
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=288723005 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=226
+00:10 +310 -1: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö tag contract all 19 allowed tags parse cleanly
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=92294931 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=603
+[Cairn/perf] phase=model_tag_repair task=describe_photo wall=0ms observation_id=obs-1 before=diagonal_crack,horizontal_crack,vertical_crack,x_pattern_crack,concrete_spalling,exposed_rebar,column_base_damage,beam_column_joint_damage,soft_story_condition,pounding_damage,infill_wall_crack,out_of_plane_failure,foundation_displacement,chimney_damage,parapet_damage,falling_hazard_unsecured,uncertain_structural,uncertain_cosmetic,no_visible_damage after=diagonal_crack,horizontal_crack,vertical_crack,x_pattern_crack,concrete_spalling,exposed_rebar,column_base_damage,beam_column_joint_damage,soft_story_condition,pounding_damage,infill_wall_crack,out_of_plane_failure,foundation_displacement,chimney_damage,parapet_damage,falling_hazard_unsecured,uncertain_structural,uncertain_cosmetic
+00:11 +310 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö tag contract all 19 allowed tags parse cleanly [E]
+  Expected: <19>
+    Actual: <18>
+  
+  package:matcher                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18  expect
+  test\orchestrator_contract_test.dart 175:7          main.<fn>.<fn>
+  
+00:11 +310 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö bbox contract valid bbox ΓåÆ DescribePhotoResult with bbox data
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=1027705470 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=302
+00:11 +311 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö bbox contract bbox with exactly 4 elements at boundary values ΓåÆ valid
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=557371648 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=277
+00:11 +312 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö bbox contract bbox with 3 elements ΓåÆ throws GemmaContractError
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=937819447 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=275
+00:11 +313 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö bbox contract bbox with 5 elements ΓåÆ throws GemmaContractError
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=916604457 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=285
+00:11 +314 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö bbox contract bbox coord > 1000 ΓåÆ throws GemmaContractError
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=595064815 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=281
+00:11 +315 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö bbox contract bbox coord < 0 ΓåÆ throws GemmaContractError
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=1048486930 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=279
+00:11 +316 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö bbox contract second bbox entry invalid ΓåÆ throws with index in message
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=23991748 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=313
+00:11 +317 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö bbox contract empty bbox list ΓåÆ no error
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=786030534 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=230
+00:11 +318 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö bbox contract bbox y1 >= y2 ΓåÆ throws GemmaContractError (ordering violation)
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=537613311 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=280
+00:11 +319 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö bbox contract bbox x1 >= x2 ΓåÆ throws GemmaContractError (ordering violation)
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=677650381 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=280
+00:11 +320 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö bbox contract bbox y1 == y2 ΓåÆ throws (degenerate box)
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=278571127 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=280
+00:11 +321 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö bbox contract bbox image_ref mismatch ΓåÆ throws GemmaContractError
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=992506875 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=303
+00:11 +322 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö bbox contract bbox missing image_ref is normalised to request image_ref
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=751593143 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=280
+00:11 +323 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö ref and confidence contract omitted image_refs falls back to request imageRef
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=913139545 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=205
+00:11 +324 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö ref and confidence contract wrong image_refs value ΓåÆ throws GemmaContractError
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=170550271 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=231
+00:11 +325 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö ref and confidence contract empty image_refs ΓåÆ throws GemmaContractError
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=1055320239 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=223
+00:11 +326 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö ref and confidence contract model_confidence outside 0..1 ΓåÆ throws GemmaContractError
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=882236570 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=230
+00:11 +327 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describePhoto ΓÇö TTFT / wallclock propagation ttftMs and wallclockMs come from session result
+[Cairn/perf] phase=image_preprocess task=describe_photo wall=0ms img_bytes=0 src_img_bytes=0 cache_key=985023465 preprocessed=false
+[Cairn/perf] phase=parse_contract task=describe_photo wall=0ms out_chars=230
+00:11 +328 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describeAudio ΓÇö tag contract valid tags ΓåÆ DescribeAudioResult
+00:11 +329 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describeAudio ΓÇö tag contract invalid tag ΓåÆ throws with describe_audio task
+00:11 +330 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describeAudio ΓÇö tag contract missing model_description ΓåÆ throws GemmaContractError
+00:11 +331 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describeAudio ΓÇö tag contract no JSON in response ΓåÆ throws
+00:11 +332 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describeAudio ΓÇö tag contract ttftMs and wallclockMs propagated
+00:11 +333 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describeAudio ΓÇö tag contract wrong audio_refs value ΓåÆ throws GemmaContractError
+00:11 +334 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: describeAudio ΓÇö tag contract model_confidence outside 0..1 ΓåÆ throws GemmaContractError
+00:11 +335 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: synthesize ΓÇö contract valid response ΓåÆ SynthesizeResult
+00:11 +336 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: synthesize ΓÇö contract model sets priority_score ΓåÆ throws GemmaContractError
+00:11 +337 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: synthesize ΓÇö contract model sets priority_band ΓåÆ throws GemmaContractError
+00:11 +338 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: synthesize ΓÇö contract task in thrown error is synthesize
+00:11 +339 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: synthesize ΓÇö contract missing triage_draft ΓåÆ throws
+00:11 +340 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: synthesize ΓÇö contract no JSON in response ΓåÆ throws
+00:11 +341 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: synthesize ΓÇö contract ttftMs and wallclockMs propagated
+00:11 +342 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: protocolAnswer ΓÇö key validation valid key visible_collapse ΓåÆ result with correct key
+00:11 +343 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: protocolAnswer ΓÇö key validation all six allowed keys parse cleanly
+00:11 +344 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: protocolAnswer ΓÇö key validation unknown key ΓåÆ throws GemmaContractError
+00:11 +345 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: protocolAnswer ΓÇö key validation unknown key error has task == protocol_answer
+00:11 +346 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_contract_test.dart: protocolAnswer ΓÇö TTFT / wallclock propagation ttftMs and wallclockMs come from session result
+00:11 +347 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_followup_test.dart: askFollowup ΓÇö null (no question needed) followup null ΓåÆ hasFollowup false, question null
+00:11 +348 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_followup_test.dart: askFollowup ΓÇö null (no question needed) followup null ΓåÆ does not throw
+00:11 +349 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_followup_test.dart: askFollowup ΓÇö dict (question present) followup dict ΓåÆ hasFollowup true
+00:11 +350 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_followup_test.dart: askFollowup ΓÇö dict (question present) followup dict ΓåÆ question extracted correctly
+00:11 +351 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_followup_test.dart: askFollowup ΓÇö dict (question present) followup dict ΓåÆ targetObservationId extracted
+00:11 +352 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_followup_test.dart: askFollowup ΓÇö dict (question present) followup dict missing target_observation_id ΓåÆ still valid
+00:11 +353 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_followup_test.dart: askFollowup ΓÇö dict (question present) question is trimmed
+00:11 +354 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_followup_test.dart: askFollowup ΓÇö TTFT / wallclock propagation ttftMs and wallclockMs come from the session result
+00:11 +355 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_followup_test.dart: askFollowup ΓÇö contract violations (must throw GemmaContractError) no JSON object in response ΓåÆ throws
+00:11 +356 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_followup_test.dart: askFollowup ΓÇö contract violations (must throw GemmaContractError) followup is a plain string ΓåÆ throws
+00:11 +357 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_followup_test.dart: askFollowup ΓÇö contract violations (must throw GemmaContractError) followup is an integer ΓåÆ throws
+00:11 +358 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_followup_test.dart: askFollowup ΓÇö contract violations (must throw GemmaContractError) followup dict with empty question ΓåÆ throws
+00:11 +359 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_followup_test.dart: askFollowup ΓÇö contract violations (must throw GemmaContractError) followup dict with whitespace-only question ΓåÆ throws
+00:11 +360 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_followup_test.dart: askFollowup ΓÇö contract violations (must throw GemmaContractError) followup dict missing question key ΓåÆ throws
+00:11 +361 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/orchestrator_followup_test.dart: askFollowup ΓÇö contract violations (must throw GemmaContractError) followup missing from top-level JSON ΓåÆ treated as null (no question)
+00:11 +362 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_parser_test.dart: parsePerfLine extracts benchmark fields
+00:12 +363 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_parser_test.dart: missingRequiredBenchmarkFields returns empty when all phases present
+00:12 +364 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_parser_test.dart: missingRequiredBenchmarkFields reports missing image_preprocess and parse_contract
+00:12 +365 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_parser_test.dart: missingRequiredBenchmarkFields reports absent timing
+00:12 +366 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfEvent.format ΓÇö install minimal: only phase and wall
+00:12 +367 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfEvent.format ΓÇö install zero wall time is still emitted
+00:12 +368 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfEvent.format ΓÇö install no task field by default
+00:12 +369 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfEvent.format ΓÇö install no ttft field by default
+00:12 +370 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfEvent.format ΓÇö install no out_chars field by default
+00:12 +371 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfEvent.format ΓÇö install no thinking_chars when 0 (default)
+00:12 +372 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfEvent.format ΓÇö install no img_bytes field by default
+00:12 +373 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfEvent.format ΓÇö engine_create minimal: phase and wall only
+00:12 +374 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfEvent.format ΓÇö engine_create format starts with phase=
+00:12 +375 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfEvent.format ΓÇö generate, vision turn full vision turn: task + wall + ttft + out_chars + img_bytes
+00:12 +376 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfEvent.format ΓÇö generate, vision turn vision turn without img_bytes (null)
+00:12 +377 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfEvent.format ΓÇö generate, synthesis turn synthesis turn: task + wall + ttft + out_chars + thinking_chars
+00:12 +378 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfEvent.format ΓÇö generate, synthesis turn thinkingChars=0 is not included
+00:12 +379 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfEvent.format ΓÇö generate, followup turn ask_followup: no image, no thinking
+00:12 +380 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfEvent.format ΓÇö field ordering phase comes before task
+00:12 +381 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfEvent.format ΓÇö field ordering task comes before wall
+00:12 +382 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfEvent.format ΓÇö field ordering wall comes before ttft
+00:12 +383 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfEvent.format ΓÇö field ordering ttft comes before out_chars
+00:12 +384 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfEvent.format ΓÇö field ordering out_chars comes before thinking_chars
+00:12 +385 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfEvent.format ΓÇö field ordering thinking_chars comes before img_bytes
+00:12 +386 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfLogger.emit ΓÇö smoke does not throw for install event
+[Cairn/perf] phase=install wall=42ms
+00:12 +387 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfLogger.emit ΓÇö smoke does not throw for engine_create event
+[Cairn/perf] phase=engine_create wall=2000ms
+00:12 +388 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfLogger.emit ΓÇö smoke does not throw for full generate event
+[Cairn/perf] phase=generate task=describe_photo wall=3000ms ttft=1200ms out_chars=200 img_bytes=65536
+00:12 +389 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/perf_log_test.dart: PerfLogger.emit ΓÇö smoke does not throw for synthesis event with thinking
+[Cairn/perf] phase=generate task=synthesize wall=6000ms ttft=2000ms out_chars=350 thinking_chars=900
+00:13 +390 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_lost_data_test.dart: PendingSlotStore ΓÇö basic save/read/clear read returns null before any save
+00:13 +391 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_lost_data_test.dart: PendingSlotStore ΓÇö basic save/read/clear save then read returns the saved slot
+00:13 +392 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_lost_data_test.dart: PendingSlotStore ΓÇö basic save/read/clear save then clear then read returns null
+00:13 +393 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_lost_data_test.dart: PendingSlotStore ΓÇö basic save/read/clear multiple saves: last write wins
+00:13 +394 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_lost_data_test.dart: PendingSlotStore ΓÇö basic save/read/clear save with empty string round-trips correctly
+00:13 +395 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_lost_data_test.dart: PendingSlotStore ΓÇö basic save/read/clear clear on empty store is a no-op (no throw)
+00:13 +396 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_lost_data_test.dart: PendingSlotStore ΓÇö all known slot names persist slot "front" round-trips correctly
+00:13 +397 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_lost_data_test.dart: PendingSlotStore ΓÇö all known slot names persist slot "ground_floor" round-trips correctly
+00:13 +398 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_lost_data_test.dart: PendingSlotStore ΓÇö all known slot names persist slot "cracks" round-trips correctly
+00:13 +399 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_lost_data_test.dart: PendingSlotStore ΓÇö all known slot names persist slot "foundation" round-trips correctly
+00:13 +400 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_lost_data_test.dart: PendingSlotStore ΓÇö all known slot names persist slot "extra" round-trips correctly
+00:13 +401 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_lost_data_test.dart: PendingSlotStore ΓÇö key stability (regression guard) stored under the expected SharedPreferences key
+00:13 +402 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_lost_data_test.dart: PendingSlotStore ΓÇö shared state two instances on the same prefs share state
+00:13 +403 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_lost_data_test.dart: PendingSlotStore ΓÇö shared state clear via store1 is seen by store2
+00:13 +404 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_lost_data_test.dart: PendingSlotStore ΓÇö capture flow simulation typical capture cycle: save ΓåÆ pick ΓåÆ clear
+00:13 +405 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_lost_data_test.dart: PendingSlotStore ΓÇö capture flow simulation Activity-kill scenario: slot survives until recovery reads and clears it
+00:13 +406 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_lost_data_test.dart: PendingSlotStore ΓÇö capture flow simulation user cancels camera: clear removes pending slot
+00:13 +407 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_lost_data_test.dart: PendingSlotStore ΓÇö capture flow simulation retake scenario: second save overwrites first
+00:13 +408 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_screen_test.dart: Phase A ΓÇö photo enrollment (model absent) addPhoto enrols a photo into the draft with correct slot
+00:14 +409 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_screen_test.dart: Phase A ΓÇö photo enrollment (model absent) multiple captures enrol independently without model interaction
+00:14 +410 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_screen_test.dart: Phase A ΓÇö photo enrollment (model absent) observation counter is untouched during capture phase
+00:14 +411 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_screen_test.dart: Phase A ΓÇö photo enrollment (model absent) retake on same slot adds second photo to draft
+00:14 +412 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_screen_test.dart: Phase B ΓÇö describe batch recordObservation appends to draft observations
+00:14 +413 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_screen_test.dart: Phase B ΓÇö describe batch sequential describe: 4 observations from 4 photos
+00:14 +414 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_screen_test.dart: Phase B ΓÇö describe batch describe with error does not prevent subsequent describes
+00:14 +415 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_screen_test.dart: Counter isolation image and observation counters are independent across phases
+00:14 +416 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_screen_test.dart: Counter isolation retake during Phase A does not corrupt Phase B obs counter
+00:14 +417 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_screen_test.dart: Draft persistence across kill/restore photos captured in Phase A survive toMetaMap/fromMetaMap round-trip
+00:14 +418 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_screen_test.dart: Draft persistence across kill/restore counters survive round-trip so Phase B generates correct IDs
+00:14 +419 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_screen_test.dart: Slot status state machine the _SlotStatus enum has exactly 5 values including captured
+00:14 +420 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_screen_test.dart: Extra (optional) slot extra photo does not count toward required slots
+00:14 +421 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_screen_test.dart: Extra (optional) slot extra slot can be described alongside required slots
+00:14 +422 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/photos_screen_test.dart: No regression on data layer seal still works after Phase A + Phase B
+00:14 +423 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/priority_test.dart: priorityScore ΓÇö parity with Python collapse => 10
+00:14 +424 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/priority_test.dart: priorityScore ΓÇö parity with Python off-foundation => 10
+00:14 +425 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/priority_test.dart: priorityScore ΓÇö parity with Python severe lean => 9
+00:14 +426 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/priority_test.dart: priorityScore ΓÇö parity with Python urm + soft_story => 9
+00:14 +427 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/priority_test.dart: priorityScore ΓÇö parity with Python clean building => 1
+00:14 +428 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/priority_test.dart: priorityScore ΓÇö parity with Python ground + falling => 4
+00:14 +429 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/priority_test.dart: priorityBand bands match Python
+00:14 +430 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/prompt_constraints_test.dart: (setUpAll)
+00:14 +430 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/prompt_constraints_test.dart: Rule 11 ΓÇö output size constraints in asset Rule 11 heading is present
+00:14 +431 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/prompt_constraints_test.dart: Rule 11 ΓÇö output size constraints in asset model_description 3-sentence limit is present
+00:14 +432 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/prompt_constraints_test.dart: Rule 11 ΓÇö output size constraints in asset model_description 60-word limit is present
+00:14 +433 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/prompt_constraints_test.dart: Rule 11 ΓÇö output size constraints in asset model_tags 1-to-4 constraint is present
+00:14 +434 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/prompt_constraints_test.dart: Rule 11 ΓÇö output size constraints in asset JSON-only constraint is present
+00:14 +435 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/prompt_constraints_test.dart: Rule 11 ΓÇö output size constraints in asset 35-word preferred limit is present
+00:14 +436 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/prompt_constraints_test.dart: Rule 11 ΓÇö output size constraints in asset bbox at-most-1-box constraint is present
+00:14 +437 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/prompt_constraints_test.dart: Rule 11 ΓÇö output size constraints in asset Rule 11 note on decode-time rationale is present
+00:14 +438 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/prompt_constraints_test.dart: describe_photo TURN TYPES section references Rule 11 inline
+00:14 +439 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/prompt_constraints_test.dart: describe_photo TURN TYPES section references maximum 3 sentences near task = "describe_photo"
+00:14 +440 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/prompt_constraints_test.dart: byte-identity with docs/ canonical copy docs/ and assets/ copies are byte-identical
+00:14 +441 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/prompt_constraints_test.dart: (tearDownAll)
+00:18 +441 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/report_pdf_test.dart: buildReportPdf returns bytes starting with %%PDF signature
+Helvetica-Bold has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
+Helvetica has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
+00:18 +442 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/report_pdf_test.dart: buildReportPdf completes without error for LOW priority
+Helvetica-Bold has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
+Helvetica has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
+00:18 +443 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/report_pdf_test.dart: buildReportPdf completes without error for MEDIUM priority
+Helvetica-Bold has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
+Helvetica has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
+00:19 +444 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/report_pdf_test.dart: buildReportPdf completes without error for HIGH priority
+Helvetica-Bold has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
+Helvetica has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
+00:19 +445 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/report_pdf_test.dart: buildReportPdf completes without error for CRITICAL priority
+Helvetica-Bold has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
+Helvetica has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
+00:19 +446 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/report_pdf_test.dart: buildReportPdf accepts empty imageBytes without error
+Helvetica-Bold has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
+Helvetica has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
+00:19 +447 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/report_pdf_test.dart: buildReportPdf does not throw when image bytes map is provided but empty
+Helvetica-Bold has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
+Helvetica has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
+00:19 +448 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/report_pdf_test.dart: buildReportPdf accepts packet with no observations
+Helvetica-Bold has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
+Helvetica has no Unicode support see https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
+00:19 +449 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/s2_spike_test.dart: probeImageLoaderProvider is a non-null Riverpod provider
+00:19 +450 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/s2_spike_test.dart: probeImageLoaderProvider is readable from a ProviderContainer without throwing
+00:19 +451 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/s2_spike_test.dart: spikeCtlProvider initial state modelKey defaults to e4b
+00:19 +452 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/s2_spike_test.dart: spikeCtlProvider initial state loading is false
+00:19 +453 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/s2_spike_test.dart: spikeCtlProvider initial state error is null
+00:19 +454 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/s2_spike_test.dart: spikeCtlProvider initial state runs is empty
+00:19 +455 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/s2_spike_test.dart: spikeCtlProvider initial state session is null
+00:19 +456 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/s2_spike_test.dart: selectModel changes modelKey when no session is loaded
+00:19 +457 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/s2_spike_test.dart: selectModel can select e4b (round-trip)
+00:19 +458 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/s2_spike_test.dart: runBurst ΓÇö missing probe image does not throw; error state set instead
+00:19 +459 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/s2_spike_test.dart: runBurst ΓÇö missing probe image error message says S2 probe image not found
+00:19 +460 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/s2_spike_test.dart: runBurst ΓÇö missing probe image error message contains the asset path
+00:19 +461 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/s2_spike_test.dart: runBurst ΓÇö missing probe image error message contains rebuild instruction
+00:19 +462 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/s2_spike_test.dart: runBurst ΓÇö missing probe image error message references s2_checklist.md
+00:19 +463 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/s2_spike_test.dart: runBurst ΓÇö missing probe image no runs are added
+00:19 +464 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/s2_spike_test.dart: runBurst ΓÇö missing probe image loading remains false
+00:19 +465 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/s2_spike_test.dart: runBurst ΓÇö missing probe image session remains null
+00:19 +466 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/s2_spike_test.dart: runBurst ΓÇö missing probe image image-missing error is set even when session is null
+00:19 +467 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/s2_spike_test.dart: runBurst ΓÇö no session loaded (image available) sets "load model first" error
+00:19 +468 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/s2_spike_test.dart: runBurst ΓÇö no session loaded (image available) no runs are added
+00:23 +469 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +470 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +471 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +472 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +473 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +474 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +475 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +476 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +477 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +478 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +479 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +480 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +481 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +482 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +483 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +484 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +485 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +486 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +487 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +488 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +489 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +490 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +491 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +492 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +493 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +494 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +495 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +496 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +497 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +498 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +499 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +500 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +501 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +502 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +503 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +504 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +505 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +506 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +507 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +508 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +509 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +510 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +511 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +512 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +513 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +514 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +515 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +516 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +517 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +518 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +519 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +520 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +521 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +522 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +523 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +524 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +525 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +526 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +527 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +528 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +529 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +530 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +531 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +532 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +533 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +534 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +535 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +536 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +537 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +538 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +539 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +540 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +541 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +542 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +543 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +544 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +545 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +546 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:24 +547 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: SavedScreeningsScreen renders saved packet summaries
+00:25 +548 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/saved_screenings_widget_test.dart: DevModelTestScreen lists starter scenarios
+00:25 +549 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: startNew populates packetId + createdAt
+00:25 +550 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: addPhoto assigns refs
+00:25 +551 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: addPhoto preserves optional inference sidecar without replacing evidence bytes
+00:25 +552 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: generateImageId yields img-1 to img-100
+00:25 +553 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: applyProtocolDelta mutates exactly one field
+00:25 +554 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: applyProtocolDelta throws on unknown key
+00:25 +555 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: applyProtocolDelta rejects null or invalid typed values
+00:25 +556 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: required photo coverage requires all four FEMA slots
+00:25 +557 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: lowestConfidenceObservation returns the right one
+00:25 +558 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: computeAndStoreTriage uses Dart scorer (not LLM)
+00:25 +559 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: mutators emit a new state instance so Riverpod fires listeners (regression for same-identity bug)
+00:25 +560 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: cloneShallow preserves all three counters
+00:25 +561 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: generateObservationId yields obs-1 to obs-100
+00:25 +562 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: generateAudioId yields aud-1 to aud-10
+00:25 +563 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: counters are independent across id spaces
+00:25 +564 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: addAudio records ref and returns it
+00:25 +565 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: volunteer_note_v1 observation has null modelDescription and empty tags
+00:25 +566 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: humility_override_v1 observation has correct shape per ┬º1.7
+00:25 +567 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: packetSummaryForSynthesis omits model_description for volunteer obs
+00:25 +568 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: seal + save into vault ΓÇö packet is persisted and signature hashed
+00:25 +569 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: TurnRecord toJson omits observation_id when null
+00:25 +570 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: TurnRecord toJson omits thinking_chars when 0
+00:25 +571 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: TurnRecord toJson includes thinking_chars when > 0
+00:25 +572 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: TurnRecord fromJson round-trip preserves all fields
+00:25 +573 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: recordTurn appends to draft.turns and triggers state update
+00:25 +574 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: recordTurn fires for multiple turns in sequence
+00:25 +575 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: restoreDraft replaces current state with provided draft
+00:25 +576 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/session_controller_test.dart: sealAndSave writes turns to vault.saveTurnsJsonl
+00:26 +577 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/turns_coverage_test.dart: individual task turns describe_photo turn is recorded
+00:26 +578 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/turns_coverage_test.dart: individual task turns ask_followup turn is recorded
+00:26 +579 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/turns_coverage_test.dart: individual task turns synthesize turn is recorded with thinkingChars
+00:26 +580 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/turns_coverage_test.dart: all three model tasks in sequence three turns are present
+00:26 +581 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/turns_coverage_test.dart: all three model tasks in sequence all three task names are present
+00:26 +582 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/turns_coverage_test.dart: all three model tasks in sequence turns are in insertion order
+00:26 +583 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/turns_coverage_test.dart: multiple describe_photo turns five photos produce five describe_photo turns
+00:26 +584 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/turns_coverage_test.dart: multiple describe_photo turns each photo turn has distinct observationId
+00:26 +585 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/turns_coverage_test.dart: TurnRecord toJson / fromJson round-trip describe_photo turn survives round-trip
+00:26 +586 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/turns_coverage_test.dart: TurnRecord toJson / fromJson round-trip synthesize turn with thinkingChars survives round-trip
+00:26 +587 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/turns_coverage_test.dart: TurnRecord toJson / fromJson round-trip ask_followup turn (no obsId, no thinking) survives round-trip
+00:26 +588 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/turns_coverage_test.dart: TurnRecord toJson / fromJson round-trip toJson omits thinkingChars key when 0
+00:26 +589 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/turns_coverage_test.dart: TurnRecord toJson / fromJson round-trip toJson omits observation_id key when null
+00:26 +590 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/turns_coverage_test.dart: turns.jsonl format (toJson correctness) all three turns produce distinct valid JSON maps
+00:27 +591 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: savePacket / loadPacket round-trips a minimal packet
+00:27 +592 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: savePacket / loadPacket writes atomic: no .tmp file remains
+00:27 +593 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: savePacket / loadPacket loadPacket returns null for missing id
+00:27 +594 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: savePacket / loadPacket packet.json is valid JSON with expected keys
+00:27 +595 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/volunteer_authored_test.dart: volunteer_note_v1 convention (┬º1.7) promptId is volunteer_note_v1
+00:27 +596 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/volunteer_authored_test.dart: volunteer_note_v1 convention (┬º1.7) promptId is volunteer_note_v1
+00:27 +597 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +598 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +599 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +600 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +601 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +602 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +603 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +604 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +605 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +606 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +607 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +608 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +609 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +610 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +611 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +612 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +613 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +614 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +615 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +616 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +617 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +618 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +619 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +620 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +621 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: listPackets lists saved packets in descending date order
+00:27 +622 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: deletePacket removes directory and packet from listing
+00:27 +623 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: deletePacket deletePacket is a no-op for missing id
+00:27 +624 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: putAsset / getAsset stores and retrieves image bytes
+00:27 +625 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: putAsset / getAsset stores and retrieves audio bytes
+00:27 +626 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: putAsset / getAsset getAsset returns null for unknown ref
+00:27 +627 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: putAsset / getAsset asset file is named <ref>.jpg for images
+00:28 +628 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: putAsset / getAsset asset file is named <ref>.wav for audio
+00:28 +629 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: saveTurnsJsonl writes turns.jsonl with one JSON object per line
+00:28 +630 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: saveTurnsJsonl no-op when turns list is empty
+00:28 +631 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: saveReportPdf / loadReportPdf round-trips PDF bytes
+00:28 +632 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/vault_test.dart: saveReportPdf / loadReportPdf loadReportPdf returns null before PDF is written
+00:28 +633 -2: C:/Dev/gemma_project/apps/cairn_mobile/test/web_bootstrap_test.dart: web bootstrap installs flutter_gemma JS dependencies
+00:29 +634 -2: Some tests failed.

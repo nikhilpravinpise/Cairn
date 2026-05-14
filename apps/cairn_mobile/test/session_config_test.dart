@@ -509,6 +509,66 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
+  // Session 5 — visionSingleImage (maxNumImages: 1) benchmark variant
+  // ---------------------------------------------------------------------------
+
+  group('benchmark variants — visionSingleImage (Session 5)', () {
+    test('maxNumImages is 1', () {
+      expect(SessionConfig.visionSingleImage.maxNumImages, 1);
+    });
+
+    test('maxTokens unchanged from production vision', () {
+      expect(SessionConfig.visionSingleImage.maxTokens,
+          SessionConfig.vision.maxTokens);
+    });
+
+    test('temperature unchanged from production vision', () {
+      expect(SessionConfig.visionSingleImage.temperature,
+          SessionConfig.vision.temperature);
+    });
+
+    test('topK unchanged from production vision', () {
+      expect(SessionConfig.visionSingleImage.topK, SessionConfig.vision.topK);
+    });
+
+    test('topP unchanged from production vision', () {
+      expect(SessionConfig.visionSingleImage.topP, SessionConfig.vision.topP);
+    });
+
+    test('preferredBackend unchanged from production vision', () {
+      expect(SessionConfig.visionSingleImage.preferredBackend,
+          SessionConfig.vision.preferredBackend);
+    });
+
+    test('clearHistoryBetweenTurns is true (safety default preserved)', () {
+      expect(SessionConfig.visionSingleImage.clearHistoryBetweenTurns, isTrue);
+    });
+
+    test('is within safe token range', () {
+      expect(SessionConfig.visionSingleImage.isTokenBudgetInSafeRange, isTrue);
+    });
+
+    test('differs from production vision only in maxNumImages', () {
+      const single = SessionConfig.visionSingleImage;
+      const prod = SessionConfig.vision;
+      expect(single.maxTokens, prod.maxTokens);
+      expect(single.temperature, prod.temperature);
+      expect(single.topK, prod.topK);
+      expect(single.topP, prod.topP);
+      expect(single.preferredBackend, prod.preferredBackend);
+      expect(single.clearHistoryBetweenTurns, prod.clearHistoryBetweenTurns);
+      expect(single.maxNumImages, isNot(equals(prod.maxNumImages)));
+    });
+
+    test('toLogString contains maxNumImages=1', () {
+      expect(
+        SessionConfig.visionSingleImage.toLogString(),
+        contains('maxNumImages=1'),
+      );
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // copyWith — Sprint 4 OPT-5/OPT-6 override helper
   // ---------------------------------------------------------------------------
 
