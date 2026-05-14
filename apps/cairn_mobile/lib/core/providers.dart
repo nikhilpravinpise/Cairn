@@ -122,6 +122,29 @@ const _kBenchMtp = bool.fromEnvironment('BENCH_MTP', defaultValue: true);
 const _kNativeImagePreprocess =
     bool.fromEnvironment('BENCH_NATIVE_IMAGE_PREPROCESS', defaultValue: true);
 
+/// BENCH_PROMPT selects the vision-task system prompt variant.
+///
+/// Vision turns re-prefill the system prompt on every photo (history is
+/// cleared between turns to prevent cross-photo contamination), so prompt
+/// length directly multiplies into per-session wall time. The locked
+/// `system_prompt_v1.txt` covers all four turn types; describe_photo only
+/// needs a subset.
+///
+/// Values:
+/// - `''` (default): conservative vision prompt (`system_prompt_vision_v1.txt`,
+///   ~1,700 tokens). Drops sections irrelevant to describe_photo while keeping
+///   the per-tag visual cues that anchor tag recall on Gemma 4 E2B.
+/// - `'aggressive'`: aggressive vision prompt
+///   (`system_prompt_vision_aggressive_v1.txt`, ~700 tokens). Also drops the
+///   visual-cues section — risks tag misclassification on ambiguous features.
+///   Bench-only until a device gate confirms no contract regression.
+/// - `'full'`: forces the locked `system_prompt_v1.txt` for vision too.
+///   Use as the A/B baseline.
+///
+/// Synthesis / audio / standard profiles always use `system_prompt_v1.txt`.
+const _kBenchPrompt =
+    String.fromEnvironment('BENCH_PROMPT', defaultValue: '');
+
 /// DEV_SKIP_MODEL=true replaces every Gemma session with [FakeGemmaSession].
 ///
 /// Use this during UI / flow development to bypass the 4 GB model download
@@ -177,8 +200,40 @@ SessionConfig _applyBenchBackend(SessionConfig cfg) {
 }
 
 /// Locked system prompt — loaded once from `assets/prompts/system_prompt_v1.txt`.
+///
+/// This is the full 4-turn-type prompt. Production session loads route
+/// through [systemPromptForProfileProvider] which may resolve a trimmed
+/// vision-only variant for `SessionProfile.vision`. Keep this provider
+/// for diagnostic / spike code that always wants the canonical prompt.
 final systemPromptProvider = FutureProvider<String>((ref) async {
   return rootBundle.loadString('assets/prompts/system_prompt_v1.txt');
+});
+
+/// Resolves the asset path of the vision-task system prompt based on the
+/// `BENCH_PROMPT` dart-define. See [_kBenchPrompt] for the value set.
+String _visionPromptAssetPath() => switch (_kBenchPrompt) {
+      'aggressive' => 'assets/prompts/system_prompt_vision_aggressive_v1.txt',
+      'full' => 'assets/prompts/system_prompt_v1.txt',
+      _ => 'assets/prompts/system_prompt_vision_v1.txt',
+    };
+
+String _systemPromptAssetPathFor(SessionProfile profile) => switch (profile) {
+      SessionProfile.vision => _visionPromptAssetPath(),
+      // synthesis / audio / standard must keep the full locked prompt: they
+      // exercise turn types and contracts that the trimmed vision variant
+      // intentionally omits.
+      _ => 'assets/prompts/system_prompt_v1.txt',
+    };
+
+/// Per-profile system-prompt resolver.
+///
+/// Vision turns prefill the system prompt on every photo (history is cleared
+/// between turns), so trimming it cuts wall time linearly. The trimmed prompt
+/// keeps only the rules and sections that describe_photo actually uses; the
+/// full locked prompt is still served to synthesis / audio / standard.
+final systemPromptForProfileProvider =
+    FutureProvider.family<String, SessionProfile>((ref, profile) async {
+  return rootBundle.loadString(_systemPromptAssetPathFor(profile));
 });
 
 /// Currently-selected model. The user can change it on the Start screen
@@ -279,7 +334,7 @@ class GemmaSessionNotifier extends Notifier<GemmaSessionInterface?> {
     state = null;
     await _close(previous);
     final spec = ref.read(selectedModelSpecProvider);
-    final sys = await ref.read(systemPromptProvider.future);
+    final sys = await ref.read(systemPromptForProfileProvider(profile).future);
     final runtime = ref.read(selectedInferenceRuntimeProvider);
 
     // DEV_SKIP_MODEL: bypass all real model loading for UI development.
