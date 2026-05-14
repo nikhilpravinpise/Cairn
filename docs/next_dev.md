@@ -204,19 +204,34 @@ If model output is buggy:
 
 ## Current Best Guess For Production Candidate
 
+Session 4 update (2026-05-14): `native_mtp` is blocked on Android 16 (SIGABRT).
+`flutter_gemma` + MTP is now the confirmed stable path. MTP is now ON by default
+(`BENCH_MTP` defaultValue flipped to `true`).
+
 Start with:
 
 ```bash
---dart-define=INFERENCE_RUNTIME=native_mtp
---dart-define=BENCH_MTP=true
---dart-define=BENCH_BACKEND=gpu
 --dart-define=BENCH_IMAGE_PX=640
 --dart-define=BENCH_NATIVE_IMAGE_PREPROCESS=true
 ```
 
-Only promote it if the S23 FE run shows:
+MTP is automatically active. No `INFERENCE_RUNTIME` or `BENCH_MTP` needed.
+Opt out with `--dart-define=BENCH_MTP=false` if MTP causes issues.
 
-- zero schema failures
-- correct priority bands
-- no image orientation problems
-- faster total 4-photo wall time than `flutter_gemma` baseline
+Session 4 confirmed results on SM-S711B:
+
+- S1/S2/S3 all pass (zero schema failures, correct priority bands)
+- S2 `no_visible_damage` contradiction RESOLVED (system prompt Rule 12)
+- S3 warm wall: 133,492ms (4 photos, +33% faster than Session 3 without MTP)
+- `speculativeDecoding=true` and `mtp_requested=true` confirmed in logcat
+- json_extract `repairOrphanEmptyStrings` working — `parse_contract wall=0ms` on all turns
+
+Remaining benchmarks before final promotion:
+
+- §6b CPU vs GPU backend comparison
+- §7 Session config variants (esp. `vision_single_image` maxNumImages=1 and `vision_history_retained`)
+- §8 History retention contamination hard gate
+- §9 Manual UX flow
+- §10 Regression checks
+
+Only promote to release if the full §6–§10 matrix passes.

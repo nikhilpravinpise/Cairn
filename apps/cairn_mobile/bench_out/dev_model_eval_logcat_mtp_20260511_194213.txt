@@ -29,3 +29,19 @@
 05-11 19:47:09.876 I/BCL@Common(11046): /PERF/BixbyApplication onCreate() start
 05-11 19:47:09.880 I/BCL@Common(11046): /PERF/BixbyApplication onCreate() after super
 05-11 19:47:10.030 I/BCL@Common(11046): /PERF/BixbyApplication onCreate() end
+05-11 20:00:31.541 I/BCL@Common(21229): /PERF/BixbyApplication onCreate() start
+05-11 20:00:31.545 I/BCL@Common(21229): /PERF/BixbyApplication onCreate() after super
+05-11 20:00:31.685 I/BCL@Common(21229): /PERF/BixbyApplication onCreate() end
+05-11 20:00:56.674 I/flutter (19858): [Cairn/perf] phase=install wall=2ms
+05-11 20:01:06.655 I/flutter (19858): [Cairn/perf] phase=engine_create wall=9980ms runtime=native_mtp backend=gpu model=e2b max_tokens=4096 max_images=5 mtp_requested=true mtp_available=true gpu_fallback=false
+05-11 20:01:06.750 I/flutter (19858): [Cairn/perf] phase=image_preprocess task=describe_photo wall=87ms img_bytes=54186 src_img_bytes=254344 cache_key=207501445 preprocessed=false
+05-11 20:01:07.208 I/flutter (19858): [Cairn/perf] phase=image_preprocess task=describe_photo wall=245ms img_bytes=56451 src_img_bytes=264344 cache_key=947943196 preprocessed=false
+05-11 20:01:07.425 I/flutter (19858): [Cairn/perf] phase=image_preprocess task=describe_photo wall=68ms img_bytes=56496 src_img_bytes=266220 cache_key=784948165 preprocessed=false
+05-11 20:01:07.556 I/flutter (19858): [Cairn/perf] phase=image_preprocess task=describe_photo wall=41ms img_bytes=56247 src_img_bytes=262303 cache_key=735653539 preprocessed=false
+05-11 20:01:07.633 I/flutter (19858): [Cairn/perf] phase=describe_all wall=970ms photo_count=4 total_wallclock_ms=970
+05-11 20:01:32.016 I/BCL@Common(24325): /PERF/BixbyApplication onCreate() start
+05-11 20:01:32.024 I/BCL@Common(24325): /PERF/BixbyApplication onCreate() after super
+05-11 20:01:32.227 I/BCL@Common(24325): /PERF/BixbyApplication onCreate() end
+05-11 20:02:52.645 I/BCL@Common(26855): /PERF/BixbyApplication onCreate() start
+05-11 20:02:52.648 I/BCL@Common(26855): /PERF/BixbyApplication onCreate() after super
+05-11 20:02:52.709 I/BCL@Common(26855): /PERF/BixbyApplication onCreate() end

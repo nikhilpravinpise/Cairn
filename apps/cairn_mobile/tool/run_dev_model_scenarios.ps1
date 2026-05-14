@@ -1,6 +1,7 @@
 param(
   [string]$DeviceId     = "",
   [switch]$NativeMtp,
+  [switch]$BenchMtp,
   [switch]$CaptureLogcat,
   # §5  — image-size accuracy check: pass 512, 256, 768, or 0 (default)
   [int]   $BenchImagePx  = 0,
@@ -36,6 +37,10 @@ if ($NativeMtp) {
   )
 }
 
+if ($BenchMtp -and -not $NativeMtp) {
+  $argsList += "--dart-define=BENCH_MTP=true"
+}
+
 if ($BenchImagePx -ne 0) {
   $argsList += "--dart-define=BENCH_IMAGE_PX=$BenchImagePx"
 }
@@ -59,7 +64,7 @@ if ($CaptureLogcat) {
   New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
   $logPath = Join-Path $OutDir $logName
   Write-Host "Capturing logcat → $logPath"
-  & $adbExe -s $DeviceId logcat -c 2>$null
+  & $adbExe -s $DeviceId logcat -c 2>&1 | Out-Null
   Start-Process -NoNewWindow -FilePath $adbExe -ArgumentList @(
     "-s", $DeviceId, "logcat", "-v", "time"
   ) -RedirectStandardOutput $logPath

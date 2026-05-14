@@ -121,6 +121,8 @@ void main() {
     test('valid tags → DescribePhotoResult without error', () async {
       final res = await _photo(
           _photoJson(tags: '["diagonal_crack","no_visible_damage"]'));
+      // _normalizeDescribePhotoTags strips no_visible_damage when any concrete
+      // damage tag is present (diagonal_crack qualifies).
       expect(res.modelTags, ['diagonal_crack']);
     });
 
@@ -172,7 +174,41 @@ void main() {
           '"uncertain_structural","uncertain_cosmetic","no_visible_damage"'
           ']';
       final res = await _photo(_photoJson(tags: allTags));
+      // Normalization removes no_visible_damage when concrete damage tags are
+      // present, so the returned list has 18 elements, not 19.
       expect(res.modelTags.length, 18);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // describePhoto — tag normalisation
+  // ---------------------------------------------------------------------------
+
+  group('describePhoto — tag normalisation', () {
+    test('no_visible_damage alone is preserved', () async {
+      final res = await _photo(_photoJson(tags: '["no_visible_damage"]'));
+      expect(res.modelTags, ['no_visible_damage']);
+    });
+
+    test(
+        'no_visible_damage is stripped when a concrete damage tag is present',
+        () async {
+      final res = await _photo(
+          _photoJson(tags: '["diagonal_crack","no_visible_damage"]'));
+      expect(res.modelTags, ['diagonal_crack']);
+    });
+
+    test(
+        'uncertain tags alone do not suppress no_visible_damage', () async {
+      final res = await _photo(_photoJson(
+          tags: '["uncertain_structural","no_visible_damage"]'));
+      expect(res.modelTags, containsAll(['uncertain_structural', 'no_visible_damage']));
+    });
+
+    test('duplicate tags are deduplicated', () async {
+      final res = await _photo(
+          _photoJson(tags: '["diagonal_crack","diagonal_crack"]'));
+      expect(res.modelTags, ['diagonal_crack']);
     });
   });
 

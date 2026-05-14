@@ -20,8 +20,8 @@
 /// ```
 ///
 /// Supported values: `vision_3072`, `vision_2048`, `vision_temp01`,
-/// `std_temp01`, `vision_history_retained`, `vision_cpu`, `synthesis_cpu`,
-/// `standard_cpu`.
+/// `std_temp01`, `vision_history_retained`, `vision_single_image`,
+/// `vision_cpu`, `synthesis_cpu`, `standard_cpu`.
 ///
 /// ### BENCH_IMAGE_PX — inference image longest-edge override (Sprint 3)
 ///
@@ -114,7 +114,10 @@ const _kBenchRuntime =
 
 const _kBenchBatch = bool.fromEnvironment('BENCH_BATCH', defaultValue: false);
 
-const _kBenchMtp = bool.fromEnvironment('BENCH_MTP', defaultValue: false);
+/// MTP (speculative decoding) is ON by default in all builds.
+/// Sessions 3-4 confirmed zero schema failures and +33% decode speedup on
+/// SM-S711B (Exynos 2200). Opt out with --dart-define=BENCH_MTP=false.
+const _kBenchMtp = bool.fromEnvironment('BENCH_MTP', defaultValue: true);
 
 const _kNativeImagePreprocess =
     bool.fromEnvironment('BENCH_NATIVE_IMAGE_PREPROCESS', defaultValue: true);
@@ -157,6 +160,7 @@ SessionConfig? _benchConfigForKey(String benchKey) {
     'vision_temp01' => SessionConfig.visionTemp01,
     'std_temp01' => SessionConfig.standardTemp01,
     'vision_history_retained' => SessionConfig.visionHistoryRetained,
+    'vision_single_image' => SessionConfig.visionSingleImage,
     'vision_cpu' => SessionConfig.visionCpu,
     'synthesis_cpu' => SessionConfig.synthesisCpu,
     'standard_cpu' => SessionConfig.standardCpu,
