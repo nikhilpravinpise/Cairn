@@ -30,7 +30,7 @@ Gemma Terms with an additional README pointing at Google's license.
 ### Datasets we consume
 | dataset | license | how we use it |
 |---------|---------|---------------|
-| IDEA (Zenodo 15120522) | **verify CC variant D1** | fine-tune + eval only; we do not redistribute |
+| IDEA (Zenodo 15120522) | CC variant not yet confirmed; redistribution withheld pending verification | fine-tune + eval only; we do not redistribute |
 | PEER Φ-Net            | CC BY-NC-SA 4.0 | fine-tune + eval only (non-commercial); we do not redistribute |
 | EERI LFE archive      | per-photo verified | video B-roll + qualitative eval only |
 | FEMA P-154            | public domain (US Government work) | protocol vocabulary |

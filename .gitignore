@@ -76,4 +76,8 @@ bench_test_out.txt
 
 .agents/
 .windsurf/
+.devin/
 skills-lock.json
+
+# windsurf / AI planner artefacts
+*-????????.md

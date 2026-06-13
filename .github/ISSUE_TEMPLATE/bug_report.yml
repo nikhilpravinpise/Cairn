@@ -1,0 +1,72 @@
+name: Bug Report
+description: Report a bug in Cairn
+title: "[BUG] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill out the sections below.
+  - type: input
+    id: flutter_version
+    attributes:
+      label: Flutter version
+      description: Output of `flutter --version`
+      placeholder: "3.22.0"
+    validations:
+      required: true
+  - type: input
+    id: android_version
+    attributes:
+      label: Android version
+      description: Android OS version on the device
+      placeholder: "14 (API 34)"
+    validations:
+      required: true
+  - type: input
+    id: device_model
+    attributes:
+      label: Device model
+      description: Manufacturer and model name
+      placeholder: "Samsung Galaxy S23 FE"
+    validations:
+      required: true
+  - type: input
+    id: model_file
+    attributes:
+      label: Model file used
+      description: Which Gemma 4 `.task` file and size class (E2B / E4B)
+      placeholder: "gemma-4-E2B-it-litert-lm"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps to trigger the bug
+      placeholder: |
+        1. Start a new triage session
+        2. Tap "Take photo" for the front facade
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What actually happened, including any error messages
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant log output (e.g. `flutter run`, `adb logcat`)
+      render: shell

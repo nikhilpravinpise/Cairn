@@ -1,5 +1,5 @@
 name: cairn_mobile
-description: Cairn — offline FEMA P-154 triage (Week-1 web-first flutter_gemma spike; mobile targets added later)
+description: Cairn — offline-first FEMA P-154 building triage app powered by Gemma 4
 publish_to: "none"
 version: 0.1.0+1
 

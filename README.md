@@ -1,85 +1,138 @@
 # Cairn
 
-Cairn is an offline-first Flutter app for post-earthquake building triage. It
-guides a volunteer through a FEMA P-154 Level 1 sidewalk screening flow, runs
-Gemma 4 on-device or in-browser, and produces a structured `EvidencePacket`
-with photos, audio observations, deterministic triage, and a PDF report.
+> Offline FEMA P-154 building triage powered by Gemma 4 on-device.
 
-> Preliminary screening tool only. Not an ATC-20 placard. Not a
-> structural-engineering determination. See `docs/LEGAL.md`.
+[![Flutter CI](https://github.com/N1KH1LT0X1N/cairn/actions/workflows/flutter-ci.yml/badge.svg)](https://github.com/N1KH1LT0X1N/cairn/actions/workflows/flutter-ci.yml)
+[![Python CI](https://github.com/N1KH1LT0X1N/cairn/actions/workflows/python-ci.yml/badge.svg)](https://github.com/N1KH1LT0X1N/cairn/actions/workflows/python-ci.yml)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Flutter](https://img.shields.io/badge/Flutter-%E2%89%A53.22-blue)](https://flutter.dev)
 
-## Current architecture
+<!-- ## Screenshots
 
-- **Model policy:** Gemma 4 only.
-- **Approved models:** `gemma-4-E2B-it` and `gemma-4-E4B-it` LiteRT-LM artifacts
-  from `litert-community`.
-- **Runtime:** `flutter_gemma` with LiteRT-LM speculative decoding enabled by
-  default. The legacy Android `native_mtp` bridge remains diagnostic-only and
-  is not the publish path.
-- **Trust boundary:** `GemmaOrchestrator` is the only code path that parses
-  model JSON. It validates tags, media refs, bounding boxes, confidence, tool
-  shape, and triage ownership before app state can persist the output.
-- **Scoring:** Gemma describes evidence; Dart computes final priority score and
-  priority band deterministically.
+> Screenshots will be added in `docs/assets/screenshots/` before the first public release.
+> Contributors: please open an issue if you have high-quality screenshots from a real device. -->
 
-The Gemma 4-only rule is enforced by
-`apps/cairn_mobile/test/model_registry_platform_test.dart`.
+## What it does
+
+After a major earthquake, the first shortage is not always concrete or trucks — it is trusted information. Streets fill with people asking the same urgent question: is this building safe enough to approach, avoid, or escalate?
+
+**Cairn** is an offline-first Android app that helps trained volunteers collect post-earthquake building evidence, run Gemma 4 entirely on-device, and produce an auditable FEMA P-154-style triage packet without sending photos or notes to the cloud.
+
+The app guides a volunteer through a fixed collection flow: location, building context, required exterior photos, optional audio notes, protocol answers, AI-assisted observations, deterministic triage, and a sealed evidence packet. Gemma 4 describes visible structural cues such as diagonal cracks, soft-story indicators, spalling, or foundation damage. Every model response must pass a strict JSON contract before it can enter app state. Gemma does not get to make the final call — Dart computes the final priority score and band deterministically. This separation keeps the model useful while preventing it from becoming an unbounded authority in a high-stakes situation.
+
+> **Preliminary screening tool only.** Not an ATC-20 placard. Not a structural-engineering determination. See `docs/LEGAL.md`.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Volunteer (Android device)                                              │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌────────────────┐  │
+│  │ Location   │  │ Photos     │  │ Audio notes │  │ Protocol Q&A   │  │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └───────┬────────┘  │
+│         │                │                │                   │          │
+│         └────────────────┴────────────────┴───────────────────┘          │
+│                                     │                                   │
+│                              EvidencePacket                             │
+│                                     │                                   │
+│                    ┌────────────────┴────────────────┐                  │
+│                    │  GemmaOrchestrator (on-device)  │                  │
+│                    │  - describe_photo (per photo)   │                  │
+│                    │  - describe_audio (optional)    │                  │
+│                    │  - protocol_answer              │                  │
+│                    │  - synthesize (rationale)       │                  │
+│                    └────────────────┬────────────────┘                  │
+│                                     │                                   │
+│                    ┌────────────────┴────────────────┐                  │
+│                    │ Contract validation               │                  │
+│                    │ - tags, bboxes, confidence       │                  │
+│                    │ - media refs, tool shape         │                  │
+│                    │ - triage ownership               │                  │
+│                    └────────────────┬────────────────┘                  │
+│                                     │                                   │
+│                    ┌────────────────┴────────────────┐                  │
+│                    │ Deterministic scoring (Dart)    │                  │
+│                    │ - priority score & band        │                  │
+│                    └────────────────┬────────────────┘                  │
+│                                     │                                   │
+│                    ┌────────────────┴────────────────┐                  │
+│                    │ Sealed EvidencePacket + PDF     │                  │
+│                    │ Share locally (user-initiated)  │                  │
+│                    └─────────────────────────────────┘                  │
+└─────────────────────────────────────────────────────────────────────────┘
+```
 
 ## Repository layout
 
 ```text
 apps/
-  cairn_mobile/        # Flutter Android + Web app
+  cairn_mobile/        # Flutter Android app (production)
 finetune/              # LoRA experiments and conversion utilities
 scripts/
   cairn/               # Python mirrors for constants, schema, prompts, scoring
-  data/                # synthetic dialogue pipeline
-  eval/                # baseline and tuned evaluation harness
-  spikes/              # historical and current de-risk harnesses
+  data/                # Synthetic dialogue pipeline
+  eval/                # Baseline and tuned evaluation harness
+  spikes/              # Historical and current de-risk harnesses
 docs/
-  prompts/             # locked system prompt
+  prompts/             # Locked system prompt
   schema/              # EvidencePacket JSON Schema v1
-  LEGAL.md             # protocol framing, liability, licenses
+  LEGAL.md             # Protocol framing, liability, licenses
+  submission/          # Prize-track writeups and plans
 data/
-  seeds/               # hand-authored seed dialogues
+  seeds/               # Hand-authored seed dialogues
 ```
 
-## Key files
+## Prerequisites
 
-- `apps/cairn_mobile/lib/core/llm/model_registry.dart` — approved Gemma 4 model
-  registry and artifact names.
-- `apps/cairn_mobile/lib/core/llm/orchestrator.dart` — model prompt/response
-  boundary and contract enforcement.
-- `apps/cairn_mobile/lib/core/models/evidence_packet.dart` — Dart packet model.
-- `apps/cairn_mobile/lib/core/models/evidence_packet_validator.dart` — packet
-  integrity checks before sealing.
-- `docs/prompts/system_prompt_v1.txt` — locked model instruction prompt.
-- `docs/schema/evidence_packet_v1.schema.json` — locked packet schema.
-- `QUICKSTART.md` — local setup and validation commands.
+- **Flutter** ≥3.22 (stable channel)
+- **Android SDK** with command-line tools
+- **Android device** with ≥6 GB RAM (tested on Samsung S23 FE-class devices)
+- **Gemma 4 LiteRT-LM `.task` model file** (see Model download below)
 
-## Validation baseline
+## Model download
 
-Use the Flutter analyzer and test suite before changing app behavior:
+Cairn requires a Gemma 4 LiteRT-LM model file. The model is **not bundled** in the repo or APK due to size (~2–4 GB).
+
+Download from HuggingFace:
+
+- **E2B (2B params)**: [`litert-community/gemma-4-E2B-it-litert-lm`](https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm)
+- **E4B (4B params)**: [`litert-community/gemma-4-E4B-it-litert-lm`](https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm)
+
+Download the `.task` web file, then push it to your device:
 
 ```bash
+adb push /path/to/gemma-4-*.task /data/local/tmp/
+```
+
+The app will detect the model file at runtime. See `QUICKSTART.md` for full setup.
+
+## Quickstart
+
+For local development setup, validation commands, and first-run instructions, see:
+
+- [`QUICKSTART.md`](QUICKSTART.md) — project setup and device testing
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — branch workflow, commit style, and locked artifacts policy
+
+## Tests
+
+```bash
+# Flutter (657+ tests)
 cd apps/cairn_mobile
-flutter analyze
 flutter test
-```
 
-Use the Python checks when changing mirrored constants, schema, prompts, or
-data tooling:
-
-```bash
+# Python
 cd scripts
 PYTHONPATH=. pytest -q
 ```
 
-## Prize tracks
+## Legal
 
-Global Resilience, LiteRT, and Unsloth.
+Licensed under the [Apache-2.0 License](LICENSE).
 
-## License
+Upstream datasets retain their own licenses; see [`docs/LEGAL.md`](docs/LEGAL.md).
 
-Apache-2.0 (see `LICENSE`). Datasets retain their upstream licenses; see
-`docs/LEGAL.md`.
+> **Disclaimer:** Cairn is a preliminary screening aid, not a structural-engineering determination, not an ATC-20 placard, and not a life-safety instruction. Every report includes an in-app disclaimer: "I am not a licensed engineer. This is preliminary screening only."
+
+## Contributing
+
+We welcome contributions. Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) for environment setup, the locked-artifacts policy, and the PR checklist.

@@ -89,7 +89,7 @@ Cairn is built for the moment when a city has more damaged buildings than inspec
 
 ## Suggested links
 
-- Source code: `https://github.com/<owner>/<repo>`
-- Demo video: `<YouTube URL>`
-- Android build: `<GitHub Release or Play Store internal test link>`
-- Optional notebook: `<Kaggle notebook URL>`
+- Source code: `https://github.com/N1KH1LT0X1N/cairn`
+- Demo video: `[Demo video — to be added]`
+- Android build: `[Release — to be added]`
+- Optional notebook: `[Kaggle notebook — to be added]`

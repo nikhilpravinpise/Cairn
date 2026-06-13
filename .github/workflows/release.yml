@@ -1,0 +1,37 @@
+name: Release APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/cairn_mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.x'
+          channel: stable
+      - run: flutter pub get
+      - run: flutter build apk --profile --dart-define=BENCH_IMAGE_PX=640 --dart-define=BENCH_NATIVE_IMAGE_PREPROCESS=true
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cairn-profile-apk
+          path: apps/cairn_mobile/build/app/outputs/flutter-apk/app-profile.apk
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: apps/cairn_mobile/build/app/outputs/flutter-apk/app-profile.apk
+          body: |
+            **Note:** The model file is NOT bundled in this APK.
+            Download the Gemma 4 LiteRT-LM `.task` file from HuggingFace:
+            - [E2B (2B)](https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm)
+            - [E4B (4B)](https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
