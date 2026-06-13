@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.29.x'
+          flutter-version: '3.44.2'
           channel: stable
       - run: flutter pub get
       - run: flutter build apk --profile --dart-define=BENCH_IMAGE_PX=640 --dart-define=BENCH_NATIVE_IMAGE_PREPROCESS=true
